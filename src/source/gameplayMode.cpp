@@ -166,17 +166,14 @@ void firstGameplayLoop()
 	}
 
 	// reset the player's stats
+	announcerQuipCycle = rand()%4;
+	retireTimer = fullComboAnimTimer = fullComboAnimStep = 0;
+	fullComboP1 = fullComboP2 = false;
 	for ( int p = 0; p < 2; p++ )
 	{
 		gs.player[p].nextStage();
-		if ( gs.currentStage == 0 )
-		{
-			gs.player[p].displayCombo = 0;
-			announcerQuipCycle = rand()%4;
-			retireTimer = fullComboAnimTimer = fullComboAnimStep = 0;
-			fullComboP1 = fullComboP2 = false;
-			gs.player[p].stepZoneTimePerBeat = BPM_TO_MSEC(gs.player[p].scrollRate);
-		}
+		gs.player[p].displayCombo = 0;
+		gs.player[p].stepZoneTimePerBeat = BPM_TO_MSEC(gs.player[p].scrollRate);
 		gs.player[p].comboColor = COMBO_PERFECT;
 	}
 	rememberedCurrentStage = gs.currentStage; // this won't change during the transition. for most of the song it will remain the same
@@ -278,6 +275,27 @@ void mainGameplayLoop(UTIME dt)
 		gs.g_gameModeTransition = 1;
 		sm.savePlayersToDisk();
 		em.announcerQuip(86); // say "I can't wait anymore"
+		return;
+	}
+
+	// quick quit: all 6 buttons held simultaneously ends the song and continues the credit
+	if ( im.isKeyDown(MENU_LEFT_1P) && im.isKeyDown(MENU_RIGHT_1P) && im.isKeyDown(MENU_START_1P) &&
+	     im.isKeyDown(MENU_LEFT_2P) && im.isKeyDown(MENU_RIGHT_2P) && im.isKeyDown(MENU_START_2P) )
+	{
+		gs.currentStage++;
+		int numBonusStages = 0;
+		if ( gs.currentStage >= gs.numSongsPerSet )
+		{
+			numBonusStages = checkForExtraStages();
+		}
+		gs.returningToSongwheel = true;
+		gs.g_currentGameMode = RESULTS;
+		gs.g_gameModeTransition = 1;
+		if ( gs.currentStage >= gs.numSongsPerSet + numBonusStages )
+		{
+			gs.creditComplete = true;
+			sm.savePlayersToDisk();
+		}
 		return;
 	}
 
@@ -571,23 +589,18 @@ void doChartLogic(UTIME dt, int p)
 				numBonusStages = checkForExtraStages();
 			}
 
-			bool shortList = gs.player[0].stagesPlayed[gs.currentStage] <= 0;				// true when, for any reason, not enough songs were picked to fill the setlist
-			if ( (gs.currentStage >= gs.numSongsPerSet + numBonusStages) || shortList )		// if failing were possible in DMX, make sure that the bestStatus is at least CLEARED
+			if ( fullComboAnimStep > 0 ) // let the full combo animation play out before per-song results
 			{
-				if ( fullComboAnimStep > 0 ) // let the full combo animation play out on the way to the results
-				{
-					gs.currentStage--;
-					return;
-				}
-				gs.g_currentGameMode = RESULTS;
-				gs.g_gameModeTransition = 1;
-				sm.savePlayersToDisk();
+				gs.currentStage--;
+				return;
 			}
-			else
+			gs.returningToSongwheel = true;
+			gs.g_currentGameMode = RESULTS;
+			gs.g_gameModeTransition = 1;
+			if ( gs.currentStage >= gs.numSongsPerSet + numBonusStages )
 			{
-				//loadNextSong(); // this goes off-sync by stage 2, restart the mode instead
-				gs.g_currentGameMode = GAMEPLAY;
-				gs.g_gameModeTransition = 1;
+				gs.creditComplete = true;
+				sm.savePlayersToDisk();
 			}
 			return;
 		}

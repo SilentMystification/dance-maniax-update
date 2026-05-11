@@ -64,6 +64,8 @@ public:
 	bool isDoublePremium;
 	bool isEventMode;
 	bool isFreestyleMode;
+	bool returningToSongwheel;  // true mid-credit when returning from per-song results to songwheel
+	bool creditComplete;        // true when all songs (including bonus) are done; triggers full results after per-song results
 
 	class PLAYER
 	{
@@ -296,6 +298,8 @@ public:
 		isDoublePremium = false;
 		isEventMode = false;
 		isFreestyleMode = false;
+		returningToSongwheel = false;
+		creditComplete = false;
 	}
 
 	void loadSong(int songID, bool preview = false, bool useAlternateMusic = false)

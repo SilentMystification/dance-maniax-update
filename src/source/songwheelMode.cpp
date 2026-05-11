@@ -258,6 +258,37 @@ void firstSongwheelLoop()
 		m_versions = loadImage("DATA/songwheel/versions.tga");
 	}
 
+	// mid-credit re-entry: restore UI state but keep songwheelIndex, currentStage, and stagesPlayed
+	if ( gs.returningToSongwheel )
+	{
+		gs.returningToSongwheel = false;
+		isSphereMoving = false;
+		rotateAnimTime = 0;
+		timeRemaining = 60999;
+		titleAnimTimer = 0;
+		isInSubmenu = false;
+		separateSubmenu[0] = separateSubmenu[1] = currentSubmenu = 0;
+		maniaxSelect[0] = maniaxSelect[1] = 0;
+		introAnimTimer = INTRO_ANIM_LENGTH;
+		introAnimSteps = 3;
+		isRandomSelect = false;
+		nextStageAnimTimer = 0;
+		previewTimeStarted = last_utime;
+		previewTimeRemaining = 0;
+		previewSongID = 0;
+		// spin the wheel in to the saved position, same as the first-entry intro
+		int targetIndex = songwheelIndex;
+		postSongwheelRotation(); // snap currentQuads to home positions before the spin starts
+		songwheelIndex = (targetIndex - 3 + maxSongwheelIndex) % maxSongwheelIndex;
+		isMovementClockwise = true;
+		prepareForSongwheelRotation();
+		gs.killSong();
+		em.playSample(SFX_SONGWHEEL_APPEAR);
+		lm.loadLampProgram("songwheel.txt");
+		im.setCooldownTime(0);
+		return;
+	}
+
 	// reset state
 	isSphereMoving = false;
 	rotateAnimTime = 0;
@@ -626,7 +657,6 @@ void mainSongwheelLoop(UTIME dt)
 			if ( (isInSubmenu && submenuDone[0] && submenuDone[1]) || skippingSubmenu )
 			{
 				isInSubmenu = skippingSubmenu = false;
-				gs.currentStage++;
 				int realIndex = songID_to_listID(songlist[songwheelIndex].songID);
 				songs[realIndex].numPlays++;
 				am.logEvent(TRACK_CAT_ACTIVITY, TRACK_EV_PICKSONG, songTitles[realIndex].c_str(), songs[realIndex].songID);
@@ -636,25 +666,11 @@ void mainSongwheelLoop(UTIME dt)
 				separateSubmenu[1] = separateSubmenu[1] == 3 ? 1 : separateSubmenu[1];
 				maniaxSelect[0] = maniaxSelect[1] = 0;
 
-				if ( timeRemaining < 10000 )
-				{
-					timeRemaining = 10000;
-				}
-
-				if ( gs.currentStage >= gs.numSongsPerSet || gs.isFreestyleMode )
-				{
-					gs.currentStage = 0;
-					gs.g_currentGameMode = GAMEPLAY;
-					gs.g_gameModeTransition = 1;
-					//stop_sample(currentPreview);
-					killPreviewClip();
-					em.playSample(SFX_FORCEFUL_SELECTION);
-				}
-				else
-				{
-					em.playSample(SFX_SONGWHEEL_PICK);
-					nextStageAnimTimer = NEXT_STAGE_ANIM_TIME;
-				}
+				// go directly to gameplay — player picks one song at a time now
+				gs.g_currentGameMode = GAMEPLAY;
+				gs.g_gameModeTransition = 1;
+				killPreviewClip();
+				em.playSample(SFX_FORCEFUL_SELECTION);
 			}
 		}
 	}

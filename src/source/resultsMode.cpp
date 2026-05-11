@@ -45,6 +45,8 @@ int originalX = 64;
 int targetScrollX = -1;
 UTIME scrollTweenTime = 0;
 int stageLimit = 3;
+bool isMidCreditResults = false;
+int midCreditDisplayStage = 0;
 
 #define INTRO_ANIM_LENGTH 1000
 
@@ -78,14 +80,25 @@ void firstResultsLoop()
 	blit(rm.m_backbuf, rm.m_backbuf1, 0, 0, 0, 0, 640, 480); // prepare for the animation
 	blit(rm.m_backbuf, rm.m_backbuf2, 0, 0, 0, 0, 640, 480);
 
-	// calculate how many stages were actually played
-	for ( int i = 0; i < MAX_SONGS_PER_SET; i++ )
+	if ( gs.returningToSongwheel )
 	{
-		if ( sm.player[currentPlayer].currentSet[i].songID < 100 )
+		// mid-credit: show only the stage that was just played
+		isMidCreditResults = true;
+		midCreditDisplayStage = gs.currentStage - 1;
+	}
+	else
+	{
+		// final results: show all stages that were played
+		isMidCreditResults = false;
+		midCreditDisplayStage = 0;
+		for ( int i = 0; i < MAX_SONGS_PER_SET; i++ )
 		{
-			break;
+			if ( sm.player[currentPlayer].currentSet[i].songID < 100 )
+			{
+				break;
+			}
+			stageLimit = i-1;
 		}
-		stageLimit = i-1;
 	}
 
 	em.playSample(SFX_RESULTS_APPEAR);
@@ -180,14 +193,25 @@ void mainResultsLoop(UTIME dt)
 	draw_trans_sprite(rm.m_backbuf, m_resultBottom, 0, 402);	
 	set_alpha_blender(); // the game assumes the graphics are left in this mode
 
-	renderNameString(sm.player[currentPlayer].displayName, 107, 40, 0);	
+	{
+		int nameLen = 0;
+		while ( nameLen < 8 && sm.player[currentPlayer].displayName[nameLen] != 0 ) nameLen++;
+		renderNameString(sm.player[currentPlayer].displayName, (640 - nameLen * 32) / 2, 40, 0);
+	}
 
 	// render the song results
 	scrollX = getValueFromRange(targetScrollX, originalX, scrollTweenTime*100/400 ); // quickly slide the results in from the right
 	SUBTRACT_TO_ZERO(scrollTweenTime, dt);
-	for ( int i = 0; i < MAX_SONGS_PER_SET; i++ )
+	if ( isMidCreditResults )
 	{
-		renderResult(i, scrollX + (192*i));
+		renderResult(midCreditDisplayStage, scrollX);
+	}
+	else
+	{
+		for ( int i = 0; i < MAX_SONGS_PER_SET; i++ )
+		{
+			renderResult(i, scrollX + (192*i));
+		}
 	}
 
 	// render the rest of the intro animation
@@ -203,20 +227,23 @@ void mainResultsLoop(UTIME dt)
 		renderTimeRemaining(5, 36);
 	}
 
-	// check for input
-	if ( (im.getKeyState(MENU_LEFT_1P) == HELD_DOWN || im.getKeyState(MENU_LEFT_2P) == HELD_DOWN) && scrollTweenTime == 0 && scrollX < 64 )
+	// check for input — no scrolling in mid-credit results (only one stage shown)
+	if ( !isMidCreditResults )
 	{
-		scrollTweenTime = 400;
-		targetScrollX += 192;
-		originalX = scrollX;
-		em.playSample(SFX_SONGWHEEL_MOVE);
-	}
-	if ( (im.getKeyState(MENU_RIGHT_1P) == HELD_DOWN || im.getKeyState(MENU_RIGHT_2P) == HELD_DOWN) && scrollTweenTime == 0 && scrollX > (stageLimit-2)*(-192) )
-	{
-		scrollTweenTime = 400;
-		targetScrollX -= 192;
-		originalX = scrollX;		
-		em.playSample(SFX_SONGWHEEL_MOVE);
+		if ( (im.getKeyState(MENU_LEFT_1P) == HELD_DOWN || im.getKeyState(MENU_LEFT_2P) == HELD_DOWN) && scrollTweenTime == 0 && scrollX < 64 )
+		{
+			scrollTweenTime = 400;
+			targetScrollX += 192;
+			originalX = scrollX;
+			em.playSample(SFX_SONGWHEEL_MOVE);
+		}
+		if ( (im.getKeyState(MENU_RIGHT_1P) == HELD_DOWN || im.getKeyState(MENU_RIGHT_2P) == HELD_DOWN) && scrollTweenTime == 0 && scrollX > (stageLimit-2)*(-192) )
+		{
+			scrollTweenTime = 400;
+			targetScrollX -= 192;
+			originalX = scrollX;
+			em.playSample(SFX_SONGWHEEL_MOVE);
+		}
 	}
 	if ( im.getKeyState(MENU_START_1P) == JUST_DOWN || im.getKeyState(MENU_START_2P) == JUST_DOWN || timeRemaining <= 0 )
 	{
@@ -227,19 +254,33 @@ void mainResultsLoop(UTIME dt)
 		}
 		else
 		{
-			if ( sm.player[0].isLoggedIn || (gs.isVersus && sm.player[1].isLoggedIn) )
+			if ( gs.returningToSongwheel && gs.creditComplete )
 			{
-				gs.g_currentGameMode = GAMEOVER;//VOTEMODE;
+				// per-song result for the final song was shown; now show full credit results
+				gs.returningToSongwheel = false;
+				gs.creditComplete = false;
+				gs.g_currentGameMode = RESULTS;
+				gs.g_gameModeTransition = 1;
 			}
-			else
+			else if ( gs.returningToSongwheel )
 			{
-				gs.g_currentGameMode = GAMEOVER;
+				gs.g_currentGameMode = SONGWHEEL;
 			}
-
-			if ( gs.isFreestyleMode )
+			else if ( gs.isFreestyleMode )
 			{
 				gs.player[0].resetAll();
 				gs.g_currentGameMode = SONGWHEEL;
+			}
+			else
+			{
+				if ( sm.player[0].isLoggedIn || (gs.isVersus && sm.player[1].isLoggedIn) )
+				{
+					gs.g_currentGameMode = GAMEOVER;
+				}
+				else
+				{
+					gs.g_currentGameMode = GAMEOVER;
+				}
 			}
 
 			gs.g_gameModeTransition = 1;
