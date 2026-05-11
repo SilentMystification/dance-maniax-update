@@ -1658,7 +1658,7 @@ int loadSongDB()
 		{
 			allegro_message("The declared number of songs in song_db.csv is too high. (Expected: %d, found: %d)", NUM_SONGS, i-1);
 		}
-		if ( id < 100 || id > 400 )
+		if ( id < 100 || id > 999 )
 		{
 			allegro_message("Unexpected file contents in song_db.csv - check line %d. (SongID = %d)", i-1, id);
 			return -1;

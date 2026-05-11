@@ -613,6 +613,8 @@ void doChartLogic(UTIME dt, int p)
 			{
 				if ( gs.player[p].currentChart[n].type == TAP || gs.player[p].currentChart[n].type == JUMP )
 				{
+					gs.player[p].lastJudgementDiff = (int)(gs.player[p].timeElapsed - gs.player[p].currentChart[n].timing);
+					gs.player[p].lastJudgementEarly = false;
 					scoreNote(p, MISS, gs.player[p].currentChart[n].columns[0]);
 
 					// Drummania and IIDX don't have 'jumps', each note is separate, hmm....
@@ -732,6 +734,8 @@ void doChartLogic(UTIME dt, int p)
 				}
 				else
 				{
+					gs.player[p].lastJudgementDiff = diff;
+					gs.player[p].lastJudgementEarly = gs.player[p].currentChart[closestNote].timing > gs.player[p].timeElapsed;
 					scoreNote(p,judgement, col1);
 					if ( judgement == MARVELLOUS || judgement == PERFECT || judgement == GREAT )
 					{

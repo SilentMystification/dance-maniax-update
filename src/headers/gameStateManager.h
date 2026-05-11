@@ -93,6 +93,9 @@ public:
 		int   colorCycle;                // [0..3], rotates the arrows between the four colors
 		int   judgementTime;             // time since the last judgement was registered
 		int   lastJudgement;             // what the most recent Judgement was
+		int   lastJudgementDiff;         // ms offset of the last judged note (always positive)
+		bool  lastJudgementEarly;        // true if early, false if late
+		int   judgementDisplayMode;      // 0=off,1=bad+,2=good+,3=great+,4=perfect+,5=all except miss
 		int   columnJudgeTime[10];
 		int   columnJudgement[10];
 		int   laneFlareColors[10];
@@ -162,6 +165,9 @@ public:
 			colorCycle = 0;
 			judgementTime = 0;
 			lastJudgement = 0;
+			lastJudgementDiff = 0;
+			lastJudgementEarly = false;
+			judgementDisplayMode = 4; 
 			shockAnimTimer = 0;
 			drummaniaCombo[0] = drummaniaCombo[1] = drummaniaCombo[2] = drummaniaCombo[3] = 0;
 
@@ -201,6 +207,7 @@ public:
 			hiddenModifier = 0;
 			stealthModifier = false;
 			arrangeModifier = 0;
+			judgementDisplayMode = 0; 
 			centerLeft = false;
 			centerRight = false;
 		}

@@ -31,7 +31,6 @@ extern BITMAP** m_banners;
 extern const UTIME BANNER_ANIM_LENGTH;
 const UTIME BANNER_ANIM_STEP = 500;
 
-
 //////////////////////////////////////////////////////////////////////////////
 // Graphics
 //////////////////////////////////////////////////////////////////////////////
@@ -726,6 +725,40 @@ void renderTempoStopMarker(int x1, int x2, int y, int len)
 	renderWhiteNumber(len, x2+3, y+15);
 }
 
+//determines if and when the judgement display should be rendered based off of the player's last judgment and judgementDisplayMode in gamestatemanager
+bool shouldShowJudgementDisplay(int lastJudgement, int mode)
+{
+	if (lastJudgement < 1 || lastJudgement == MISS) return false;
+	switch (mode)
+	{
+	case 0: return false;
+	case 1: return lastJudgement == 5;                                                                     // bad +  (reserved, not yet implemented)
+	case 2: return lastJudgement == GOOD || lastJudgement == 5;                                           // good, bad
+	case 3: return lastJudgement == GREAT || lastJudgement == GOOD || lastJudgement == 5;                 // great, good, bad
+	case 4: return lastJudgement == PERFECT || lastJudgement == GREAT || lastJudgement == GOOD || lastJudgement == 5; // perfect, great, good, bad
+	case 5: return true;                                                                                   // everything except miss
+	default: return false;
+	}
+}
+
+void renderJudgementText(int centered_x, int y, int diff, bool isEarly)
+{
+	char judgeText[34];
+	int judgeColor;
+	if (isEarly)	//For early notes
+	{
+		sprintf_s(judgeText, sizeof(judgeText), "|early +%dms", diff);
+		judgeColor = 2; // red
+	}
+	else			//For late notes
+	{
+		sprintf_s(judgeText, sizeof(judgeText), "|late -%dms", diff);
+		judgeColor = 3; // blue
+	}
+	int approxWidth = (int)(strlen(judgeText) - 1) * 10;
+	renderBoldString(judgeText, centered_x - approxWidth / 2, y, approxWidth + 20, false, judgeColor);
+}
+
 void renderGameplay()
 {
 	//blit(m_bg, rm.m_backbuf, 0, 0, 0, 0, 640, 480);
@@ -785,6 +818,9 @@ void renderGameplay()
 		if ( gs.player[p].danceManiaxMode )
 		{
 			renderDMXJudgement(gs.player[p].lastJudgement, gs.player[p].judgementTime, centered_x, JUDGEMENT_Y);
+
+			if ( shouldShowJudgementDisplay(gs.player[p].lastJudgement, gs.player[p].judgementDisplayMode) )
+				renderJudgementText(centered_x, JUDGEMENT_Y - 36, gs.player[p].lastJudgementDiff, gs.player[p].lastJudgementEarly);
 		}
 	}
 
@@ -811,6 +847,9 @@ void renderGameplay()
 		if ( !gs.player[p].danceManiaxMode )
 		{
 			renderDDRJudgement(gs.player[p].lastJudgement, gs.player[p].judgementTime, centered_x, JUDGEMENT_Y);
+
+			if ( shouldShowJudgementDisplay(gs.player[p].lastJudgement, gs.player[p].judgementDisplayMode) )
+				renderJudgementText(centered_x, JUDGEMENT_Y - 36, gs.player[p].lastJudgementDiff, gs.player[p].lastJudgementEarly);
 		}
 	}
 	renderColumnJudgements(p);
@@ -863,6 +902,7 @@ void renderGameplay()
 		renderFullComboAnim(centerx, fullComboAnimTimer, fullComboAnimStep, fullComboPerfectP2 );
 	}
 }
+
 
 void renderDebugNote(struct ARROW n, int x, int y)
 {
