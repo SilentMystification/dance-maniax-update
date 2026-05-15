@@ -726,9 +726,10 @@ void renderTempoStopMarker(int x1, int x2, int y, int len)
 }
 
 //determines if and when the judgement display should be rendered based off of the player's last judgment and judgementDisplayMode in gamestatemanager
-bool shouldShowJudgementDisplay(int lastJudgement, int mode)
+bool shouldShowJudgementDisplay(int lastJudgement, int mode, int diff)
 {
 	if (lastJudgement < 1 || lastJudgement == MISS) return false;
+	if (diff == 0 && mode != 5) return false;
 	switch (mode)
 	{
 	case 0: return false;
@@ -745,12 +746,17 @@ void renderJudgementText(int centered_x, int y, int diff, bool isEarly)
 {
 	char judgeText[34];
 	int judgeColor;
-	if (isEarly)	//For early notes
+	if (diff == 0)
+	{
+		sprintf_s(judgeText, sizeof(judgeText), "|0ms");
+		judgeColor = 0; // white
+	}
+	else if (isEarly)
 	{
 		sprintf_s(judgeText, sizeof(judgeText), "|early +%dms", diff);
 		judgeColor = 2; // red
 	}
-	else			//For late notes
+	else
 	{
 		sprintf_s(judgeText, sizeof(judgeText), "|late -%dms", diff);
 		judgeColor = 3; // blue
@@ -819,7 +825,7 @@ void renderGameplay()
 		{
 			renderDMXJudgement(gs.player[p].lastJudgement, gs.player[p].judgementTime, centered_x, JUDGEMENT_Y);
 
-			if ( shouldShowJudgementDisplay(gs.player[p].lastJudgement, gs.player[p].judgementDisplayMode) )
+			if ( shouldShowJudgementDisplay(gs.player[p].lastJudgement, gs.player[p].judgementDisplayMode, gs.player[p].lastJudgementDiff) )
 				renderJudgementText(centered_x, JUDGEMENT_Y - 36, gs.player[p].lastJudgementDiff, gs.player[p].lastJudgementEarly);
 		}
 	}
@@ -848,7 +854,7 @@ void renderGameplay()
 		{
 			renderDDRJudgement(gs.player[p].lastJudgement, gs.player[p].judgementTime, centered_x, JUDGEMENT_Y);
 
-			if ( shouldShowJudgementDisplay(gs.player[p].lastJudgement, gs.player[p].judgementDisplayMode) )
+			if ( shouldShowJudgementDisplay(gs.player[p].lastJudgement, gs.player[p].judgementDisplayMode, gs.player[p].lastJudgementDiff) )
 				renderJudgementText(centered_x, JUDGEMENT_Y - 36, gs.player[p].lastJudgementDiff, gs.player[p].lastJudgementEarly);
 		}
 	}

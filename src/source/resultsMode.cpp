@@ -54,8 +54,8 @@ int midCreditDisplayStage = 0;
 //////////////////////////////////////////////////////////////////////////////
 // Functions
 //////////////////////////////////////////////////////////////////////////////
-void renderResult(int which, int x);
-// precondition: which is a stage number
+void renderResult(int which, int x, int player);
+// precondition: which is a stage number, player is 0 or 1
 // postcondition: renders graphics to the backbuf
 
 void firstResultsLoop()
@@ -193,6 +193,16 @@ void mainResultsLoop(UTIME dt)
 	draw_trans_sprite(rm.m_backbuf, m_resultBottom, 0, 402);	
 	set_alpha_blender(); // the game assumes the graphics are left in this mode
 
+	if ( gs.isVersus && isMidCreditResults )
+	{
+		int p1Len = 0;
+		while ( p1Len < 8 && sm.player[0].displayName[p1Len] != 0 ) p1Len++;
+		renderNameString(sm.player[0].displayName, 160 - p1Len * 16, 72, 0);
+		int p2Len = 0;
+		while ( p2Len < 8 && sm.player[1].displayName[p2Len] != 0 ) p2Len++;
+		renderNameString(sm.player[1].displayName, 480 - p2Len * 16, 72, 0);
+	}
+	else
 	{
 		int nameLen = 0;
 		while ( nameLen < 8 && sm.player[currentPlayer].displayName[nameLen] != 0 ) nameLen++;
@@ -204,13 +214,21 @@ void mainResultsLoop(UTIME dt)
 	SUBTRACT_TO_ZERO(scrollTweenTime, dt);
 	if ( isMidCreditResults )
 	{
-		renderResult(midCreditDisplayStage, scrollX);
+		if ( gs.isVersus )
+		{
+			renderResult(midCreditDisplayStage, 96, 0);
+			renderResult(midCreditDisplayStage, 416, 1);
+		}
+		else
+		{
+			renderResult(midCreditDisplayStage, scrollX, 0);
+		}
 	}
 	else
 	{
 		for ( int i = 0; i < MAX_SONGS_PER_SET; i++ )
 		{
-			renderResult(i, scrollX + (192*i));
+			renderResult(i, scrollX + (192*i), currentPlayer);
 		}
 	}
 
@@ -247,7 +265,7 @@ void mainResultsLoop(UTIME dt)
 	}
 	if ( im.getKeyState(MENU_START_1P) == JUST_DOWN || im.getKeyState(MENU_START_2P) == JUST_DOWN || timeRemaining <= 0 )
 	{
-		if ( gs.isVersus && currentPlayer == 0 )
+		if ( gs.isVersus && !isMidCreditResults && currentPlayer == 0 )
 		{
 			firstResultsLoop(); // reboot the mode, lol
 			currentPlayer = 1;
@@ -288,11 +306,11 @@ void mainResultsLoop(UTIME dt)
 	}
 }
 
-void renderResult(int which, int x)
+void renderResult(int which, int x, int player)
 {
 	static int colors[3] = { makeacol(41, 239, 115, 255), makeacol(247, 41, 173, 255), makeacol(76, 0, 190, 255) };
 
-	if ( sm.player[currentPlayer].currentSet[which].songID < 100 )
+	if ( sm.player[player].currentSet[which].songID < 100 )
 	{
 		//renderWhiteString("STAGE", x + 20, 100);
 		//renderWhiteNumber(which, x, 100);
@@ -300,13 +318,13 @@ void renderResult(int which, int x)
 	}
 
 	// song title
-	//renderBoldString(songTitles[songID_to_listID(sm.player[currentPlayer].currentSet[which].songID)], x-32, 72, 192, false);
-	//renderWhiteString(songTitles[songID_to_listID(sm.player[currentPlayer].currentSet[which].songID)], x-32, 72);
+	//renderBoldString(songTitles[songID_to_listID(sm.player[player].currentSet[which].songID)], x-32, 72, 192, false);
+	//renderWhiteString(songTitles[songID_to_listID(sm.player[player].currentSet[which].songID)], x-32, 72);
 
 	// status
 	int frame = getValueFromRange(0, 10, secondAnimTimer * 100 / 750);
 	int statusy = 73; // 357
-	switch( sm.player[currentPlayer].currentSet[which].status )
+	switch( sm.player[player].currentSet[which].status )
 	{
 	case STATUS_FULL_PERFECT_COMBO:
 	case STATUS_FULL_GREAT_COMBO:
@@ -324,36 +342,36 @@ void renderResult(int which, int x)
 	}
 
 	// draw a box around the banner to indicate difficulty
-	stretch_blit(m_banners[songID_to_listID(sm.player[currentPlayer].currentSet[which].songID)], rm.m_backbuf, 0, 0, 256, 256, x, 100, 128, 128);
-	int level = sm.player[currentPlayer].currentSet[which].chartID % 10;
+	stretch_blit(m_banners[songID_to_listID(sm.player[player].currentSet[which].songID)], rm.m_backbuf, 0, 0, 256, 256, x, 100, 128, 128);
+	int level = sm.player[player].currentSet[which].chartID % 10;
 	rect(rm.m_backbuf, x, 100, x+128, 228, colors[level]);
 	rect(rm.m_backbuf, x+1, 101, x+127, 227, colors[level]);
 
 	// counts
 	masked_blit(m_resultSub, rm.m_backbuf, 0, 0, x-32, 230, 192, 32);
-	renderScoreNumber(sm.player[currentPlayer].currentSet[which].perfects, x-32+108, 230-4, 3);
-	if ( sm.player[currentPlayer].currentSet[which].getScore() == 1000000 )
+	renderScoreNumber(sm.player[player].currentSet[which].perfects, x-32+108, 230-4, 3);
+	if ( sm.player[player].currentSet[which].getScore() == 1000000 )
 	{
 		int star = getValueFromRange(0, 11, secondAnimTimer * 100 / 750);
-		masked_blit(m_pcStar, rm.m_backbuf, (star/4)*64, (star%4)*64, x+32, 280, 64, 64);		
+		masked_blit(m_pcStar, rm.m_backbuf, (star/4)*64, (star%4)*64, x+32, 280, 64, 64);
 	}
 	else
 	{
 		masked_blit(m_resultSub, rm.m_backbuf, 0, 32, x-32, 260, 192, 32);
-		renderScoreNumber(sm.player[currentPlayer].currentSet[which].greats, x-32+108, 230+26, 3);
+		renderScoreNumber(sm.player[player].currentSet[which].greats, x-32+108, 230+26, 3);
 
-		if ( sm.player[currentPlayer].currentSet[which].goods > 0 || sm.player[currentPlayer].currentSet[which].misses > 0 )
+		if ( sm.player[player].currentSet[which].goods > 0 || sm.player[player].currentSet[which].misses > 0 )
 		{
 			masked_blit(m_resultSub, rm.m_backbuf, 0, 64, x-32, 290, 192, 32);
-			renderScoreNumber(sm.player[currentPlayer].currentSet[which].goods, x-32+108, 230+56, 3);
+			renderScoreNumber(sm.player[player].currentSet[which].goods, x-32+108, 230+56, 3);
 		}
-		if ( sm.player[currentPlayer].currentSet[which].misses > 0 )
+		if ( sm.player[player].currentSet[which].misses > 0 )
 		{
 			masked_blit(m_resultSub, rm.m_backbuf, 0, 96, x-32, 320, 192, 32);
-			renderScoreNumber(sm.player[currentPlayer].currentSet[which].misses, x-32+108, 230+90, 3);
+			renderScoreNumber(sm.player[player].currentSet[which].misses, x-32+108, 230+90, 3);
 		}
 	}
 
 	// score
-	renderScoreNumber(sm.player[currentPlayer].currentSet[which].getScore(), x-32+6, 357, 7);
+	renderScoreNumber(sm.player[player].currentSet[which].getScore(), x-32+6, 357, 7);
 }

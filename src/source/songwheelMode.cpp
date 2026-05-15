@@ -785,6 +785,7 @@ void mainSongwheelLoop(UTIME dt)
 	}
 	if ( timeRemaining <= 0 ) // ran out of time - pick randomly
 	{
+		int startStage = gs.currentStage;
 		while ( gs.currentStage < gs.numSongsPerSet )
 		{
 			int randIndex = rand()%maxSongwheelIndex;
@@ -817,7 +818,7 @@ void mainSongwheelLoop(UTIME dt)
 			}
 			gs.currentStage++;
 		}
-		gs.currentStage = 0;
+		gs.currentStage = startStage;
 		gs.g_currentGameMode = GAMEPLAY;
 		gs.g_gameModeTransition = 1;
 		killPreviewClip();
