@@ -1,0 +1,390 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Both|Win32">
+      <Configuration>Both</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{A8D1503A-D533-4888-ADAE-1F6F0AC667B6}</ProjectGuid>
+    <RootNamespace>DMX_Remake</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+    <PreferredToolArchitecture>x86</PreferredToolArchitecture>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+    <PreferredToolArchitecture>x86</PreferredToolArchitecture>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Both|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+    <PreferredToolArchitecture>x86</PreferredToolArchitecture>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Both|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <TargetName>DMX_Debug</TargetName>
+    <IncludePath>lib\allegro-4.4.2-msvc-10.0\include;lib\fmodapi375win\api\inc;lib\libpng\include\libpng12;lib\libpng\include;lib\loadpng;lib\apeg\include;lib\pacdrive\include;lib\hidapi\include;lib\libcurl\\include;$(IncludePath)</IncludePath>
+    <LibraryPath>lib\allegro-4.4.2-msvc-10.0\lib;lib\fmodapi375win\api\lib;lib\libpng\lib;lib\apeg\lib\release;lib\pacdrive\lib;lib\hidapi\lib;lib\libcurl\lib;$(LibraryPath)</LibraryPath>
+    <PreBuildEventUseInBuild>false</PreBuildEventUseInBuild>
+    <PublicIncludeDirectories>
+    </PublicIncludeDirectories>
+    <OutDir>..\deploy\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <TargetName>DMX</TargetName>
+    <IncludePath>lib\allegro-4.4.2-msvc-10.0\include;lib\fmodapi375win\api\inc;lib\libpng\include\libpng12;lib\libpng\include;lib\loadpng;lib\apeg\include;lib\pacdrive\include;lib\hidapi\include;lib\libcurl\\include;$(IncludePath)</IncludePath>
+    <LibraryPath>lib\allegro-4.4.2-msvc-10.0\lib;lib\fmodapi375win\api\lib;lib\libpng\lib;lib\apeg\lib\release;lib\pacdrive\lib;lib\hidapi\lib;lib\libcurl\lib;$(LibraryPath)</LibraryPath>
+    <IgnoreImportLibrary>false</IgnoreImportLibrary>
+    <PublicIncludeDirectories>
+    </PublicIncludeDirectories>
+    <OutDir>..\deploy\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Both|Win32'">
+    <TargetName>DMX</TargetName>
+    <IncludePath>lib\allegro-4.4.2-msvc-10.0\include;lib\fmodapi375win\api\inc;lib\libpng\include\libpng12;lib\libpng\include;lib\loadpng;lib\apeg\include;lib\pacdrive\include;lib\hidapi\include;lib\libcurl\\include;$(IncludePath)</IncludePath>
+    <LibraryPath>lib\allegro-4.4.2-msvc-10.0\lib;lib\fmodapi375win\api\lib;lib\libpng\lib;lib\apeg\lib\release;lib\pacdrive\lib;lib\hidapi\lib;lib\libcurl\lib;$(LibraryPath)</LibraryPath>
+    <IgnoreImportLibrary>false</IgnoreImportLibrary>
+    <PublicIncludeDirectories>
+    </PublicIncludeDirectories>
+    <OutDir>..\deploy\</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>_MBCS;CURL_STATICLIB;DMXDEBUG;CURL_STATICLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <DisableSpecificWarnings>4701;4099;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <StructMemberAlignment>Default</StructMemberAlignment>
+      <BufferSecurityCheck>true</BufferSecurityCheck>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <LanguageStandard_C>stdc11</LanguageStandard_C>
+      <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions>
+      </UndefinePreprocessorDefinitions>
+      <UseStandardPreprocessor>false</UseStandardPreprocessor>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>allegro-4.4.2-mt.lib;loadpng-1.5-mt.lib;logg-1.0-mt.lib;zlib-1.2.5-static-mt.lib;fmodvc.lib;apeg_r.lib;ogg_static.lib;vorbis_static.lib;libtheora.lib;winmm.lib;urlmon.lib;hidapi.lib;libcurl.lib;Ws2_32.lib;wldap32.lib;legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Windows</SubSystem>
+      <IgnoreSpecificDefaultLibraries>libcmt.lib</IgnoreSpecificDefaultLibraries>
+      <LinkTimeCodeGeneration>UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
+      <AddModuleNamesToAssembly>
+      </AddModuleNamesToAssembly>
+      <ImportLibrary>
+      </ImportLibrary>
+      <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalOptions>/IGNORE:4099</AdditionalOptions>
+    </Link>
+    <PreBuildEvent>
+      <Command>if exist "$(IntDir)version.obj" del "$(IntDir)version.obj"</Command>
+      <Message>touch the attract mode to update the __DATE__</Message>
+    </PreBuildEvent>
+    <ProjectReference>
+      <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <StructMemberAlignment>Default</StructMemberAlignment>
+      <PreprocessorDefinitions>_MBCS;CURL_STATICLIB;CURL_STATICLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <BufferSecurityCheck>true</BufferSecurityCheck>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions>
+      </UndefinePreprocessorDefinitions>
+      <UseStandardPreprocessor>false</UseStandardPreprocessor>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <DebugInformationFormat>None</DebugInformationFormat>
+      <SupportJustMyCode>true</SupportJustMyCode>
+      <DisableSpecificWarnings>4701;4099;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>allegro-4.4.2-mt.lib;loadpng-1.5-mt.lib;logg-1.0-mt.lib;zlib-1.2.5-static-mt.lib;fmodvc.lib;apeg_r.lib;ogg_static.lib;vorbis_static.lib;libtheora.lib;winmm.lib;urlmon.lib;hidapi.lib;libcurl.lib;Ws2_32.lib;wldap32.lib;legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Windows</SubSystem>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <IgnoreSpecificDefaultLibraries>libcmt.lib</IgnoreSpecificDefaultLibraries>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <AdditionalOptions>/IGNORE:4099</AdditionalOptions>
+    </Link>
+    <PreBuildEvent>
+      <Command>if exist "$(IntDir)versionManager.obj" del "$(IntDir)versionManager.obj"</Command>
+      <Message>touch the attract mode to update the __DATE__</Message>
+    </PreBuildEvent>
+    <ProjectReference>
+      <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Both|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <StructMemberAlignment>Default</StructMemberAlignment>
+      <PreprocessorDefinitions>_MBCS;CURL_STATICLIB;CURL_STATICLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <BufferSecurityCheck>true</BufferSecurityCheck>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions>
+      </UndefinePreprocessorDefinitions>
+      <UseStandardPreprocessor>false</UseStandardPreprocessor>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <DebugInformationFormat>None</DebugInformationFormat>
+      <SupportJustMyCode>true</SupportJustMyCode>
+      <DisableSpecificWarnings>4701;4099;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>allegro-4.4.2-mt.lib;loadpng-1.5-mt.lib;logg-1.0-mt.lib;zlib-1.2.5-static-mt.lib;fmodvc.lib;apeg_r.lib;ogg_static.lib;vorbis_static.lib;libtheora.lib;winmm.lib;urlmon.lib;hidapi.lib;libcurl.lib;Ws2_32.lib;wldap32.lib;legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Windows</SubSystem>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <IgnoreSpecificDefaultLibraries>libcmt.lib</IgnoreSpecificDefaultLibraries>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <AdditionalOptions>/IGNORE:4099</AdditionalOptions>
+    </Link>
+    <PreBuildEvent>
+      <Command>if exist "$(IntDir)versionManager.obj" del "$(IntDir)versionManager.obj"</Command>
+      <Message>touch the attract mode to update the __DATE__</Message>
+    </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>msbuild "$(ProjectPath)" /p:Configuration=Debug /p:Platform=Win32 /t:Build /v:minimal</Command>
+      <Message>Building Debug configuration...</Message>
+    </PostBuildEvent>
+    <ProjectReference>
+      <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="headers\analyticsManager.h" />
+    <ClInclude Include="headers\bookManager.h" />
+    <ClInclude Include="headers\common.h" />
+    <ClInclude Include="headers\downloadManager.h" />
+    <ClInclude Include="headers\dwi_read.h" />
+    <ClInclude Include="headers\extioManager.h" />
+    <ClInclude Include="headers\gameplayRendering.h" />
+    <ClInclude Include="headers\gameStateManager.h" />
+    <ClInclude Include="headers\inputManager.h" />
+    <ClInclude Include="headers\lightsManager.h" />
+    <ClInclude Include="headers\minimaidManager.h" />
+    <ClInclude Include="headers\pacdriveManager.h" />
+    <ClInclude Include="headers\particleSprites.h" />
+    <ClInclude Include="headers\ppp_read.h" />
+    <ClInclude Include="headers\scoreManager.h" />
+    <ClInclude Include="headers\songwheelMode.h" />
+    <ClInclude Include="headers\specialEffects.h" />
+    <ClInclude Include="headers\versionManager.h" />
+    <ClInclude Include="headers\videoManager.h" />
+    <ClInclude Include="headers\xsq_read.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\3d.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\3dmaths.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\alcompat.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\base.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\color.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\compiled.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\config.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\datafile.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\debug.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\digi.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\draw.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\file.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\fix.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\fixed.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\fli.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\fmaths.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\font.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\gfx.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\gui.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\internal\alconfig.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\joystick.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\keyboard.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\lzss.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\matrix.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\midi.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\mouse.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\palette.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\al386gcc.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\al386vc.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\al386wat.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\albcc32.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\albecfg.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\aldjgpp.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\aldmc.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\almaccfg.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\almngw32.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\almsvc.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\alosxcfg.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\alplatf.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\alpspcfg.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\alqnxcfg.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\alucfg.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\alwatcom.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\astdint.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\quat.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\rle.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\sound.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\stream.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\system.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\text.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\timer.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\unicode.h" />
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\loadpng.h" />
+    <ClInclude Include="lib\allegro\include\allegro.h" />
+    <ClInclude Include="lib\allegro\include\allegro\3d.h" />
+    <ClInclude Include="lib\allegro\include\allegro\3dmaths.h" />
+    <ClInclude Include="lib\allegro\include\allegro\alcompat.h" />
+    <ClInclude Include="lib\allegro\include\allegro\base.h" />
+    <ClInclude Include="lib\allegro\include\allegro\color.h" />
+    <ClInclude Include="lib\allegro\include\allegro\compiled.h" />
+    <ClInclude Include="lib\allegro\include\allegro\config.h" />
+    <ClInclude Include="lib\allegro\include\allegro\datafile.h" />
+    <ClInclude Include="lib\allegro\include\allegro\debug.h" />
+    <ClInclude Include="lib\allegro\include\allegro\digi.h" />
+    <ClInclude Include="lib\allegro\include\allegro\draw.h" />
+    <ClInclude Include="lib\allegro\include\allegro\file.h" />
+    <ClInclude Include="lib\allegro\include\allegro\fix.h" />
+    <ClInclude Include="lib\allegro\include\allegro\fixed.h" />
+    <ClInclude Include="lib\allegro\include\allegro\fli.h" />
+    <ClInclude Include="lib\allegro\include\allegro\fmaths.h" />
+    <ClInclude Include="lib\allegro\include\allegro\font.h" />
+    <ClInclude Include="lib\allegro\include\allegro\gfx.h" />
+    <ClInclude Include="lib\allegro\include\allegro\gui.h" />
+    <ClInclude Include="lib\allegro\include\allegro\internal\alconfig.h" />
+    <ClInclude Include="lib\allegro\include\allegro\joystick.h" />
+    <ClInclude Include="lib\allegro\include\allegro\keyboard.h" />
+    <ClInclude Include="lib\allegro\include\allegro\lzss.h" />
+    <ClInclude Include="lib\allegro\include\allegro\matrix.h" />
+    <ClInclude Include="lib\allegro\include\allegro\midi.h" />
+    <ClInclude Include="lib\allegro\include\allegro\mouse.h" />
+    <ClInclude Include="lib\allegro\include\allegro\palette.h" />
+    <ClInclude Include="lib\allegro\include\allegro\quat.h" />
+    <ClInclude Include="lib\allegro\include\allegro\rle.h" />
+    <ClInclude Include="lib\allegro\include\allegro\sound.h" />
+    <ClInclude Include="lib\allegro\include\allegro\stream.h" />
+    <ClInclude Include="lib\allegro\include\allegro\system.h" />
+    <ClInclude Include="lib\allegro\include\allegro\text.h" />
+    <ClInclude Include="lib\allegro\include\allegro\timer.h" />
+    <ClInclude Include="lib\allegro\include\allegro\unicode.h" />
+    <ClInclude Include="lib\allegro\include\winalleg.h" />
+    <ClInclude Include="lib\apeg\include\apeg.h" />
+    <ClInclude Include="lib\apeg\include\common.h" />
+    <ClInclude Include="lib\fmodapi375win\api\inc\fmod.h" />
+    <ClInclude Include="lib\hidapi\include\hidapi.h" />
+    <ClInclude Include="lib\pacdrive\include\PacDrive.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="source\analyticsManager.cpp" />
+    <ClCompile Include="source\attractMode.cpp" />
+    <ClCompile Include="source\bookManager.cpp" />
+    <ClCompile Include="source\common.cpp" />
+    <ClCompile Include="source\dmxsq_read.cpp" />
+    <ClCompile Include="source\downloadManager.cpp" />
+    <ClCompile Include="source\dwi_read.cpp" />
+    <ClCompile Include="source\extioManager.cpp" />
+    <ClCompile Include="source\gameoverMode.cpp" />
+    <ClCompile Include="source\gameplayMode.cpp" />
+    <ClCompile Include="source\gameplayRendering.cpp" />
+    <ClCompile Include="source\inputManager.cpp" />
+    <ClCompile Include="source\lightsManager.cpp" />
+    <ClCompile Include="source\loginMode.cpp" />
+    <ClCompile Include="source\main.cpp" />
+    <ClCompile Include="source\menuMode.cpp" />
+    <ClCompile Include="source\minimaidManager.cpp" />
+    <ClCompile Include="source\nonstopMode.cpp" />
+    <ClCompile Include="source\pacdriveManager.cpp" />
+    <ClCompile Include="source\particleSprites.cpp" />
+    <ClCompile Include="source\ppp_read.cpp" />
+    <ClCompile Include="source\render_ddr.cpp" />
+    <ClCompile Include="source\render_dm.cpp" />
+    <ClCompile Include="source\render_dmx.cpp" />
+    <ClCompile Include="source\resultsMode.cpp" />
+    <ClCompile Include="source\ScoreManager.cpp" />
+    <ClCompile Include="source\songwheelMode.cpp" />
+    <ClCompile Include="source\specialEffects.cpp" />
+    <ClCompile Include="source\versionManager.cpp" />
+    <ClCompile Include="source\VideoManager.cpp" />
+    <ClCompile Include="source\voteMode.cpp" />
+    <ClCompile Include="source\xsq_read.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\inline\3dmaths.inl" />
+    <None Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\inline\asm.inl" />
+    <None Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\inline\color.inl" />
+    <None Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\inline\draw.inl" />
+    <None Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\inline\fix.inl" />
+    <None Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\inline\fmaths.inl" />
+    <None Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\inline\gfx.inl" />
+    <None Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\inline\matrix.inl" />
+    <None Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\inline\rle.inl" />
+    <None Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\inline\system.inl" />
+    <None Include="lib\allegro\include\allegro\inline\3dmaths.inl" />
+    <None Include="lib\allegro\include\allegro\inline\asm.inl" />
+    <None Include="lib\allegro\include\allegro\inline\color.inl" />
+    <None Include="lib\allegro\include\allegro\inline\draw.inl" />
+    <None Include="lib\allegro\include\allegro\inline\fix.inl" />
+    <None Include="lib\allegro\include\allegro\inline\fmaths.inl" />
+    <None Include="lib\allegro\include\allegro\inline\gfx.inl" />
+    <None Include="lib\allegro\include\allegro\inline\matrix.inl" />
+    <None Include="lib\allegro\include\allegro\inline\rle.inl" />
+    <None Include="lib\allegro\include\allegro\inline\system.inl" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -1,0 +1,524 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="source">
+      <UniqueIdentifier>{E832481D-3D61-41A1-BCC7-524B6B79407C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="headers">
+      <UniqueIdentifier>{41410415-24AD-4260-BB1E-ECA1BA98E987}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="lib">
+      <UniqueIdentifier>{CDA3EFCB-D84B-4046-B3AA-F6276ADBB23D}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="source\analyticsManager.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\attractMode.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\bookManager.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\common.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\dmxsq_read.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\downloadManager.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\dwi_read.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\extioManager.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\gameoverMode.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\gameplayMode.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\gameplayRendering.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\inputManager.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\lightsManager.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\loginMode.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\main.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\menuMode.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\minimaidManager.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\nonstopMode.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\pacdriveManager.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\particleSprites.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\ppp_read.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\render_ddr.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\render_dm.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\render_dmx.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\resultsMode.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\ScoreManager.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\songwheelMode.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\specialEffects.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\versionManager.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\VideoManager.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\voteMode.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\xsq_read.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="headers\analyticsManager.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\bookManager.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\common.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\downloadManager.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\dwi_read.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\extioManager.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\gameplayRendering.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\gameStateManager.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\inputManager.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\lightsManager.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\minimaidManager.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\pacdriveManager.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\particleSprites.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\ppp_read.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\scoreManager.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\songwheelMode.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\specialEffects.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\versionManager.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\videoManager.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\xsq_read.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\3d.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\3dmaths.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\alcompat.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\base.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\color.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\compiled.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\config.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\datafile.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\debug.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\digi.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\draw.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\file.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\fix.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\fixed.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\fli.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\fmaths.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\font.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\gfx.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\gui.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\internal\alconfig.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\joystick.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\keyboard.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\lzss.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\matrix.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\midi.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\mouse.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\palette.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\al386gcc.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\al386vc.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\al386wat.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\albcc32.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\albecfg.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\aldjgpp.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\aldmc.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\almaccfg.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\almngw32.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\almsvc.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\alosxcfg.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\alplatf.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\alpspcfg.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\alqnxcfg.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\alucfg.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\alwatcom.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\platform\astdint.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\quat.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\rle.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\sound.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\stream.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\system.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\text.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\timer.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\unicode.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro-4.4.2-msvc-10.0\include\loadpng.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\3d.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\3dmaths.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\alcompat.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\base.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\color.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\compiled.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\config.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\datafile.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\debug.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\digi.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\draw.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\file.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\fix.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\fixed.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\fli.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\fmaths.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\font.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\gfx.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\gui.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\internal\alconfig.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\joystick.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\keyboard.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\lzss.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\matrix.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\midi.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\mouse.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\palette.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\quat.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\rle.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\sound.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\stream.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\system.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\text.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\timer.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\allegro\unicode.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\allegro\include\winalleg.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\apeg\include\apeg.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\apeg\include\common.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\fmodapi375win\api\inc\fmod.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\hidapi\include\hidapi.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\pacdrive\include\PacDrive.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\inline\3dmaths.inl">
+      <Filter>lib</Filter>
+    </None>
+    <None Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\inline\asm.inl">
+      <Filter>lib</Filter>
+    </None>
+    <None Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\inline\color.inl">
+      <Filter>lib</Filter>
+    </None>
+    <None Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\inline\draw.inl">
+      <Filter>lib</Filter>
+    </None>
+    <None Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\inline\fix.inl">
+      <Filter>lib</Filter>
+    </None>
+    <None Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\inline\fmaths.inl">
+      <Filter>lib</Filter>
+    </None>
+    <None Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\inline\gfx.inl">
+      <Filter>lib</Filter>
+    </None>
+    <None Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\inline\matrix.inl">
+      <Filter>lib</Filter>
+    </None>
+    <None Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\inline\rle.inl">
+      <Filter>lib</Filter>
+    </None>
+    <None Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\inline\system.inl">
+      <Filter>lib</Filter>
+    </None>
+    <None Include="lib\allegro\include\allegro\inline\3dmaths.inl">
+      <Filter>lib</Filter>
+    </None>
+    <None Include="lib\allegro\include\allegro\inline\asm.inl">
+      <Filter>lib</Filter>
+    </None>
+    <None Include="lib\allegro\include\allegro\inline\color.inl">
+      <Filter>lib</Filter>
+    </None>
+    <None Include="lib\allegro\include\allegro\inline\draw.inl">
+      <Filter>lib</Filter>
+    </None>
+    <None Include="lib\allegro\include\allegro\inline\fix.inl">
+      <Filter>lib</Filter>
+    </None>
+    <None Include="lib\allegro\include\allegro\inline\fmaths.inl">
+      <Filter>lib</Filter>
+    </None>
+    <None Include="lib\allegro\include\allegro\inline\gfx.inl">
+      <Filter>lib</Filter>
+    </None>
+    <None Include="lib\allegro\include\allegro\inline\matrix.inl">
+      <Filter>lib</Filter>
+    </None>
+    <None Include="lib\allegro\include\allegro\inline\rle.inl">
+      <Filter>lib</Filter>
+    </None>
+    <None Include="lib\allegro\include\allegro\inline\system.inl">
+      <Filter>lib</Filter>
+    </None>
+  </ItemGroup>
+</Project>
