@@ -82,6 +82,7 @@ bool held_printscreen = false;
 bool beginInitialInstall = false;
 bool redownloadManifest = true;
 bool pillarBoxMode = false;
+bool vsyncEnabled = false;
 
 BITMAP** m_banners; // used globally
 BITMAP* m_caution;
@@ -265,6 +266,10 @@ int main()
 		pillarBoxMode = true;
 		chosenWidth = 1280;
 		chosenHeight = 720;
+	}
+	if ( fileExists("vsync") )
+	{
+		vsyncEnabled = true;
 	}
 	if ( set_gfx_mode(windowOrFullscreen, chosenWidth, chosenHeight, 0, 0) != 0 )
 	{
