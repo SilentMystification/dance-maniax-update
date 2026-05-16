@@ -10,13 +10,13 @@ Write-Output "Now downloading 7 zip files, 775MB in total..."
 (New-Object Net.WebClient).DownloadFile('https://dmx.bossru.sh/update/DMX_2016_2019.zip', 'DMX_2016_2019.zip')
 
 #extract and delete them
-Expand-Archive -LiteralPath 'DMX_initial_data.zip' -DestinationPath . -Force
-Expand-Archive -LiteralPath 'DMX_initial_video.zip' -DestinationPath . -Force
-Expand-Archive -LiteralPath 'DMX_1st.zip' -DestinationPath . -Force
-Expand-Archive -LiteralPath 'DMX_2nd.zip' -DestinationPath . -Force
-Expand-Archive -LiteralPath 'DMX_Update.zip' -DestinationPath . -Force
-Expand-Archive -LiteralPath 'DMX_2015120100_DMX_2016051800.zip' -DestinationPath . -Force
-Expand-Archive -LiteralPath 'DMX_2016_2019.zip' -DestinationPath . -Force
+Expand-Archive -LiteralPath 'DMX_initial_data.zip' -DestinationPath 'deploy' -Force
+Expand-Archive -LiteralPath 'DMX_initial_video.zip' -DestinationPath 'deploy' -Force
+Expand-Archive -LiteralPath 'DMX_1st.zip' -DestinationPath 'deploy' -Force
+Expand-Archive -LiteralPath 'DMX_2nd.zip' -DestinationPath 'deploy' -Force
+Expand-Archive -LiteralPath 'DMX_Update.zip' -DestinationPath 'deploy' -Force
+Expand-Archive -LiteralPath 'DMX_2015120100_DMX_2016051800.zip' -DestinationPath 'deploy' -Force
+Expand-Archive -LiteralPath 'DMX_2016_2019.zip' -DestinationPath 'deploy' -Force
 
 Remove-Item -LiteralPath 'DMX_initial_data.zip' -Force
 Remove-Item -LiteralPath 'DMX_initial_video.zip' -Force
