@@ -13,6 +13,7 @@ extern GameStateManager gs;
 extern AnalyticsManager am;
 
 extern int NUM_SONGS;
+extern bool vsyncEnabled;
 extern int* songIDs;
 extern std::string* songTitles;
 extern std::string* songArtists;
@@ -345,6 +346,10 @@ void renderWhiteLetter(char letter, int x, int y)
 
 void RenderingManager::flip()
 {
+	if ( vsyncEnabled )
+	{
+		vsync();
+	}
 	// center the X and Y (parameters 4 and 5 become 0 in 640x480 original mode)
 	blit(m_backbuf, screen, 0, 0,  (screenWidth-SCREEN_WIDTH)/2 , (screenHeight - SCREEN_HEIGHT) / 2, rm.screenWidth, rm.screenHeight);
 	
@@ -574,7 +579,7 @@ void renderBoldString(const unsigned char* string, int x, int y, int maxWidth, b
 
 		// find the glyph on the sprite sheet
 		unsigned char temp = string[i];
-		if ( temp == 199 ) // alt-128 Ç
+		if ( temp == 199 ) // alt-128 ï¿½
 		{
 			temp = 128; // heart
 		}
