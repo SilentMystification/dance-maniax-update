@@ -97,6 +97,7 @@ public:
 		int   lastJudgement;             // what the most recent Judgement was
 		int   lastJudgementDiff;         // ms offset of the last judged note (always positive)
 		bool  lastJudgementEarly;        // true if early, false if late
+		std::vector<long> noteDiffs;     // signed ms diff per hit note this song (negative=early, positive=late)
 		int   judgementDisplayMode;      // 0=off,1=bad+,2=good+,3=great+,4=perfect+,5=all except miss
 		int   columnJudgeTime[10];
 		int   columnJudgement[10];
@@ -169,6 +170,7 @@ public:
 			lastJudgement = 0;
 			lastJudgementDiff = 0;
 			lastJudgementEarly = false;
+			noteDiffs.clear();
 			judgementDisplayMode = 4; 
 			shockAnimTimer = 0;
 			drummaniaCombo[0] = drummaniaCombo[1] = drummaniaCombo[2] = drummaniaCombo[3] = 0;

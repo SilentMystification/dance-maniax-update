@@ -155,13 +155,31 @@ int checkFileVersion(FILE* fp, char* expected);
 // generic rendering functions, including text and debug rendering
 //////////////////////////////////////////////////////////////////////////////
 
-// implement some debug rendering
+// color indices for renderColoredString — indices 0-3 match renderBoldString color order exactly
+#define TEXT_COLOR_WHITE   0
+#define TEXT_COLOR_GREEN   1  // (170,255,170)
+#define TEXT_COLOR_RED     2  // (255,170,170)
+#define TEXT_COLOR_BLUE    3  // (170,170,255)
+#define TEXT_COLOR_CYAN    4
+#define TEXT_COLOR_MAGENTA 5  // (255,0,220) — avoids Allegro's exact mask color (255,0,255)
+#define TEXT_COLOR_YELLOW  6
+#define TEXT_COLOR_BLACK   7
+
+// font reference — all bitmaps loaded in RenderingManager::Initialize (common.cpp)
+//   white       renderWhiteString / renderWhiteNumber   white_font.bmp  10x12px monospace, uppercase + digits
+//   small color renderColoredString                     white_font.bmp  same glyphs, supports TEXT_COLOR_*
+//   text        renderTextString                        text_font.bmp   10x19px upper/lowercase, supports TEXT_COLOR_*
+//   bold        renderBoldString                        bold_font.bmp   24px (18px with |smaller| tag), supports TEXT_COLOR_*
+//   score       renderScoreString / renderScoreNumber   score_font.bmp  score digits
+//   artist      renderArtistString                      artist_font.bmp artist name font
+//   name        renderNameString / renderNameLetter      name_font_*.bmp name entry font, color selects bitmap variant
 void renderWhiteLetter(char letter, int x, int y);
 void renderWhiteString(const char* string, int x, int y);
 void renderWhiteNumber(int number, int x, int y);
-
-// implement real text rendering; colors 0-3 = white, green, pink, blue
-void renderTextString(const char* string, int x, int y, int width, int height);
+void renderColoredLetter(char letter, int x, int y, int color);
+void renderColoredString(const char* string, int x, int y, int color);
+void renderTextString(const char* string, int x, int y, int width, int height, int color = 0);
+void debugRenderTextFontColors(int x, int y);
 void renderBoldString(const unsigned char* string, int x, int y, int maxWidth, bool fixedWidth, int color = 0);
 void renderBoldString(const char* string, int x, int y, int maxWidth, bool fixedWidth, int color = 0);
 void renderArtistString(const unsigned char* string, int x, int y, int width, int height);
@@ -183,7 +201,8 @@ public:
 	BITMAP* m_backbuf2;
 
 	BITMAP* m_whiteFont;
-	BITMAP* m_textFont;
+	BITMAP* m_colorFont[8];
+	BITMAP* m_textFont[4];
 	BITMAP* m_boldFont[4];
 	BITMAP* m_artistFont;
 	BITMAP* m_scoreFont;
@@ -208,6 +227,12 @@ public:
 void replaceColor(BITMAP* bmp, long col1, long col2);
 // precondition: bmp is 32 bit
 // postcondition: any instances of col1 are replaced by col2
+void tintGrayscaleBitmap(BITMAP* bmp, int r, int g, int b);
+// precondition: bmp is 32 bit, pixels are grayscale (R==G==B) or mask (255,0,255)
+// postcondition: each grayscale pixel is remapped so dark pixels approach (r,g,b) and light pixels approach white
+void outlineBitmap(BITMAP* bmp);
+// precondition: bmp is 32 bit
+// postcondition: every mask pixel (255,0,255) adjacent to a non-mask pixel is painted black
 
 
 //////////////////////////////////////////////////////////////////////////////

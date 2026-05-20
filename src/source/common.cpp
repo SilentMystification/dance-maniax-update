@@ -41,7 +41,25 @@ void RenderingManager::Initialize(bool installMode, int windowWidth, int windowH
 	if ( !installMode )
 	{
 		m_whiteFont = loadImage("DATA/etc/white_font.bmp");
-		m_textFont = loadImage("DATA/etc/text_font.bmp");
+		for ( int i = 0; i < 8; i++ )
+			m_colorFont[i] = loadImage("DATA/etc/white_font.bmp");
+		// tint each copy: indices 0-3 match boldFont palette; magenta uses (255,0,220) to avoid Allegro's mask color (255,0,255)
+		replaceColor(m_colorFont[TEXT_COLOR_GREEN],   makecol(255,255,255), makecol(170,255,170));
+		replaceColor(m_colorFont[TEXT_COLOR_RED],     makecol(255,255,255), makecol(255,170,170));
+		replaceColor(m_colorFont[TEXT_COLOR_BLUE],    makecol(255,255,255), makecol(170,170,255));
+		replaceColor(m_colorFont[TEXT_COLOR_CYAN],    makecol(255,255,255), makecol(0,255,255));
+		replaceColor(m_colorFont[TEXT_COLOR_MAGENTA], makecol(255,255,255), makecol(255,0,220));
+		replaceColor(m_colorFont[TEXT_COLOR_YELLOW],  makecol(255,255,255), makecol(255,255,0));
+		replaceColor(m_colorFont[TEXT_COLOR_BLACK],   makecol(255,255,255), makecol(0,0,0));
+		for ( int i = 0; i < 8; i++ )
+			outlineBitmap(m_colorFont[i]);
+		m_textFont[0] = loadImage("DATA/etc/text_font.bmp");
+		m_textFont[1] = loadImage("DATA/etc/text_font.bmp");
+		m_textFont[2] = loadImage("DATA/etc/text_font.bmp");
+		m_textFont[3] = loadImage("DATA/etc/text_font.bmp");
+		replaceColor(m_textFont[1], makecol(255,255,255), makecol(170,255,170));
+		replaceColor(m_textFont[2], makecol(255,255,255), makecol(255,170,170));
+		replaceColor(m_textFont[3], makecol(255,255,255), makecol(170,170,255));
 		m_boldFont[0] = loadImage("DATA/etc/bold_font.bmp");
 		m_boldFont[1] = loadImage("DATA/etc/bold_font.bmp");
 		m_boldFont[2] = loadImage("DATA/etc/bold_font.bmp");
@@ -468,14 +486,53 @@ bool EffectsManager::announcerQuipChance(int which, int percent)
 
 void replaceColor(BITMAP* bmp, long col1, long col2)
 {
-	for ( int y = 0; y < bmp->w; y++ )
-	for ( int x = 0; x < bmp->h; x++ )
+	for ( int y = 0; y < bmp->h; y++ )
+	for ( int x = 0; x < bmp->w; x++ )
 	{
 		if ( ((long *)bmp->line[y])[x] == col1 )
 		{
 			((long *)bmp->line[y])[x] = col2;
 		}
 	}
+}
+
+void tintGrayscaleBitmap(BITMAP* bmp, int r, int g, int b)
+{
+	long mask = makecol(255, 0, 255);
+	for ( int y = 0; y < bmp->h; y++ )
+	for ( int x = 0; x < bmp->w; x++ )
+	{
+		long c = ((long *)bmp->line[y])[x];
+		if ( c == mask ) continue;
+		int v = getr32(c); // grayscale: R == G == B
+		int nr = r + (255 - r) * v / 255;
+		int ng = g + (255 - g) * v / 255;
+		int nb = b + (255 - b) * v / 255;
+		((long *)bmp->line[y])[x] = makeacol(nr, ng, nb, 255);
+	}
+}
+
+void outlineBitmap(BITMAP* bmp)
+{
+	long mask  = makecol(255, 0, 255);
+	long black = makeacol(0, 0, 0, 255);
+
+	BITMAP* src = create_bitmap(bmp->w, bmp->h);
+	blit(bmp, src, 0, 0, 0, 0, bmp->w, bmp->h);
+
+	for ( int y = 0; y < bmp->h; y++ )
+	for ( int x = 0; x < bmp->w; x++ )
+	{
+		if ( ((long *)src->line[y])[x] != mask ) continue;
+		if ( (x > 0          && ((long *)src->line[y])[x-1]  != mask) ||
+		     (x < bmp->w - 1 && ((long *)src->line[y])[x+1]  != mask) ||
+		     (y > 0          && ((long *)src->line[y-1])[x]   != mask) ||
+		     (y < bmp->h - 1 && ((long *)src->line[y+1])[x]  != mask) )
+		{
+			((long *)bmp->line[y])[x] = black;
+		}
+	}
+	destroy_bitmap(src);
 }
 
 void renderWhiteString(const char* string, int x, int y)
@@ -489,6 +546,75 @@ void renderWhiteString(const char* string, int x, int y)
 	}
 }
 
+void renderColoredLetter(char letter, int x, int y, int color)
+{
+	if ( letter >= 'a' && letter <= 'z' )
+		letter = 'A' + letter - 'a';
+
+	if ( letter >= 'A' && letter <= 'M' )
+	{
+		masked_blit(rm.m_colorFont[color], rm.m_backbuf, 10*(letter-'A'), 0, x, y, 10, 12);
+		return;
+	}
+	if ( letter >= 'N' && letter <= 'Z' )
+	{
+		masked_blit(rm.m_colorFont[color], rm.m_backbuf, 10*(letter-'N'), 12, x, y, 10, 12);
+		return;
+	}
+
+	int row = 5, col = 5;
+	if ( letter >= '0' && letter <= '9' ) { row = 2; col = letter - '0'; }
+	switch (letter)
+	{
+	case '?': row = 3; col = 2; break;
+	case '!': row = 3; col = 1; break;
+	case '#': row = 3; col = 3; break;
+	case '$': row = 2; col = 11; break;
+	case '&': row = 3; col = 0; break;
+	case '*': row = 3; col = 4; break;
+	case '-': row = 2; col = 10; break;
+	case ' ': row = 3; col = 5; break;
+	case '.': row = 2; col = 12; break;
+	case '(': row = 3; col = 9; break;
+	case ')': row = 3; col = 10; break;
+	case '+': row = 3; col = 11; break;
+	case ',': row = 3; col = 12; break;
+	case '~': row = 5; col = 3; break;
+	case '%': row = 3; col = 7; break;
+	case '"': row = 3; col = 6; break;
+	case '\'': row = 3; col = 8; break;
+	case '/': row = 4; col = 0; break;
+	case ':': row = 4; col = 1; break;
+	case ';': row = 4; col = 2; break;
+	case '<': row = 4; col = 3; break;
+	case '>': row = 4; col = 4; break;
+	case '=': row = 4; col = 5; break;
+	case 16:  row = 4; col = 6; break;
+	case '[': row = 4; col = 7; break;
+	case ']': row = 4; col = 8; break;
+	case 153: row = 4; col = 9; break;
+	case '^': row = 4; col = 10; break;
+	case '_': row = 4; col = 11; break;
+	case '`': row = 4; col = 12; break;
+	case '{': row = 5; col = 0; break;
+	case '|': row = 5; col = 1; break;
+	case '}': row = 5; col = 2; break;
+	case 151: row = 5; col = 4; break;
+	}
+	masked_blit(rm.m_colorFont[color], rm.m_backbuf, 10*col, 12*row, x, y, 10, 12);
+}
+
+void renderColoredString(const char* string, int x, int y, int color)
+{
+	int i = 0;
+	while ( string[i] != 0 )
+	{
+		renderColoredLetter(string[i], x, y, color);
+		x += 10;
+		i++;
+	}
+}
+
 void renderWhiteNumber(int number, int x, int y)
 {
 	char str[10] = "";
@@ -496,7 +622,7 @@ void renderWhiteNumber(int number, int x, int y)
 	renderWhiteString(str, x, y);
 }
 
-void renderTextString(const char* string, int x, int y, int width, int height)
+void renderTextString(const char* string, int x, int y, int width, int height, int color)
 {
 	static char puncs[27] = "!@#$%^&*()-=+[]:;'\"`~,.?/\\";
 	int left = x, top = y;
@@ -536,7 +662,7 @@ void renderTextString(const char* string, int x, int y, int width, int height)
 		}
 
 		// render it!
-		masked_blit(rm.m_textFont, rm.m_backbuf, 10*col, 19*row, x, y, 10, 18);
+		masked_blit(rm.m_textFont[color], rm.m_backbuf, 10*col, 19*row, x, y, 10, 18);
 
 		// if row is full then next row. out of rows? then end early.
 		x += 10;
@@ -552,7 +678,16 @@ void renderTextString(const char* string, int x, int y, int width, int height)
 	}
 }
 
-static char boldTextWidths[] = 
+void debugRenderTextFontColors(int x, int y)
+{
+	const char* sample = "The Quick Brown Fox 0123456789 !@#$";
+	renderTextString(sample, x, y,      640, 20, 0);
+	renderTextString(sample, x, y + 20, 640, 20, 1);
+	renderTextString(sample, x, y + 40, 640, 20, 2);
+	renderTextString(sample, x, y + 60, 640, 20, 3);
+}
+
+static char boldTextWidths[] =
 {
 	7,  7,  10, 17, 14, 17, 15, 7,  7, 7,
 	15, 14, 7,  14, 7,  10, 14, 14, 14, 14,

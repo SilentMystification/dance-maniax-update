@@ -3,6 +3,7 @@
 // 12-21-09: major refactoring to move all rendering and proceedurally generated graphics to gameplayRendering
 
 #include "../headers/common.h"
+#include <math.h>
 
 #include "../headers/dwi_read.h"
 #include "../headers/xsq_read.h"
@@ -128,6 +129,10 @@ int findNextNoteEarly(int player, int column);
 void scoreNote(int player, int judgement, int column);
 // precondition: the current game state is valid
 // postcondition: updates the combo, lifebar, and score
+
+void finalizeCurrentSongStats(int p);
+// precondition: gs.currentStage is still the index of the song just completed
+// postcondition: computes avgDiff and unstableRate into sm.player[p].currentSet[gs.currentStage], clears noteDiffCount
 
 void loadNextSong();
 // precondition: gs.player[] has a setlist setlist, the chart data is loaded
@@ -271,6 +276,8 @@ void mainGameplayLoop(UTIME dt)
 	}
 	if ( retireTimer > 20000 )
 	{
+		finalizeCurrentSongStats(0);
+		finalizeCurrentSongStats(1);
 		gs.g_currentGameMode = RESULTS;
 		gs.g_gameModeTransition = 1;
 		sm.savePlayersToDisk();
@@ -282,6 +289,8 @@ void mainGameplayLoop(UTIME dt)
 	if ( im.isKeyDown(MENU_LEFT_1P) && im.isKeyDown(MENU_RIGHT_1P) && im.isKeyDown(MENU_START_1P) &&
 	     im.isKeyDown(MENU_LEFT_2P) && im.isKeyDown(MENU_RIGHT_2P) && im.isKeyDown(MENU_START_2P) )
 	{
+		finalizeCurrentSongStats(0);
+		finalizeCurrentSongStats(1);
 		gs.currentStage++;
 		int numBonusStages = 0;
 		if ( gs.currentStage >= gs.numSongsPerSet )
@@ -580,6 +589,8 @@ void doChartLogic(UTIME dt, int p)
 			int bestStatus = MAX(sm.player[0].currentSet[gs.currentStage].calculateStatus(), sm.player[1].currentSet[gs.currentStage].calculateStatus());
 			TRACE("Best Clear Status: %d (%d %d)", bestStatus, sm.player[0].currentSet[gs.currentStage].status, sm.player[1].currentSet[gs.currentStage].status);
 
+			finalizeCurrentSongStats(0);
+			finalizeCurrentSongStats(1);
 			gs.currentStage++;
 			isMidTransition = false; // prevent a crash with the fast-foward debug key
 
@@ -959,6 +970,33 @@ int findNextNoteEarly(int p, int column)
 	return -1;
 }
 
+void finalizeCurrentSongStats(int p)
+{
+	SONG_RECORD& rec = sm.player[p].currentSet[gs.currentStage];
+	int n = (int)gs.player[p].noteDiffs.size();
+	rec.avgDiff = 0;
+	rec.unstableRate = 0;
+	if ( n == 0 )
+	{
+		gs.player[p].noteDiffs.clear();
+		return;
+	}
+
+	long sum = 0;
+	for ( int i = 0; i < n; i++ ) sum += gs.player[p].noteDiffs[i];
+	rec.avgDiff = (double)sum / n;
+
+	double mean = (double)sum / n;
+	double variance = 0.0;
+	for ( int i = 0; i < n; i++ )
+	{
+		double d = gs.player[p].noteDiffs[i] - mean;
+		variance += d * d;
+	}
+	rec.unstableRate = sqrt(variance / n) * 10.0;
+	gs.player[p].noteDiffs.clear();
+}
+
 void scoreNote(int p, int judgement, int column)
 {
 	// set the judgement display
@@ -991,6 +1029,22 @@ void scoreNote(int p, int judgement, int column)
 	default:
 		TRACE("Strange judgement encountered: %d", judgement);
 	}
+	// early/late counts and diff recording (hits only, not MISS/NG/OK)
+	if ( judgement == MARVELLOUS || judgement == PERFECT || judgement == GREAT || judgement == GOOD )
+	{
+		SONG_RECORD& rec = sm.player[p].currentSet[gs.currentStage];
+		bool isEarly = gs.player[p].lastJudgementEarly;
+		switch (judgement)
+		{
+		case MARVELLOUS: isEarly ? rec.earlyMarvellous++ : rec.lateMarvellous++; break;
+		case PERFECT:    isEarly ? rec.earlyPerfect++    : rec.latePerfect++;    break;
+		case GREAT:      isEarly ? rec.earlyGreat++      : rec.lateGreat++;      break;
+		case GOOD:       isEarly ? rec.earlyGood++        : rec.lateGood++;       break;
+		}
+		long signedDiff = isEarly ? (long)gs.player[p].lastJudgementDiff : -(long)gs.player[p].lastJudgementDiff;
+		gs.player[p].noteDiffs.push_back(signedDiff);
+	}
+
 	sm.player[p].currentSet[gs.currentStage].calculateGrade();
 	sm.player[p].currentSet[gs.currentStage].calculatePoints();
 	gs.player[p].lifebarPercent = sm.player[p].currentSet[gs.currentStage].getScore()/1000; // yes really

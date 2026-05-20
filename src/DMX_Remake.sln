@@ -7,6 +7,8 @@ Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Both|Win32 = Both|Win32
 		Debug|Win32 = Debug|Win32
+		DeployToCab|Win32 = DeployToCab|Win32
+		Production|Win32 = Production|Win32
 		Release|Win32 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
@@ -14,6 +16,10 @@ Global
 		{A8D1503A-D533-4888-ADAE-1F6F0AC667B6}.Both|Win32.Build.0 = Both|Win32
 		{A8D1503A-D533-4888-ADAE-1F6F0AC667B6}.Debug|Win32.ActiveCfg = Debug|Win32
 		{A8D1503A-D533-4888-ADAE-1F6F0AC667B6}.Debug|Win32.Build.0 = Debug|Win32
+		{A8D1503A-D533-4888-ADAE-1F6F0AC667B6}.DeployToCab|Win32.ActiveCfg = DeployToCab|Win32
+		{A8D1503A-D533-4888-ADAE-1F6F0AC667B6}.DeployToCab|Win32.Build.0 = DeployToCab|Win32
+		{A8D1503A-D533-4888-ADAE-1F6F0AC667B6}.Production|Win32.ActiveCfg = Production|Win32
+		{A8D1503A-D533-4888-ADAE-1F6F0AC667B6}.Production|Win32.Build.0 = Production|Win32
 		{A8D1503A-D533-4888-ADAE-1F6F0AC667B6}.Release|Win32.ActiveCfg = Release|Win32
 		{A8D1503A-D533-4888-ADAE-1F6F0AC667B6}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection

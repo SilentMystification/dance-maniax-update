@@ -16,6 +16,12 @@ struct SONG_RECORD
 	int  greats;		//
 	int  goods;			//
 	int  misses;		//
+	int  earlyMarvellous, lateMarvellous;
+	int  earlyPerfect,    latePerfect;
+	int  earlyGreat,      lateGreat;
+	int  earlyGood,       lateGood;
+	double avgDiff;      // average timing offset in ms, 2 decimal places (positive = early, negative = late)
+	double unstableRate; // standard deviation * 10 (UR), 2 decimal places
 	int  maxCombo;		// this is saved as each song is played
 	int  points;        // dance points
 	int  maxPoints;		// this is the maximum dance points (max score is 1 mil)
@@ -33,6 +39,11 @@ struct SONG_RECORD
 	{
 		songID = chartID = 0;
 		perfects = greats = goods = misses = 0;
+		earlyMarvellous = lateMarvellous = 0;
+		earlyPerfect    = latePerfect    = 0;
+		earlyGreat      = lateGreat      = 0;
+		earlyGood       = lateGood       = 0;
+		avgDiff = unstableRate = 0;
 		maxCombo = points = maxPoints = status = 0;
 		grade = 0;
 		time = 0;
@@ -63,7 +74,7 @@ struct SONG_RECORD
 		{
 			status = STATUS_NONE; // can happen, for example 2P during a single player game
 		}
-		else if ( misses == 0 )
+		else if ( misses == 0 && getDancePoints() > 0 )
 		{
 			if ( goods == 0 )
 			{

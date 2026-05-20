@@ -30,6 +30,7 @@ BITMAP* m_resultBottom = NULL;
 BITMAP* m_clearStatus = NULL;
 BITMAP* m_resultSub = NULL;
 BITMAP* m_pcStar = NULL;
+BITMAP* m_marvLabel[3] = { NULL, NULL, NULL }; // tinted copies of PERFECT row: blue, red, green
 extern BITMAP** m_banners;
 
 
@@ -47,6 +48,8 @@ UTIME scrollTweenTime = 0;
 int stageLimit = 3;
 bool isMidCreditResults = false;
 int midCreditDisplayStage = 0;
+// TODO: wire enableAdvancedJudgement to an operator setting
+bool enableAdvancedJudgement = true;
 
 #define INTRO_ANIM_LENGTH 1000
 
@@ -57,6 +60,10 @@ int midCreditDisplayStage = 0;
 void renderResult(int which, int x, int player);
 // precondition: which is a stage number, player is 0 or 1
 // postcondition: renders graphics to the backbuf
+
+void renderResultAdvanced(int which, int player);
+// precondition: enableAdvancedJudgement is true, isMidCreditResults is true, not versus
+// postcondition: renders the advanced judgement breakdown centered on screen
 
 void firstResultsLoop()
 {
@@ -69,6 +76,17 @@ void firstResultsLoop()
 		m_clearStatus = loadImage("DATA/results/clear_status.tga");
 		m_resultSub = loadImage("DATA/results/result_sub.tga");
 		m_pcStar = loadImage("DATA/results/pc_star.tga");
+
+		// create 3 tinted copies of the PERFECT row for the MARVELOUS cycling display
+		// order matches bold font palette: blue, red, green
+		for ( int i = 0; i < 3; i++ )
+		{
+			m_marvLabel[i] = create_bitmap(192, 32);
+			blit(m_resultSub, m_marvLabel[i], 0, 0, 0, 0, 192, 32);
+		}
+		tintGrayscaleBitmap(m_marvLabel[0], 170, 170, 255); // blue
+		tintGrayscaleBitmap(m_marvLabel[1], 255, 170, 170); // red
+		tintGrayscaleBitmap(m_marvLabel[2], 170, 255, 170); // green
 	}
 
 	resultFadeTimer = secondAnimTimer = 0;
@@ -221,7 +239,8 @@ void mainResultsLoop(UTIME dt)
 		}
 		else
 		{
-			renderResult(midCreditDisplayStage, scrollX, 0);
+			//renderResult(midCreditDisplayStage, scrollX, 0);
+			renderResult(midCreditDisplayStage, 256, 0);
 		}
 	}
 	else
@@ -317,6 +336,12 @@ void renderResult(int which, int x, int player)
 		return; // it's fine to call this function on every stage. It just won't do anything for the non-stages.
 	}
 
+	if ( enableAdvancedJudgement && isMidCreditResults && !gs.isVersus )
+	{
+		renderResultAdvanced(which, player);
+		return;
+	}
+
 	// song title
 	//renderBoldString(songTitles[songID_to_listID(sm.player[player].currentSet[which].songID)], x-32, 72, 192, false);
 	//renderWhiteString(songTitles[songID_to_listID(sm.player[player].currentSet[which].songID)], x-32, 72);
@@ -360,18 +385,131 @@ void renderResult(int which, int x, int player)
 		masked_blit(m_resultSub, rm.m_backbuf, 0, 32, x-32, 260, 192, 32);
 		renderScoreNumber(sm.player[player].currentSet[which].greats, x-32+108, 230+26, 3);
 
-		if ( sm.player[player].currentSet[which].goods > 0 || sm.player[player].currentSet[which].misses > 0 )
-		{
-			masked_blit(m_resultSub, rm.m_backbuf, 0, 64, x-32, 290, 192, 32);
-			renderScoreNumber(sm.player[player].currentSet[which].goods, x-32+108, 230+56, 3);
-		}
-		if ( sm.player[player].currentSet[which].misses > 0 )
-		{
-			masked_blit(m_resultSub, rm.m_backbuf, 0, 96, x-32, 320, 192, 32);
-			renderScoreNumber(sm.player[player].currentSet[which].misses, x-32+108, 230+90, 3);
-		}
+		masked_blit(m_resultSub, rm.m_backbuf, 0, 64, x-32, 290, 192, 32);
+		renderScoreNumber(sm.player[player].currentSet[which].goods, x-32+108, 230+56, 3);
+
+		masked_blit(m_resultSub, rm.m_backbuf, 0, 96, x-32, 320, 192, 32);
+		renderScoreNumber(sm.player[player].currentSet[which].misses, x-32+108, 230+90, 3);
 	}
 
 	// score
 	renderScoreNumber(sm.player[player].currentSet[which].getScore(), x-32+6, 357, 7);
+}
+
+void renderResultAdvanced(int which, int player)
+{
+	SONG_RECORD& rec = sm.player[player].currentSet[which];
+
+	// album art — left side, vertically centered on screen
+	const int ART_X  = 20;
+	const int ART_Y  = (SCREEN_HEIGHT - 128) / 2;  // = 176, center at 240
+	const int ART_CY = ART_Y + 64;                 // = 240
+
+	// judgement text block — right-aligned, vertically centered with album art
+	// block: 5 rows × 38px spacing + 32px last row = 184px; BOX_WIDTH covers label→sec-value
+	const int BOX_WIDTH    = 392;
+	const int LABEL_X      = SCREEN_WIDTH - 16 - BOX_WIDTH;  // = 232
+	const int COUNT_X      = LABEL_X + 116;
+	const int SEC_LABEL_X  = LABEL_X + 232;
+	const int SEC_VALUE_X  = LABEL_X + 302;
+	const int BLOCK_HEIGHT = 4 * 38 + 32;                    // = 184
+	const int Y_MARV  = ART_CY - BLOCK_HEIGHT / 2;  // = 148
+	const int Y_PERF  = Y_MARV + 38;
+	const int Y_GREAT = Y_MARV + 76;
+	const int Y_GOOD  = Y_MARV + 114;
+	const int Y_MISS  = Y_MARV + 152;
+
+	// LINE2: gap between the two secondary lines (EARLY/LATE or AVG/UR) — 12px colored text
+	// secondary block: spans Y_ROW to Y_ROW+32 (LINE2+12), center at Y_ROW+16
+	// offsets derived from pixel-sampling the source bitmaps:
+	//   PERF/GREAT/GOOD glyph: 12px, top_pad=8, cell center=+14 → LABEL_BMP_Y=+2 shifts center to Y_ROW+16
+	//   MISS glyph:            12px, top_pad=12, cell center=+18 → MISS_BMP_Y=-2 shifts center to Y_ROW+16
+	//   score digit:           24px, top_pad=6,  cell center=+18 → SCORE_Y_OFF=-2 shifts center to Y_ROW+16
+	const int LINE2       = 20;
+	const int LABEL_BMP_Y =  2;
+	const int MISS_BMP_Y  = -2;
+	const int SCORE_Y_OFF = -2;
+
+	// status graphic (centered at x=256, same as existing renderResult at x=256)
+	int frame = getValueFromRange(0, 10, secondAnimTimer * 100 / 750);
+	switch ( rec.status )
+	{
+	case STATUS_FULL_PERFECT_COMBO:
+	case STATUS_FULL_GREAT_COMBO:
+	case STATUS_FULL_GOOD_COMBO:
+		masked_blit(m_clearStatus, rm.m_backbuf, 0, frame*32, 224, 73, 192, 32);
+		break;
+	case STATUS_FAILED:
+		masked_blit(m_clearStatus, rm.m_backbuf, 0, 352, 224, 73, 192, 32);
+		break;
+	case STATUS_CLEARED:
+		masked_blit(m_clearStatus, rm.m_backbuf, 0, 384, 224, 73, 192, 32);
+		break;
+	}
+
+	// song banner with difficulty border — left side, vertically centered
+	stretch_blit(m_banners[songID_to_listID(rec.songID)], rm.m_backbuf, 0, 0, 256, 256, ART_X, ART_Y, 128, 128);
+	static int diffColors[3] = { makeacol(41, 239, 115, 255), makeacol(247, 41, 173, 255), makeacol(76, 0, 190, 255) };
+	int level = rec.chartID % 10;
+	rect(rm.m_backbuf, ART_X,     ART_Y,     ART_X + 128, ART_Y + 128, diffColors[level]);
+	rect(rm.m_backbuf, ART_X + 1, ART_Y + 1, ART_X + 127, ART_Y + 127, diffColors[level]);
+
+	// derived counts from early/late trackers
+	int marvCount  = rec.earlyMarvellous + rec.lateMarvellous;
+	int perfCount  = rec.earlyPerfect    + rec.latePerfect;
+	int greatCount = rec.earlyGreat      + rec.lateGreat;
+	int goodCount  = rec.earlyGood       + rec.lateGood;
+
+	char buf[32];
+
+	// MARVELOUS — col1: tinted PERFECT sprite cycling blue/red/green every 100ms
+	// %+.2f always emits a sign so '+' and '-' keep subsequent digits aligned
+	int marvColor = (totalGameTime / 100) % 3;
+	masked_blit(m_marvLabel[marvColor], rm.m_backbuf, 0, 0, LABEL_X - 16, Y_MARV + LABEL_BMP_Y, 192, 32);
+	renderScoreNumber(marvCount,  COUNT_X, Y_MARV  + SCORE_Y_OFF, marvCount  >= 1000 ? 4 : 3);
+	renderColoredString("AVG:", SEC_LABEL_X, Y_MARV, 0);
+	sprintf_s(buf, 32, "%+.2fms", rec.avgDiff);
+	int avgColor = rec.avgDiff > 0.0 ? TEXT_COLOR_RED : (rec.avgDiff < 0.0 ? TEXT_COLOR_BLUE : TEXT_COLOR_WHITE);
+	renderColoredString(buf, SEC_VALUE_X, Y_MARV, avgColor);
+	renderColoredString("UR:", SEC_LABEL_X, Y_MARV + LINE2, 0);
+	sprintf_s(buf, 32, "%.2f", rec.unstableRate);
+	int urColor = rec.unstableRate < 200.0 ? TEXT_COLOR_GREEN : TEXT_COLOR_WHITE;
+	renderColoredString(buf, SEC_VALUE_X, Y_MARV + LINE2, urColor);
+
+	// PERFECT
+	masked_blit(m_resultSub, rm.m_backbuf, 0, 0,  LABEL_X - 16, Y_PERF  + LABEL_BMP_Y, 192, 32);
+	renderScoreNumber(perfCount,  COUNT_X, Y_PERF  + SCORE_Y_OFF, perfCount  >= 1000 ? 4 : 3);
+	renderColoredString("EARLY:", SEC_LABEL_X, Y_PERF, TEXT_COLOR_RED);
+	sprintf_s(buf, 32, "%d", rec.earlyPerfect);
+	renderColoredString(buf, SEC_VALUE_X, Y_PERF, TEXT_COLOR_RED);
+	renderColoredString("LATE:", SEC_LABEL_X, Y_PERF + LINE2, TEXT_COLOR_BLUE);
+	sprintf_s(buf, 32, "%d", rec.latePerfect);
+	renderColoredString(buf, SEC_VALUE_X, Y_PERF + LINE2, TEXT_COLOR_BLUE);
+
+	// GREAT
+	masked_blit(m_resultSub, rm.m_backbuf, 0, 32, LABEL_X - 16, Y_GREAT + LABEL_BMP_Y, 192, 32);
+	renderScoreNumber(greatCount, COUNT_X, Y_GREAT + SCORE_Y_OFF, greatCount >= 1000 ? 4 : 3);
+	renderColoredString("EARLY:", SEC_LABEL_X, Y_GREAT, TEXT_COLOR_RED);
+	sprintf_s(buf, 32, "%d", rec.earlyGreat);
+	renderColoredString(buf, SEC_VALUE_X, Y_GREAT, TEXT_COLOR_RED);
+	renderColoredString("LATE:", SEC_LABEL_X, Y_GREAT + LINE2, TEXT_COLOR_BLUE);
+	sprintf_s(buf, 32, "%d", rec.lateGreat);
+	renderColoredString(buf, SEC_VALUE_X, Y_GREAT + LINE2, TEXT_COLOR_BLUE);
+
+	// GOOD
+	masked_blit(m_resultSub, rm.m_backbuf, 0, 64, LABEL_X - 16, Y_GOOD  + LABEL_BMP_Y, 192, 32);
+	renderScoreNumber(goodCount,  COUNT_X, Y_GOOD  + SCORE_Y_OFF, goodCount  >= 1000 ? 4 : 3);
+	renderColoredString("EARLY:", SEC_LABEL_X, Y_GOOD, TEXT_COLOR_RED);
+	sprintf_s(buf, 32, "%d", rec.earlyGood);
+	renderColoredString(buf, SEC_VALUE_X, Y_GOOD, TEXT_COLOR_RED);
+	renderColoredString("LATE:", SEC_LABEL_X, Y_GOOD + LINE2, TEXT_COLOR_BLUE);
+	sprintf_s(buf, 32, "%d", rec.lateGood);
+	renderColoredString(buf, SEC_VALUE_X, Y_GOOD + LINE2, TEXT_COLOR_BLUE);
+
+	// MISS — no Early/Late secondary rows
+	masked_blit(m_resultSub, rm.m_backbuf, 0, 96, LABEL_X - 16, Y_MISS  + MISS_BMP_Y,  192, 32);
+	renderScoreNumber(rec.misses, COUNT_X, Y_MISS  + SCORE_Y_OFF, rec.misses >= 1000 ? 4 : 3);
+
+	// score — original renderResult position
+	renderScoreNumber(rec.getScore(), 230, 357, 7);
 }
