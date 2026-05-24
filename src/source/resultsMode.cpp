@@ -301,11 +301,10 @@ void mainResultsLoop(UTIME dt)
 			}
 			else if ( gs.returningToSongwheel )
 			{
-				gs.g_currentGameMode = SONGWHEEL;
-			}
-			else if ( gs.isFreestyleMode )
-			{
-				gs.player[0].resetAll();
+				if ( gs.isFreestyleMode && (sm.player[0].isLoggedIn || (gs.isVersus && sm.player[1].isLoggedIn)) )
+				{
+					sm.savePlayersToDisk();
+				}
 				gs.g_currentGameMode = SONGWHEEL;
 			}
 			else

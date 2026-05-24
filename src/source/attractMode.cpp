@@ -192,12 +192,13 @@ void mainAttractLoop(UTIME dt)
 	blinkTimer = (blinkTimer + dt) % 1000;
 	submodeTimer += dt;
 
-	// skip directly to the songwheel for this special mode
-	if ( gs.isFreestyleMode )
-	{
-		gs.g_currentGameMode = SONGWHEEL;
-		gs.g_gameModeTransition = 1;
-	}
+	// Commenting out this skip straight to song mode so you can login to your account in Continuous Play Mode.
+	// // skip directly to the songwheel for this special mode
+	// if ( gs.isFreestyleMode )
+	// {
+	// 	gs.g_currentGameMode = SONGWHEEL;
+	// 	gs.g_gameModeTransition = 1;
+	// }
 
 	// begin a game from any sub-mode
 	if ( gs.isFreeplay || gs.numCoins >= gs.numCoinsPerCredit )
