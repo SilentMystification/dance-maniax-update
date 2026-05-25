@@ -248,12 +248,16 @@ public:
 	void announcerQuip(int which);
 	bool announcerQuipChance(int which, int percent);
 	
-	SAMPLE* basic_sfx[TOTAL_NUM_SFX];
-	SAMPLE* currentAnnouncer;
+	FSOUND_SAMPLE* fmod_sfx[TOTAL_NUM_SFX];
+	int currentAnnouncerChannel;
 
 	EffectsManager::EffectsManager()
 	{
-		currentAnnouncer = 0;
+		currentAnnouncerChannel = -1;
+		for ( int i = 0; i < TOTAL_NUM_SFX; i++ )
+		{
+			fmod_sfx[i] = NULL;
+		}
 	}
 
 	void announceCombo(int combo)
@@ -489,13 +493,9 @@ int getChartIndexFromType(int type);
 //////////////////////////////////////////////////////////////////////////////
 // sound effects
 //////////////////////////////////////////////////////////////////////////////
-void playSFXOnce(SAMPLE* sample);
+void playSFXOnce(FSOUND_SAMPLE* sample);
 // precondition: sample is not NULL
-// postcondition: calls an Allegro function to mix the audio automatically
-
-int getSampleLength(SAMPLE* sample);
-// precondition: sample is not NULL
-// postcondition: returns the length of the sample in seconds
+// postcondition: plays the sample once via FMOD
 
 
 //////////////////////////////////////////////////////////////////////////////

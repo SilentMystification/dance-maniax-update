@@ -106,8 +106,8 @@ int announcerTargetSpeak = 0; // how many "announcer points" are scored before h
 extern SongEntry* songs;
 extern int randomExtraStage;
 
-SAMPLE* assistClap = NULL;
-SAMPLE* shockSound = NULL;
+FSOUND_SAMPLE* assistClap = NULL;
+FSOUND_SAMPLE* shockSound = NULL;
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -191,10 +191,8 @@ void firstGameplayLoop()
 	// load certain sound effects only during the first run of the game
 	if ( !gameplayInitialized )
 	{
-		assistClap = load_sample("data/sfx/clap.wav");
-		shockSound = load_sample("data/sfx/shock.wav");
-		assistClap->priority = 100;
-		shockSound->priority = 100;
+		assistClap = FSOUND_Sample_Load(FSOUND_FREE, "data/sfx/clap.wav", FSOUND_NORMAL, 0, 0);
+		shockSound = FSOUND_Sample_Load(FSOUND_FREE, "data/sfx/shock.wav", FSOUND_NORMAL, 0, 0);
 	}
 
 	// DEBUG: if booting directly into gameplay mode, set stuff
@@ -300,7 +298,7 @@ void mainGameplayLoop(UTIME dt)
 		gs.returningToSongwheel = true;
 		gs.g_currentGameMode = RESULTS;
 		gs.g_gameModeTransition = 1;
-		if ( gs.currentStage >= gs.numSongsPerSet + numBonusStages )
+		if ( !gs.isFreestyleMode && gs.currentStage >= gs.numSongsPerSet + numBonusStages )
 		{
 			gs.creditComplete = true;
 			sm.savePlayersToDisk();
@@ -608,7 +606,7 @@ void doChartLogic(UTIME dt, int p)
 			gs.returningToSongwheel = true;
 			gs.g_currentGameMode = RESULTS;
 			gs.g_gameModeTransition = 1;
-			if ( gs.currentStage >= gs.numSongsPerSet + numBonusStages )
+			if ( !gs.isFreestyleMode && gs.currentStage >= gs.numSongsPerSet + numBonusStages )
 			{
 				gs.creditComplete = true;
 				sm.savePlayersToDisk();
@@ -1047,6 +1045,7 @@ void scoreNote(int p, int judgement, int column)
 
 	sm.player[p].currentSet[gs.currentStage].calculateGrade();
 	sm.player[p].currentSet[gs.currentStage].calculatePoints();
+	//sm.player[p].currentSet[gs.currentStage].calculateEXGrade();
 	gs.player[p].lifebarPercent = sm.player[p].currentSet[gs.currentStage].getScore()/1000; // yes really
 
 	// how does this judgement affect the combo?

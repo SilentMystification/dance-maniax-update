@@ -83,6 +83,7 @@ bool beginInitialInstall = false;
 bool redownloadManifest = true;
 bool pillarBoxMode = false;
 bool vsyncEnabled = false;
+bool asioRequested = false;
 
 BITMAP** m_banners; // used globally
 BITMAP* m_caution;
@@ -227,29 +228,35 @@ int main()
 	last_utime = timeGetTime();
 
 	//* initialize the sound playback
-	int digienabled = detect_digi_driver(DIGI_AUTODETECT);		// check sample software
-	int midienabled = detect_midi_driver(MIDI_NONE);			// not needed
-	digienabled = digienabled > 8 ? 8 : digienabled;			// using more voices lowers quality
-	midienabled = midienabled > 8 ? 8 : midienabled;			// using more voices lowers quality
-	if ( digienabled == 0 )
-	{
-		allegro_message("Digital Initalization Failed!");
-		return EXIT_FAILURE;
-	}
-	reserve_voices(digienabled, midienabled);
-	if ( install_sound(DIGI_AUTODETECT, MIDI_NONE, NULL) == -1 )
-	{
-		allegro_message("Audio Initalization Failed!");
-		return EXIT_FAILURE;
-	}
+	// All SFX are now routed through FMOD to allow ASIO exclusive mode to function; Allegro audio is not used anymore.
+	reserve_voices(0, 0);
+	install_sound(DIGI_NONE, MIDI_NONE, NULL);
 	//*/
 
 	//* initialize... yet more sound playback!
+	if ( fileExists("enableasio") )
+	{
+		asioRequested = true;
+		FSOUND_SetOutput(FSOUND_OUTPUT_ASIO);
+		FSOUND_GetNumDrivers(); // triggers internal ASIO COM initialization; return value is unreliable for modern drivers but the call is required
+		signed char driverResult = FSOUND_SetDriver(0);
+#ifdef _DEBUG
+		al_trace("ASIO: SetDriver(0)=%d err=%d\r\n", driverResult, FSOUND_GetError());
+#endif
+		FSOUND_SetMixer(FSOUND_MIXER_QUALITY_FPU);
+	}
     if (!FSOUND_Init(44100, 64, 0))
     {
 		allegro_message("FMOD failed to initialize: %d", FSOUND_GetError());
 		return EXIT_FAILURE;
     }
+	al_trace("ASIO: after Init. output=%d err=%d\r\n", FSOUND_GetOutput(), FSOUND_GetError());
+	if ( asioRequested && FSOUND_GetOutput() != FSOUND_OUTPUT_ASIO )
+	{
+		al_trace("WARNING: ASIO is enabled but failed to properly initialize. FMOD error: %d\r\n", FSOUND_GetError());
+		al_trace("Ensure your hardware supports ASIO with a 32bit driver and that it is configured properly, or disable the enableasio option.\r\n");
+		al_trace("Falling back to Direct Sound.\r\n");
+	}
 	//*/
 
 	// initialize graphics resources
@@ -425,6 +432,8 @@ int main()
 	{
 		UTIME time = timeGetTime();
 
+		// TODO: time > last_utime freezes the game loop after ~49.7 days (timeGetTime() 32-bit wraparound).
+		// Fix: UTIME dt = time - last_utime; if (dt > 0) — unsigned subtraction handles wraparound correctly.
 		if ( time > last_utime )
 		{
 			UTIME dt = time - last_utime;
@@ -812,7 +821,11 @@ void renderCreditsDisplay()
 	int x = 375;
 	int y = 464; // default position
 
-	if ( gs.isFreeplay )
+	if ( gs.isFreestyleMode )
+	{
+		renderWhiteString(" CONTINUOUS PLAY MODE ", (SCREEN_WIDTH - 220) / 2, y);
+	} 
+	else if ( gs.isFreeplay )
 	{
 		renderWhiteString(" FREE PLAY ", x-110, y);
 	}
@@ -1483,8 +1496,6 @@ void mainBootLoop(UTIME dt)
 	textprintf(rm.m_backbuf, font, 50, 140, WHITE, "I/O   CHECK:");
 	textprintf(rm.m_backbuf, font, 50, 160, WHITE, "DATA  CHECK:");
 	textprintf(rm.m_backbuf, font, 50, 180, WHITE, "SOUND CHECK:");
-	//textprintf(rm.m_backbuf, font, 50, 410, WHITE, "This program reports non-personal usage data to Google Analytics.");
-	//textprintf(rm.m_backbuf, font, 50, 420, WHITE, "You may disable tracking by creating a file named \"notracking\".");
 
 	if ( currentBootStep == 0 )
 	{
@@ -1550,7 +1561,23 @@ void mainBootLoop(UTIME dt)
 			textprintf(rm.m_backbuf, font, 154, 140, WHITE, results[6]);
 		}
 		textprintf(rm.m_backbuf, font, 154, 160, (bootStepTime/75) %2 == 0 && bootStepTime < 2500 ? WHITE : GREEN, results[4]);
-		textprintf(rm.m_backbuf, font, 154, 180, (bootStepTime/75) %2 == 0 && bootStepTime < 2500 ? WHITE : GREEN, results[4]);
+		{
+			const char* soundBackend;
+			if ( FSOUND_GetOutput() == FSOUND_OUTPUT_ASIO )
+			{
+				soundBackend = "ASIO";
+			}
+			else if ( asioRequested )
+			{
+				//Indicate fallback to direct sound
+				soundBackend = "ASIO -> DSOUND";
+			}
+			else
+			{
+				soundBackend = "DSOUND";
+			}
+			textprintf(rm.m_backbuf, font, 154, 180, (bootStepTime/75) %2 == 0 && bootStepTime < 2500 ? WHITE : GREEN, "OK - %s", soundBackend);
+		}
 
 		if ( bootStepTime >= 3000 )
 		{

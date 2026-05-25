@@ -436,14 +436,13 @@ void RenderingManager::dimScreen(int percent)
 void EffectsManager::initialize()
 {
 	char filename[] = "DATA/sfx/GAME_0000.wav";
-	currentAnnouncer = NULL;
 	for ( int i = 0; i < TOTAL_NUM_SFX; i++ )
 	{
 		filename[14] = (i/1000)%10 + '0';
 		filename[15] = (i/100)%10 + '0';
 		filename[16] = (i/10)%10 + '0';
 		filename[17] = (i % 10) + '0';
-		basic_sfx[i] = load_sample(filename);
+		fmod_sfx[i] = FSOUND_Sample_Load(FSOUND_FREE, filename, FSOUND_NORMAL, 0, 0);
 	}
 }
 
@@ -451,25 +450,21 @@ void EffectsManager::playSample(int which)
 {
 	if ( which < 41 || which > 156 ) // exclude announcers
 	{
-		playSFXOnce(basic_sfx[which]);
+		playSFXOnce(fmod_sfx[which]);
 	}
 }
 
 void EffectsManager::announcerQuip(int which)
 {
-	//destroy_sample(currentAnnouncer);
-	stop_sample(currentAnnouncer);
-
 	if ( which >= 41 && which < 156 ) // only do announcers
 	{
-		//char filename[] = "DATA/sfx/GAME_0000.wav";
-		//filename[15] = (which/100)%10 + '0';
-		//filename[16] = (which/10)%10 + '0';
-		//filename[17] = (which % 10) + '0';
-		currentAnnouncer = basic_sfx[which];// load_sample(filename);
-		if ( currentAnnouncer != NULL )
+		if ( currentAnnouncerChannel != -1 )
 		{
-			playSFXOnce(currentAnnouncer);
+			FSOUND_StopSound(currentAnnouncerChannel);
+		}
+		if ( fmod_sfx[which] != NULL )
+		{
+			currentAnnouncerChannel = FSOUND_PlaySound(FSOUND_FREE, fmod_sfx[which]);
 		}
 	}
 }
@@ -990,15 +985,12 @@ int getChartIndexFromType(int type)
 	return -1;
 }
 
-void playSFXOnce(SAMPLE* sample)
+void playSFXOnce(FSOUND_SAMPLE* sample)
 {
-	stop_sample(sample);
-	play_sample(sample, 255, 127, 1000, 0); 
-}
-
-int getSampleLength(SAMPLE* sample)
-{
-	return (sample->len + sample->freq/2) * 10 / MAX(sample->freq, 1);
+	if ( sample != NULL )
+	{
+		FSOUND_PlaySound(FSOUND_FREE, sample);
+	}
 }
 
 int calculateArrowColor(unsigned long timing, int timePerBeat)
