@@ -84,9 +84,9 @@ void firstResultsLoop()
 			m_marvLabel[i] = create_bitmap(192, 32);
 			blit(m_resultSub, m_marvLabel[i], 0, 0, 0, 0, 192, 32);
 		}
-		tintGrayscaleBitmap(m_marvLabel[0], 170, 170, 255); // blue
-		tintGrayscaleBitmap(m_marvLabel[1], 255, 170, 170); // red
-		tintGrayscaleBitmap(m_marvLabel[2], 170, 255, 170); // green
+		tintFillBitmap(m_marvLabel[0], 170, 170, 255); // blue
+		tintFillBitmap(m_marvLabel[1], 255, 170, 170); // red
+		tintFillBitmap(m_marvLabel[2], 170, 255, 170); // green
 	}
 
 	resultFadeTimer = secondAnimTimer = 0;
@@ -463,47 +463,47 @@ void renderResultAdvanced(int which, int player)
 
 	// MARVELOUS — col1: tinted PERFECT sprite cycling blue/red/green every 100ms
 	// %+.2f always emits a sign so '+' and '-' keep subsequent digits aligned
-	int marvColor = (totalGameTime / 100) % 3;
+	int marvColor = (totalGameTime / 50) % 3;
 	masked_blit(m_marvLabel[marvColor], rm.m_backbuf, 0, 0, LABEL_X - 16, Y_MARV + LABEL_BMP_Y, 192, 32);
 	renderScoreNumber(marvCount,  COUNT_X, Y_MARV  + SCORE_Y_OFF, marvCount  >= 1000 ? 4 : 3);
-	renderColoredString("AVG:", SEC_LABEL_X, Y_MARV, 0);
+	renderOutlinedColoredString("AVG:", SEC_LABEL_X, Y_MARV, 0);
 	sprintf_s(buf, 32, "%+.2fms", rec.avgDiff);
 	int avgColor = rec.avgDiff > 0.0 ? TEXT_COLOR_RED : (rec.avgDiff < 0.0 ? TEXT_COLOR_BLUE : TEXT_COLOR_WHITE);
-	renderColoredString(buf, SEC_VALUE_X, Y_MARV, avgColor);
-	renderColoredString("UR:", SEC_LABEL_X, Y_MARV + LINE2, 0);
+	renderOutlinedColoredString(buf, SEC_VALUE_X, Y_MARV, avgColor);
+	renderOutlinedColoredString("UR:", SEC_LABEL_X, Y_MARV + LINE2, 0);
 	sprintf_s(buf, 32, "%.2f", rec.unstableRate);
 	int urColor = rec.unstableRate < 200.0 ? TEXT_COLOR_GREEN : TEXT_COLOR_WHITE;
-	renderColoredString(buf, SEC_VALUE_X, Y_MARV + LINE2, urColor);
+	renderOutlinedColoredString(buf, SEC_VALUE_X, Y_MARV + LINE2, urColor);
 
 	// PERFECT
 	masked_blit(m_resultSub, rm.m_backbuf, 0, 0,  LABEL_X - 16, Y_PERF  + LABEL_BMP_Y, 192, 32);
 	renderScoreNumber(perfCount,  COUNT_X, Y_PERF  + SCORE_Y_OFF, perfCount  >= 1000 ? 4 : 3);
-	renderColoredString("EARLY:", SEC_LABEL_X, Y_PERF, TEXT_COLOR_RED);
+	renderOutlinedColoredString("EARLY:", SEC_LABEL_X, Y_PERF, TEXT_COLOR_RED);
 	sprintf_s(buf, 32, "%d", rec.earlyPerfect);
-	renderColoredString(buf, SEC_VALUE_X, Y_PERF, TEXT_COLOR_RED);
-	renderColoredString("LATE:", SEC_LABEL_X, Y_PERF + LINE2, TEXT_COLOR_BLUE);
+	renderOutlinedColoredString(buf, SEC_VALUE_X, Y_PERF, TEXT_COLOR_RED);
+	renderOutlinedColoredString("LATE:", SEC_LABEL_X, Y_PERF + LINE2, TEXT_COLOR_BLUE);
 	sprintf_s(buf, 32, "%d", rec.latePerfect);
-	renderColoredString(buf, SEC_VALUE_X, Y_PERF + LINE2, TEXT_COLOR_BLUE);
+	renderOutlinedColoredString(buf, SEC_VALUE_X, Y_PERF + LINE2, TEXT_COLOR_BLUE);
 
 	// GREAT
 	masked_blit(m_resultSub, rm.m_backbuf, 0, 32, LABEL_X - 16, Y_GREAT + LABEL_BMP_Y, 192, 32);
 	renderScoreNumber(greatCount, COUNT_X, Y_GREAT + SCORE_Y_OFF, greatCount >= 1000 ? 4 : 3);
-	renderColoredString("EARLY:", SEC_LABEL_X, Y_GREAT, TEXT_COLOR_RED);
+	renderOutlinedColoredString("EARLY:", SEC_LABEL_X, Y_GREAT, TEXT_COLOR_RED);
 	sprintf_s(buf, 32, "%d", rec.earlyGreat);
-	renderColoredString(buf, SEC_VALUE_X, Y_GREAT, TEXT_COLOR_RED);
-	renderColoredString("LATE:", SEC_LABEL_X, Y_GREAT + LINE2, TEXT_COLOR_BLUE);
+	renderOutlinedColoredString(buf, SEC_VALUE_X, Y_GREAT, TEXT_COLOR_RED);
+	renderOutlinedColoredString("LATE:", SEC_LABEL_X, Y_GREAT + LINE2, TEXT_COLOR_BLUE);
 	sprintf_s(buf, 32, "%d", rec.lateGreat);
-	renderColoredString(buf, SEC_VALUE_X, Y_GREAT + LINE2, TEXT_COLOR_BLUE);
+	renderOutlinedColoredString(buf, SEC_VALUE_X, Y_GREAT + LINE2, TEXT_COLOR_BLUE);
 
 	// GOOD
 	masked_blit(m_resultSub, rm.m_backbuf, 0, 64, LABEL_X - 16, Y_GOOD  + LABEL_BMP_Y, 192, 32);
 	renderScoreNumber(goodCount,  COUNT_X, Y_GOOD  + SCORE_Y_OFF, goodCount  >= 1000 ? 4 : 3);
-	renderColoredString("EARLY:", SEC_LABEL_X, Y_GOOD, TEXT_COLOR_RED);
+	renderOutlinedColoredString("EARLY:", SEC_LABEL_X, Y_GOOD, TEXT_COLOR_RED);
 	sprintf_s(buf, 32, "%d", rec.earlyGood);
-	renderColoredString(buf, SEC_VALUE_X, Y_GOOD, TEXT_COLOR_RED);
-	renderColoredString("LATE:", SEC_LABEL_X, Y_GOOD + LINE2, TEXT_COLOR_BLUE);
+	renderOutlinedColoredString(buf, SEC_VALUE_X, Y_GOOD, TEXT_COLOR_RED);
+	renderOutlinedColoredString("LATE:", SEC_LABEL_X, Y_GOOD + LINE2, TEXT_COLOR_BLUE);
 	sprintf_s(buf, 32, "%d", rec.lateGood);
-	renderColoredString(buf, SEC_VALUE_X, Y_GOOD + LINE2, TEXT_COLOR_BLUE);
+	renderOutlinedColoredString(buf, SEC_VALUE_X, Y_GOOD + LINE2, TEXT_COLOR_BLUE);
 
 	// MISS — no Early/Late secondary rows
 	masked_blit(m_resultSub, rm.m_backbuf, 0, 96, LABEL_X - 16, Y_MISS  + MISS_BMP_Y,  192, 32);

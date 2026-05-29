@@ -178,6 +178,8 @@ void renderWhiteString(const char* string, int x, int y);
 void renderWhiteNumber(int number, int x, int y);
 void renderColoredLetter(char letter, int x, int y, int color);
 void renderColoredString(const char* string, int x, int y, int color);
+void renderOutlinedColoredLetter(char letter, int x, int y, int color);
+void renderOutlinedColoredString(const char* string, int x, int y, int color);
 void renderTextString(const char* string, int x, int y, int width, int height, int color = 0);
 void debugRenderTextFontColors(int x, int y);
 void renderBoldString(const unsigned char* string, int x, int y, int maxWidth, bool fixedWidth, int color = 0);
@@ -202,6 +204,7 @@ public:
 
 	BITMAP* m_whiteFont;
 	BITMAP* m_colorFont[8];
+	BITMAP* m_colorFontNoOutline[8];
 	BITMAP* m_textFont[4];
 	BITMAP* m_boldFont[4];
 	BITMAP* m_artistFont;
@@ -228,6 +231,7 @@ void replaceColor(BITMAP* bmp, long col1, long col2);
 // precondition: bmp is 32 bit
 // postcondition: any instances of col1 are replaced by col2
 void tintGrayscaleBitmap(BITMAP* bmp, int r, int g, int b);
+void tintFillBitmap(BITMAP* bmp, int r, int g, int b);
 // precondition: bmp is 32 bit, pixels are grayscale (R==G==B) or mask (255,0,255)
 // postcondition: each grayscale pixel is remapped so dark pixels approach (r,g,b) and light pixels approach white
 void outlineBitmap(BITMAP* bmp);

@@ -84,6 +84,7 @@ bool redownloadManifest = true;
 bool pillarBoxMode = false;
 bool vsyncEnabled = false;
 bool asioRequested = false;
+bool usePhoenixIO = false;
 
 BITMAP** m_banners; // used globally
 BITMAP* m_caution;
@@ -358,6 +359,10 @@ int main()
 	}
 
 	// check options
+	if ( fileExists("usephoenixio") )
+	{
+		usePhoenixIO = true;
+	}
 	if ( fileExists("revpolarityred") )
 	{
 		im.reverseRedSensorPolarity = true; // temporary for testing
@@ -1554,7 +1559,14 @@ void mainBootLoop(UTIME dt)
 	{
 		if ( boardType != 6 )
 		{
-			textprintf(rm.m_backbuf, font, 154, 140, (bootStepTime/75) %2 == 0 && bootStepTime < 2500 ? WHITE : GREEN, results[boardType]);
+			if ( boardType == 4 && usePhoenixIO )
+			{
+				textprintf(rm.m_backbuf, font, 154, 140, (bootStepTime/75) %2 == 0 && bootStepTime < 2500 ? WHITE : GREEN, "OK - PHOENIX IO");
+			}
+			else
+			{
+				textprintf(rm.m_backbuf, font, 154, 140, (bootStepTime/75) %2 == 0 && bootStepTime < 2500 ? WHITE : GREEN, results[boardType]);
+			}
 		}
 		else
 		{

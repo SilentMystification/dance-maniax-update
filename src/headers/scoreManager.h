@@ -141,6 +141,11 @@ struct SONG_RECORD
 
 		return grade;
 	}
+	int SONG_RECORD::calculateEXGrade()
+	{
+		//TODO: Implement calculating EXGrade here
+		return 0;
+	}
 
 	int calculatePoints()
 	{

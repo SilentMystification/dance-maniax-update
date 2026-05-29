@@ -53,6 +53,15 @@ void RenderingManager::Initialize(bool installMode, int windowWidth, int windowH
 		replaceColor(m_colorFont[TEXT_COLOR_BLACK],   makecol(255,255,255), makecol(0,0,0));
 		for ( int i = 0; i < 8; i++ )
 			outlineBitmap(m_colorFont[i]);
+		for ( int i = 0; i < 8; i++ )
+			m_colorFontNoOutline[i] = loadImage("DATA/etc/white_font.bmp");
+		replaceColor(m_colorFontNoOutline[TEXT_COLOR_GREEN],   makecol(255,255,255), makecol(170,255,170));
+		replaceColor(m_colorFontNoOutline[TEXT_COLOR_RED],     makecol(255,255,255), makecol(255,170,170));
+		replaceColor(m_colorFontNoOutline[TEXT_COLOR_BLUE],    makecol(255,255,255), makecol(170,170,255));
+		replaceColor(m_colorFontNoOutline[TEXT_COLOR_CYAN],    makecol(255,255,255), makecol(0,255,255));
+		replaceColor(m_colorFontNoOutline[TEXT_COLOR_MAGENTA], makecol(255,255,255), makecol(255,0,220));
+		replaceColor(m_colorFontNoOutline[TEXT_COLOR_YELLOW],  makecol(255,255,255), makecol(255,255,0));
+		replaceColor(m_colorFontNoOutline[TEXT_COLOR_BLACK],   makecol(255,255,255), makecol(0,0,0));
 		m_textFont[0] = loadImage("DATA/etc/text_font.bmp");
 		m_textFont[1] = loadImage("DATA/etc/text_font.bmp");
 		m_textFont[2] = loadImage("DATA/etc/text_font.bmp");
@@ -507,6 +516,21 @@ void tintGrayscaleBitmap(BITMAP* bmp, int r, int g, int b)
 	}
 }
 
+void tintFillBitmap(BITMAP* bmp, int r, int g, int b)
+{
+	// Maps white fill pixels to (r,g,b) and leaves black outline pixels black.
+	// v=255 (white) → (r,g,b), v=0 (black) → (0,0,0)
+	long mask = makecol(255, 0, 255);
+	for ( int y = 0; y < bmp->h; y++ )
+	for ( int x = 0; x < bmp->w; x++ )
+	{
+		long c = ((long *)bmp->line[y])[x];
+		if ( c == mask ) continue;
+		int v = getr32(c);
+		((long *)bmp->line[y])[x] = makeacol(r * v / 255, g * v / 255, b * v / 255, 255);
+	}
+}
+
 void outlineBitmap(BITMAP* bmp)
 {
 	long mask  = makecol(255, 0, 255);
@@ -541,19 +565,19 @@ void renderWhiteString(const char* string, int x, int y)
 	}
 }
 
-void renderColoredLetter(char letter, int x, int y, int color)
+static void renderColoredLetterFromFont(BITMAP* font, char letter, int x, int y)
 {
 	if ( letter >= 'a' && letter <= 'z' )
 		letter = 'A' + letter - 'a';
 
 	if ( letter >= 'A' && letter <= 'M' )
 	{
-		masked_blit(rm.m_colorFont[color], rm.m_backbuf, 10*(letter-'A'), 0, x, y, 10, 12);
+		masked_blit(font, rm.m_backbuf, 10*(letter-'A'), 0, x, y, 10, 12);
 		return;
 	}
 	if ( letter >= 'N' && letter <= 'Z' )
 	{
-		masked_blit(rm.m_colorFont[color], rm.m_backbuf, 10*(letter-'N'), 12, x, y, 10, 12);
+		masked_blit(font, rm.m_backbuf, 10*(letter-'N'), 12, x, y, 10, 12);
 		return;
 	}
 
@@ -596,7 +620,12 @@ void renderColoredLetter(char letter, int x, int y, int color)
 	case '}': row = 5; col = 2; break;
 	case 151: row = 5; col = 4; break;
 	}
-	masked_blit(rm.m_colorFont[color], rm.m_backbuf, 10*col, 12*row, x, y, 10, 12);
+	masked_blit(font, rm.m_backbuf, 10*col, 12*row, x, y, 10, 12);
+}
+
+void renderColoredLetter(char letter, int x, int y, int color)
+{
+	renderColoredLetterFromFont(rm.m_colorFontNoOutline[color], letter, x, y);
 }
 
 void renderColoredString(const char* string, int x, int y, int color)
@@ -605,6 +634,22 @@ void renderColoredString(const char* string, int x, int y, int color)
 	while ( string[i] != 0 )
 	{
 		renderColoredLetter(string[i], x, y, color);
+		x += 10;
+		i++;
+	}
+}
+
+void renderOutlinedColoredLetter(char letter, int x, int y, int color)
+{
+	renderColoredLetterFromFont(rm.m_colorFont[color], letter, x, y);
+}
+
+void renderOutlinedColoredString(const char* string, int x, int y, int color)
+{
+	int i = 0;
+	while ( string[i] != 0 )
+	{
+		renderOutlinedColoredLetter(string[i], x, y, color);
 		x += 10;
 		i++;
 	}

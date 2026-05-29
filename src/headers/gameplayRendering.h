@@ -19,6 +19,11 @@
 #define JUDGEMENT_Y 222
 #define REVERSE_JUDGEMENT_Y 331
 
+#define JUDGEMENT_TEXT_Y_BOTTOM 370                  // ~85% down playfield (Y 64-402)
+#define JUDGEMENT_TEXT_Y_LOWER  318                  // ~75% down playfield (Y 64-402)
+#define JUDGEMENT_TEXT_Y_UPPER  (JUDGEMENT_Y - 36)   // 186: above judgement text
+#define JUDGEMENT_TEXT_Y_TOP    (JUDGEMENT_Y - 80)   // 142: well above judgement text
+
 // these are for the step zone animation when a panel is pressed
 #define RESIZE_TIME 100
 #define GET_RESIZE(time) (100-(25*time/RESIZE_TIME))
@@ -97,7 +102,7 @@ static int dmxHoldColors[5][4][3] =
 		{  76, 255, 231 },
 	},
 	{
-		{ 255, 216,   0 },  // gold notes (not used)
+		{ 255, 216,   0 },  // gold notes (not used)jhat
 		{  60,  60,  20 },
 		{ 255, 255,  38 },
 		{ 255, 231,  76 },

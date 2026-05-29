@@ -725,44 +725,56 @@ void renderTempoStopMarker(int x1, int x2, int y, int len)
 	renderWhiteNumber(len, x2+3, y+15);
 }
 
-//determines if and when the judgement display should be rendered based off of the player's last judgment and judgementDisplayMode in gamestatemanager
-bool shouldShowJudgementDisplay(int lastJudgement, int mode, int diff)
+// Returns true if this judgement level qualifies to show an element.
+// threshold=0 means always show; threshold>0 means show only if lastJudgement is strictly worse (higher value).
+// Judgement order: MARVELLOUS=1, PERFECT=2, GREAT=3, GOOD=4, BAD=5, MISS=6
+static bool shouldShowForJudgement(int lastJudgement, int threshold)
 {
 	if (lastJudgement < 1 || lastJudgement == MISS) return false;
-	if (diff == 0 && mode != 5) return false;
-	switch (mode)
+	if (threshold == 0) return true;
+	return lastJudgement > threshold;
+}
+
+static int getJudgementTextY(int posMode)
+{
+	switch (posMode)
 	{
-	case 0: return false;
-	case 1: return lastJudgement == 5;                                                                     // bad +  (reserved, not yet implemented)
-	case 2: return lastJudgement == GOOD || lastJudgement == 5;                                           // good, bad
-	case 3: return lastJudgement == GREAT || lastJudgement == GOOD || lastJudgement == 5;                 // great, good, bad
-	case 4: return lastJudgement == PERFECT || lastJudgement == GREAT || lastJudgement == GOOD || lastJudgement == 5; // perfect, great, good, bad
-	case 5: return true;                                                                                   // everything except miss
-	default: return false;
+	case 1: return JUDGEMENT_TEXT_Y_BOTTOM;
+	case 2: return JUDGEMENT_TEXT_Y_LOWER;
+	case 3: return JUDGEMENT_TEXT_Y_UPPER;
+	case 4: return JUDGEMENT_TEXT_Y_TOP;
+	default: return JUDGEMENT_TEXT_Y_LOWER;
 	}
 }
 
-void renderJudgementText(int centered_x, int y, int diff, bool isEarly)
+void renderJudgementText(int centered_x, int y, int diff, bool isEarly, bool showMs, bool showEarlyLate)
 {
-	char judgeText[34];
-	int judgeColor;
+	if (!showMs && !showEarlyLate) return;
+	if (diff == 0 && !showMs) return;
+
+	int color = (diff == 0) ? TEXT_COLOR_WHITE : (isEarly ? TEXT_COLOR_RED : TEXT_COLOR_BLUE);
+
 	if (diff == 0)
 	{
-		sprintf_s(judgeText, sizeof(judgeText), "|0ms");
-		judgeColor = 0; // white
+		renderColoredString("0ms", centered_x - 15, y, color);
+		return;
 	}
-	else if (isEarly)
-	{
-		sprintf_s(judgeText, sizeof(judgeText), "|early +%dms", diff);
-		judgeColor = 2; // red
-	}
-	else
-	{
-		sprintf_s(judgeText, sizeof(judgeText), "|late -%dms", diff);
-		judgeColor = 3; // blue
-	}
-	int approxWidth = (int)(strlen(judgeText) - 1) * 10;
-	renderBoldString(judgeText, centered_x - approxWidth / 2, y, approxWidth + 20, false, judgeColor);
+
+	char msText[12];
+	sprintf_s(msText, sizeof(msText), isEarly ? "+%dms" : "-%dms", diff);
+	int msWidth = (int)strlen(msText) * 10;
+
+	// Fixed 50px label slot (width of "early") keeps layout identical for early and late hits.
+	// Whole block is centered at centered_x.
+	const int LABEL_SLOT = 50;
+	const int GAP = 10;
+	int startX = centered_x - (LABEL_SLOT + GAP + msWidth) / 2;
+
+	if (showEarlyLate)
+		renderColoredString(isEarly ? "early" : "late", startX, y, color);
+
+	if (showMs)
+		renderColoredString(msText, startX + LABEL_SLOT + GAP, y, color);
 }
 
 void renderGameplay()
@@ -825,8 +837,13 @@ void renderGameplay()
 		{
 			renderDMXJudgement(gs.player[p].lastJudgement, gs.player[p].judgementTime, centered_x, JUDGEMENT_Y);
 
-			if ( shouldShowJudgementDisplay(gs.player[p].lastJudgement, gs.player[p].judgementDisplayMode, gs.player[p].lastJudgementDiff) )
-				renderJudgementText(centered_x, JUDGEMENT_Y - 36, gs.player[p].lastJudgementDiff, gs.player[p].lastJudgementEarly);
+			if ( gs.player[p].judgementPositionMode > 0 )
+			{
+				bool showMs = shouldShowForJudgement(gs.player[p].lastJudgement, gs.player[p].judgementMsDisplayMode);
+				bool showEL = shouldShowForJudgement(gs.player[p].lastJudgement, gs.player[p].judgementEarlyLateMode);
+				if ( showMs || showEL )
+					renderJudgementText(centered_x, getJudgementTextY(gs.player[p].judgementPositionMode), gs.player[p].lastJudgementDiff, gs.player[p].lastJudgementEarly, showMs, showEL);
+			}
 		}
 	}
 
@@ -854,8 +871,13 @@ void renderGameplay()
 		{
 			renderDDRJudgement(gs.player[p].lastJudgement, gs.player[p].judgementTime, centered_x, JUDGEMENT_Y);
 
-			if ( shouldShowJudgementDisplay(gs.player[p].lastJudgement, gs.player[p].judgementDisplayMode, gs.player[p].lastJudgementDiff) )
-				renderJudgementText(centered_x, JUDGEMENT_Y - 36, gs.player[p].lastJudgementDiff, gs.player[p].lastJudgementEarly);
+			if ( gs.player[p].judgementPositionMode > 0 )
+			{
+				bool showMs = shouldShowForJudgement(gs.player[p].lastJudgement, gs.player[p].judgementMsDisplayMode);
+				bool showEL = shouldShowForJudgement(gs.player[p].lastJudgement, gs.player[p].judgementEarlyLateMode);
+				if ( showMs || showEL )
+					renderJudgementText(centered_x, getJudgementTextY(gs.player[p].judgementPositionMode), gs.player[p].lastJudgementDiff, gs.player[p].lastJudgementEarly, showMs, showEL);
+			}
 		}
 	}
 	renderColumnJudgements(p);
