@@ -164,6 +164,7 @@ int checkFileVersion(FILE* fp, char* expected);
 #define TEXT_COLOR_MAGENTA 5  // (255,0,220) — avoids Allegro's exact mask color (255,0,255)
 #define TEXT_COLOR_YELLOW  6
 #define TEXT_COLOR_BLACK   7
+#define TEXT_COLOR_GOLD    8  // (255,220,0)
 
 // font reference — all bitmaps loaded in RenderingManager::Initialize (common.cpp)
 //   white       renderWhiteString / renderWhiteNumber   white_font.bmp  10x12px monospace, uppercase + digits
@@ -203,8 +204,8 @@ public:
 	BITMAP* m_backbuf2;
 
 	BITMAP* m_whiteFont;
-	BITMAP* m_colorFont[8];
-	BITMAP* m_colorFontNoOutline[8];
+	BITMAP* m_colorFont[9];
+	BITMAP* m_colorFontNoOutline[9];
 	BITMAP* m_textFont[4];
 	BITMAP* m_boldFont[4];
 	BITMAP* m_artistFont;

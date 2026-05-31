@@ -41,7 +41,8 @@ void RenderingManager::Initialize(bool installMode, int windowWidth, int windowH
 	if ( !installMode )
 	{
 		m_whiteFont = loadImage("DATA/etc/white_font.bmp");
-		for ( int i = 0; i < 8; i++ )
+
+		for ( int i = 0; i < 9; i++ )
 			m_colorFont[i] = loadImage("DATA/etc/white_font.bmp");
 		// tint each copy: indices 0-3 match boldFont palette; magenta uses (255,0,220) to avoid Allegro's mask color (255,0,255)
 		replaceColor(m_colorFont[TEXT_COLOR_GREEN],   makecol(255,255,255), makecol(170,255,170));
@@ -51,9 +52,11 @@ void RenderingManager::Initialize(bool installMode, int windowWidth, int windowH
 		replaceColor(m_colorFont[TEXT_COLOR_MAGENTA], makecol(255,255,255), makecol(255,0,220));
 		replaceColor(m_colorFont[TEXT_COLOR_YELLOW],  makecol(255,255,255), makecol(255,255,0));
 		replaceColor(m_colorFont[TEXT_COLOR_BLACK],   makecol(255,255,255), makecol(0,0,0));
-		for ( int i = 0; i < 8; i++ )
+		replaceColor(m_colorFont[TEXT_COLOR_GOLD],    makecol(255,255,255), makecol(255,223,0));
+		for ( int i = 0; i < 9; i++ )
 			outlineBitmap(m_colorFont[i]);
-		for ( int i = 0; i < 8; i++ )
+
+		for ( int i = 0; i < 9; i++ )
 			m_colorFontNoOutline[i] = loadImage("DATA/etc/white_font.bmp");
 		replaceColor(m_colorFontNoOutline[TEXT_COLOR_GREEN],   makecol(255,255,255), makecol(170,255,170));
 		replaceColor(m_colorFontNoOutline[TEXT_COLOR_RED],     makecol(255,255,255), makecol(255,170,170));
@@ -62,6 +65,8 @@ void RenderingManager::Initialize(bool installMode, int windowWidth, int windowH
 		replaceColor(m_colorFontNoOutline[TEXT_COLOR_MAGENTA], makecol(255,255,255), makecol(255,0,220));
 		replaceColor(m_colorFontNoOutline[TEXT_COLOR_YELLOW],  makecol(255,255,255), makecol(255,255,0));
 		replaceColor(m_colorFontNoOutline[TEXT_COLOR_BLACK],   makecol(255,255,255), makecol(0,0,0));
+		replaceColor(m_colorFontNoOutline[TEXT_COLOR_GOLD],    makecol(255,255,255), makecol(255,223,0));
+
 		m_textFont[0] = loadImage("DATA/etc/text_font.bmp");
 		m_textFont[1] = loadImage("DATA/etc/text_font.bmp");
 		m_textFont[2] = loadImage("DATA/etc/text_font.bmp");
