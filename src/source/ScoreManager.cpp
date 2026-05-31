@@ -81,7 +81,7 @@ bool ScoreManager::loadPlayerFromDisk(char* name, char side)
 		{
 			return loadPlayerFromDisk_v1(fp, side);
 		}
-		else
+		else if ( vnum != 2 ) // v2 files load via the main loop, just missing exScore/maxExScore
 		{
 			globalError(PLAYER_SCORES_LOST, "version number mismatch");
 		}
@@ -108,6 +108,11 @@ bool ScoreManager::loadPlayerFromDisk(char* name, char side)
 		fread(&temp.goods, sizeof(int), 1, fp);
 		fread(&temp.misses, sizeof(int), 1, fp);
 		fread(&temp.unlockStatus, sizeof(char), 1, fp);
+		if ( vnum >= 3 )
+		{
+			fread(&temp.exScore,    sizeof(int), 1, fp);
+			fread(&temp.maxExScore, sizeof(int), 1, fp);
+		}
 
 		int songIndex = songID_to_listID(temp.songID);
 		int chartIndex = getChartIndexFromType(temp.chartID);
@@ -244,6 +249,12 @@ void ScoreManager::mergeCurrentScores(PLAYER_DATA &p, int side)
 			p.allTime[songindex][chartindex].misses = p.currentSet[i].misses;
 			changedSomething = true;
 		}
+		if ( p.allTime[songindex][chartindex].exScore < p.currentSet[i].exScore )
+		{
+			p.allTime[songindex][chartindex].exScore    = p.currentSet[i].exScore;
+			p.allTime[songindex][chartindex].maxExScore = p.currentSet[i].maxExScore;
+			changedSomething = true;
+		}
 		if ( changedSomething )
 		{
 			p.allTime[songindex][chartindex].time = time(NULL);
@@ -345,6 +356,8 @@ void ScoreManager::savePlayerToDisk(PLAYER_DATA &p)
 		fwrite(&p.allTime[i][j].goods, sizeof(int), 1, fp);
 		fwrite(&p.allTime[i][j].misses, sizeof(int), 1, fp);
 		fwrite(&p.allTime[i][j].unlockStatus, sizeof(char), 1, fp);
+		fwrite(&p.allTime[i][j].exScore,      sizeof(int),  1, fp);
+		fwrite(&p.allTime[i][j].maxExScore,   sizeof(int),  1, fp);
 	}
 
 	safeCloseFile(fp, scoreFilename);

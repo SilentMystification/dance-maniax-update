@@ -36,7 +36,7 @@
 #define CURRENT_SETTING_VERSION_NUMBER 2
 #define CURRENT_BKEEP_VERSION_NUMBER 1
 #define CURRENT_HITLIST_VERSION_NUMBER 1
-#define CURRENT_SCORE_VERSION_NUMBER 2
+#define CURRENT_SCORE_VERSION_NUMBER 3
 #define CURRENT_PLAYER_VERSION_NUMBER 1
 
 // for the operator menu
@@ -164,7 +164,7 @@ int checkFileVersion(FILE* fp, char* expected);
 #define TEXT_COLOR_MAGENTA 5  // (255,0,220) — avoids Allegro's exact mask color (255,0,255)
 #define TEXT_COLOR_YELLOW  6
 #define TEXT_COLOR_BLACK   7
-#define TEXT_COLOR_GOLD    8  // (255,220,0)
+#define TEXT_COLOR_GOLD    8  // (212,175,55)
 
 // font reference — all bitmaps loaded in RenderingManager::Initialize (common.cpp)
 //   white       renderWhiteString / renderWhiteNumber   white_font.bmp  10x12px monospace, uppercase + digits

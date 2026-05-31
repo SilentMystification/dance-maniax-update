@@ -22,6 +22,8 @@ struct SONG_RECORD
 	int  earlyGood,       lateGood;
 	double avgDiff;      // average timing offset in ms, 2 decimal places (positive = early, negative = late)
 	double unstableRate; // standard deviation * 10 (UR), 2 decimal places
+	int  exScore;        // EX score: marv*5 + perf*4 + great*2 + good*1
+	int  maxExScore;     // maximum possible EX score for this chart (totalNotes * 5)
 	int  maxCombo;		// this is saved as each song is played
 	int  points;        // dance points
 	int  maxPoints;		// this is the maximum dance points (max score is 1 mil)
@@ -44,6 +46,7 @@ struct SONG_RECORD
 		earlyGreat      = lateGreat      = 0;
 		earlyGood       = lateGood       = 0;
 		avgDiff = unstableRate = 0;
+		exScore = maxExScore = 0;
 		maxCombo = points = maxPoints = status = 0;
 		grade = 0;
 		time = 0;
@@ -143,8 +146,11 @@ struct SONG_RECORD
 	}
 	int SONG_RECORD::calculateEXGrade()
 	{
-		//TODO: Implement calculating EXGrade here
-		return 0;
+		int marvCount = earlyMarvellous + lateMarvellous;
+		exScore    = marvCount * 5 + perfects * 4 + greats * 2 + goods;
+		int total  = marvCount + perfects + greats + goods + misses;
+		maxExScore = total * 5;
+		return exScore;
 	}
 
 	int calculatePoints()

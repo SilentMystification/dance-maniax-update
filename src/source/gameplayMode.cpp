@@ -289,6 +289,8 @@ void mainGameplayLoop(UTIME dt)
 	{
 		finalizeCurrentSongStats(0);
 		finalizeCurrentSongStats(1);
+		sm.player[0].currentSet[gs.currentStage].status = STATUS_FAILED;
+		sm.player[1].currentSet[gs.currentStage].status = STATUS_FAILED;
 		gs.currentStage++;
 		int numBonusStages = 0;
 		if ( gs.currentStage >= gs.numSongsPerSet )
@@ -1045,7 +1047,7 @@ void scoreNote(int p, int judgement, int column)
 
 	sm.player[p].currentSet[gs.currentStage].calculateGrade();
 	sm.player[p].currentSet[gs.currentStage].calculatePoints();
-	//sm.player[p].currentSet[gs.currentStage].calculateEXGrade();
+	sm.player[p].currentSet[gs.currentStage].calculateEXGrade();
 	gs.player[p].lifebarPercent = sm.player[p].currentSet[gs.currentStage].getScore()/1000; // yes really
 
 	// how does this judgement affect the combo?

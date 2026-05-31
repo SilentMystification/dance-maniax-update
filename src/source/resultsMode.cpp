@@ -466,14 +466,13 @@ void renderResultAdvanced(int which, int player)
 	int marvColor = (totalGameTime / 50) % 3;
 	masked_blit(m_marvLabel[marvColor], rm.m_backbuf, 0, 0, LABEL_X - 16, Y_MARV + LABEL_BMP_Y, 192, 32);
 	renderScoreNumber(marvCount,  COUNT_X, Y_MARV  + SCORE_Y_OFF, marvCount  >= 1000 ? 4 : 3);
-	renderOutlinedColoredString("AVG:", SEC_LABEL_X, Y_MARV, 0);
-	sprintf_s(buf, 32, "%+.2fms", rec.avgDiff);
-	int avgColor = rec.avgDiff > 0.0 ? TEXT_COLOR_RED : (rec.avgDiff < 0.0 ? TEXT_COLOR_BLUE : TEXT_COLOR_WHITE);
-	renderOutlinedColoredString(buf, SEC_VALUE_X, Y_MARV, avgColor);
-	renderOutlinedColoredString("UR:", SEC_LABEL_X, Y_MARV + LINE2, 0);
-	sprintf_s(buf, 32, "%.2f", rec.unstableRate);
-	int urColor = rec.unstableRate < 200.0 ? TEXT_COLOR_GREEN : TEXT_COLOR_WHITE;
-	renderOutlinedColoredString(buf, SEC_VALUE_X, Y_MARV + LINE2, urColor);
+	renderOutlinedColoredString("EXP:", SEC_LABEL_X, Y_MARV, TEXT_COLOR_GOLD);
+	sprintf_s(buf, 32, "%d", rec.exScore);
+	renderOutlinedColoredString(buf, SEC_VALUE_X, Y_MARV, TEXT_COLOR_GOLD);
+	renderOutlinedColoredString("MAX:", SEC_LABEL_X, Y_MARV + LINE2, TEXT_COLOR_GOLD);
+	double exPct = rec.maxExScore > 0 ? (double)rec.exScore / rec.maxExScore * 100.0 : 0.0;
+	sprintf_s(buf, 32, "%.2f%%", exPct);
+	renderOutlinedColoredString(buf, SEC_VALUE_X, Y_MARV + LINE2, TEXT_COLOR_GOLD);
 
 	// PERFECT
 	masked_blit(m_resultSub, rm.m_backbuf, 0, 0,  LABEL_X - 16, Y_PERF  + LABEL_BMP_Y, 192, 32);
@@ -505,9 +504,17 @@ void renderResultAdvanced(int which, int player)
 	sprintf_s(buf, 32, "%d", rec.lateGood);
 	renderOutlinedColoredString(buf, SEC_VALUE_X, Y_GOOD + LINE2, TEXT_COLOR_BLUE);
 
-	// MISS — no Early/Late secondary rows
+	// MISS
 	masked_blit(m_resultSub, rm.m_backbuf, 0, 96, LABEL_X - 16, Y_MISS  + MISS_BMP_Y,  192, 32);
 	renderScoreNumber(rec.misses, COUNT_X, Y_MISS  + SCORE_Y_OFF, rec.misses >= 1000 ? 4 : 3);
+	renderOutlinedColoredString("AVG:", SEC_LABEL_X, Y_MISS, 0);
+	sprintf_s(buf, 32, "%+.2fms", rec.avgDiff);
+	int avgColor = rec.avgDiff > 0.0 ? TEXT_COLOR_RED : (rec.avgDiff < 0.0 ? TEXT_COLOR_BLUE : TEXT_COLOR_WHITE);
+	renderOutlinedColoredString(buf, SEC_VALUE_X, Y_MISS, avgColor);
+	renderOutlinedColoredString("UR:", SEC_LABEL_X, Y_MISS + LINE2, 0);
+	sprintf_s(buf, 32, "%.2f", rec.unstableRate);
+	int urColor = rec.unstableRate < 200.0 ? TEXT_COLOR_GREEN : TEXT_COLOR_WHITE;
+	renderOutlinedColoredString(buf, SEC_VALUE_X, Y_MISS + LINE2, urColor);
 
 	// score — original renderResult position
 	renderScoreNumber(rec.getScore(), 230, 357, 7);

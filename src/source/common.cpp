@@ -52,7 +52,7 @@ void RenderingManager::Initialize(bool installMode, int windowWidth, int windowH
 		replaceColor(m_colorFont[TEXT_COLOR_MAGENTA], makecol(255,255,255), makecol(255,0,220));
 		replaceColor(m_colorFont[TEXT_COLOR_YELLOW],  makecol(255,255,255), makecol(255,255,0));
 		replaceColor(m_colorFont[TEXT_COLOR_BLACK],   makecol(255,255,255), makecol(0,0,0));
-		replaceColor(m_colorFont[TEXT_COLOR_GOLD],    makecol(255,255,255), makecol(255,223,0));
+		replaceColor(m_colorFont[TEXT_COLOR_GOLD],    makecol(255,255,255), makecol(212,175,55));
 		for ( int i = 0; i < 9; i++ )
 			outlineBitmap(m_colorFont[i]);
 
@@ -65,7 +65,7 @@ void RenderingManager::Initialize(bool installMode, int windowWidth, int windowH
 		replaceColor(m_colorFontNoOutline[TEXT_COLOR_MAGENTA], makecol(255,255,255), makecol(255,0,220));
 		replaceColor(m_colorFontNoOutline[TEXT_COLOR_YELLOW],  makecol(255,255,255), makecol(255,255,0));
 		replaceColor(m_colorFontNoOutline[TEXT_COLOR_BLACK],   makecol(255,255,255), makecol(0,0,0));
-		replaceColor(m_colorFontNoOutline[TEXT_COLOR_GOLD],    makecol(255,255,255), makecol(255,223,0));
+		replaceColor(m_colorFontNoOutline[TEXT_COLOR_GOLD],    makecol(255,255,255), makecol(212,175,55));
 
 		m_textFont[0] = loadImage("DATA/etc/text_font.bmp");
 		m_textFont[1] = loadImage("DATA/etc/text_font.bmp");
