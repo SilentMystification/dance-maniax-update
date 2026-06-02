@@ -974,13 +974,12 @@ void finalizeCurrentSongStats(int p)
 {
 	SONG_RECORD& rec = sm.player[p].currentSet[gs.currentStage];
 	int n = (int)gs.player[p].noteDiffs.size();
-	rec.avgDiff = 0;
-	rec.unstableRate = 0;
 	if ( n == 0 )
 	{
-		gs.player[p].noteDiffs.clear();
 		return;
 	}
+	rec.avgDiff = 0;
+	rec.unstableRate = 0;
 
 	long sum = 0;
 	for ( int i = 0; i < n; i++ ) sum += gs.player[p].noteDiffs[i];
@@ -1011,38 +1010,43 @@ void scoreNote(int p, int judgement, int column)
 		gs.player[p].judgementTime = 0;
 	}
 
-	// tally the judgement
-	switch (judgement)
-	{
-	case MARVELLOUS:
-	case PERFECT:
-	case OK:
-		sm.player[p].currentSet[gs.currentStage].perfects += 1; break;
-	case GREAT:
-		sm.player[p].currentSet[gs.currentStage].greats += 1; break;
-	case GOOD:
-		sm.player[p].currentSet[gs.currentStage].goods += 1; break;
-	//case BAD:
-	case MISS:
-	case NG:
-		sm.player[p].currentSet[gs.currentStage].misses += 1; break;
-	default:
-		TRACE("Strange judgement encountered: %d", judgement);
-	}
-	// early/late counts and diff recording (hits only, not MISS/NG/OK)
-	if ( judgement == MARVELLOUS || judgement == PERFECT || judgement == GREAT || judgement == GOOD )
+	// tally, early/late split, and diff recording
 	{
 		SONG_RECORD& rec = sm.player[p].currentSet[gs.currentStage];
 		bool isEarly = gs.player[p].lastJudgementEarly;
+		long signedDiff = isEarly ? (long)gs.player[p].lastJudgementDiff : -(long)gs.player[p].lastJudgementDiff;
 		switch (judgement)
 		{
-		case MARVELLOUS: isEarly ? rec.earlyMarvellous++ : rec.lateMarvellous++; break;
-		case PERFECT:    isEarly ? rec.earlyPerfect++    : rec.latePerfect++;    break;
-		case GREAT:      isEarly ? rec.earlyGreat++      : rec.lateGreat++;      break;
-		case GOOD:       isEarly ? rec.earlyGood++        : rec.lateGood++;       break;
+		case MARVELLOUS:
+			rec.perfects++;
+			isEarly ? rec.earlyMarvellous++ : rec.lateMarvellous++;
+			gs.player[p].noteDiffs.push_back(signedDiff);
+			break;
+		case PERFECT:
+			rec.perfects++;
+			isEarly ? rec.earlyPerfect++ : rec.latePerfect++;
+			gs.player[p].noteDiffs.push_back(signedDiff);
+			break;
+		case GREAT:
+			rec.greats++;
+			isEarly ? rec.earlyGreat++ : rec.lateGreat++;
+			gs.player[p].noteDiffs.push_back(signedDiff);
+			break;
+		case GOOD:
+			rec.goods++;
+			isEarly ? rec.earlyGood++ : rec.lateGood++;
+			gs.player[p].noteDiffs.push_back(signedDiff);
+			break;
+		case OK:
+			rec.perfects++;
+			break;
+		case MISS:
+		case NG:
+			rec.misses++;
+			break;
+		default:
+			TRACE("Strange judgement encountered: %d", judgement);
 		}
-		long signedDiff = isEarly ? (long)gs.player[p].lastJudgementDiff : -(long)gs.player[p].lastJudgementDiff;
-		gs.player[p].noteDiffs.push_back(signedDiff);
 	}
 
 	sm.player[p].currentSet[gs.currentStage].calculateGrade();
