@@ -146,10 +146,13 @@ struct SONG_RECORD
 	}
 	int SONG_RECORD::calculateEXGrade()
 	{
-		int marvCount = earlyMarvellous + lateMarvellous;
-		exScore    = marvCount * 5 + perfects * 4 + greats * 2 + goods;
-		int total  = marvCount + perfects + greats + goods + misses;
-		maxExScore = total * 5;
+		int marvCount  = earlyMarvellous + lateMarvellous;
+		int perfCount  = earlyPerfect    + latePerfect;
+		int greatCount = earlyGreat      + lateGreat;
+		int goodCount  = earlyGood       + lateGood;
+		int okCount    = perfects - marvCount - perfCount;
+		exScore    = marvCount * 5 + (perfCount + okCount) * 4 + greatCount * 2 + goodCount;
+		maxExScore = maxPoints / 2 * 5;
 		return exScore;
 	}
 

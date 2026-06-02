@@ -1147,31 +1147,36 @@ void mainOperatorLoop(UTIME dt)
 			break;
 		case 6: // sound options
 			renderSoundOptions();
-			if ( im.isKeyDown(MENU_START_1P) )
+			if ( im.getKeyState(MENU_START_1P) == JUST_DOWN )
 			{
-				if ( testMenuSubIndex == 3 )
+				if ( testMenuSubIndex == 4 )
 				{
 					// TODO: set sound in attract mode to default
 				}
-				if ( testMenuSubIndex == 4 )
+				if ( testMenuSubIndex == 5 )
 				{
+					gs.saveOperatorSettings();
 					testMenuMainIndex = 0;
 					testMenuSubIndex = -1;
 				}
 			}
 			if ( im.getKeyState(MENU_RIGHT_1P) == JUST_DOWN || im.getKeyState(MENU_SERVICE) == JUST_DOWN )
 			{
-				testMenuSubIndex = (testMenuSubIndex + 1) % 5;
+				testMenuSubIndex = (testMenuSubIndex + 1) % 6;
 			}
 			if ( im.getKeyState(MENU_LEFT_1P) == JUST_DOWN )
 			{
-				testMenuSubIndex = (testMenuSubIndex - 1 + 5) % 5;
+				testMenuSubIndex = (testMenuSubIndex - 1 + 6) % 6;
 			}
 			if ( im.getKeyState(MENU_RIGHT_2P) == JUST_DOWN )
 			{
 				if ( testMenuSubIndex == 0 )
 				{
 					// TODO: cycle through sound in attract options
+				}
+				if ( testMenuSubIndex == 3 )
+				{
+					if ( gs.bgmGap < 200 ) gs.bgmGap++;
 				}
 			}
 			if ( im.getKeyState(MENU_LEFT_2P) == JUST_DOWN )
@@ -1180,8 +1185,11 @@ void mainOperatorLoop(UTIME dt)
 				{
 					// TODO: cycle through sound in attract options
 				}
+				if ( testMenuSubIndex == 3 )
+				{
+					if ( gs.bgmGap > -200 ) gs.bgmGap--;
+				}
 			}
-
 			break;
 		case 7: // bookkeeping
 			renderBookkeeping(tempSelection);
@@ -2160,10 +2168,10 @@ void renderSoundOptions()
 	textprintf(rm.m_backbuf, font, 50, 100, testMenuSubIndex == 0 ? RED : WHITE, "SOUND IN ATTRACT");
 	textprintf(rm.m_backbuf, font, 50, 130, testMenuSubIndex == 1 ? RED : WHITE, "SCALE CHECK 1");
 	textprintf(rm.m_backbuf, font, 50, 160, testMenuSubIndex == 2 ? RED : WHITE, "SCALE CHECK 2");
-	textprintf(rm.m_backbuf, font, 50, 310, testMenuSubIndex == 3 ? RED : WHITE, "FACTORY SETTINGS");
-	textprintf(rm.m_backbuf, font, 50, 340, testMenuSubIndex == 4 ? RED : WHITE, "SAVE AND EXIT");
-
-	textprintf(rm.m_backbuf, font, 236, 100, GREEN, "NOT YET IMPLEMENTED");
+	textprintf(rm.m_backbuf, font, 50, 190, testMenuSubIndex == 3 ? RED : WHITE, "AUDIO OFFSET");
+	textprintf(rm.m_backbuf, font, 310, 190, GREEN, "< %d MS >", gs.bgmGap);
+	textprintf(rm.m_backbuf, font, 50, 310, testMenuSubIndex == 4 ? RED : WHITE, "FACTORY SETTINGS");
+	textprintf(rm.m_backbuf, font, 50, 340, testMenuSubIndex == 5 ? RED : WHITE, "SAVE AND EXIT");
 
 	textprintf(rm.m_backbuf, font, 50, 400, makecol(196, 255, 255), "PRESS 1P LEFT / RIGHT = select item");
 	textprintf(rm.m_backbuf, font, 50, 420, makecol(196, 255, 255), "PRESS 2P LEFT / RIGHT = modify setting");
