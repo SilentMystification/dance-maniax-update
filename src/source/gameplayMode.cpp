@@ -255,6 +255,9 @@ void mainGameplayLoop(UTIME dt)
 	updateParticles(dt);
 	renderGameplay();
 
+	// Re-anchor to FMOD's decoded position each update; interpolate with wall clock between
+	// anchors. Eliminates startup gap and CPU/audio clock drift. bgmGap offsets output latency.
+	UTIME now = timeGetTime();
 	if (gs.currentSongChannel != -1)
 	{
 		unsigned int fmodPos = FSOUND_GetCurrentPosition(gs.currentSongChannel);
@@ -264,7 +267,7 @@ void mainGameplayLoop(UTIME dt)
 			if (freq > 0)
 			{
 				gs.bgmAnchorFmodMs  = fmodPos / freq * 1000 + fmodPos % freq * 1000 / freq;
-				gs.bgmAnchorWall    = timeGetTime();
+				gs.bgmAnchorWall    = now;
 				gs.bgmLastFmodPos   = fmodPos;
 				gs.bgmSyncAnchored  = true;
 			}
@@ -273,9 +276,7 @@ void mainGameplayLoop(UTIME dt)
 
 	if (gs.bgmSyncAnchored)
 	{
-		long syncedTime = (long)(timeGetTime() - gs.bgmAnchorWall)
-		                + gs.bgmAnchorFmodMs
-		                + gs.bgmGap;
+		long syncedTime = (long)(now - gs.bgmAnchorWall) + gs.bgmAnchorFmodMs + gs.bgmGap;
 		if (syncedTime < 0) syncedTime = 0;
 		gs.player[0].timeElapsed = (UTIME)syncedTime;
 		gs.player[1].timeElapsed = (UTIME)syncedTime;

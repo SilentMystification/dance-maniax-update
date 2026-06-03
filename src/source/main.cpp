@@ -1177,7 +1177,7 @@ void mainOperatorLoop(UTIME dt)
 				}
 				if ( testMenuSubIndex == 3 )
 				{
-					if ( gs.bgmGap < 200 ) gs.bgmGap++;
+					if ( gs.bgmGap < 500 ) gs.bgmGap++;
 				}
 			}
 			if ( im.getKeyState(MENU_LEFT_2P) == JUST_DOWN )
@@ -1188,7 +1188,7 @@ void mainOperatorLoop(UTIME dt)
 				}
 				if ( testMenuSubIndex == 3 )
 				{
-					if ( gs.bgmGap > -200 ) gs.bgmGap--;
+					if ( gs.bgmGap > -500 ) gs.bgmGap--;
 				}
 			}
 			break;
