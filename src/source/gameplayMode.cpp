@@ -1088,6 +1088,7 @@ void scoreNote(int p, int judgement, int column)
 		{
 			gs.player[p].drummaniaCombo[2] = DRUMMANIA_COMBO_BOUNCE_TIME;
 			em.announceCombo(gs.player[p].displayCombo);
+			announcerLastCheckTotal = announcerPlusPoints = announcerMinusPoints = 0;
 		}
 		if ( gs.player[p].displayCombo % 1000 == 0 )
 		{
