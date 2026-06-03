@@ -143,6 +143,9 @@ void firstMenuLoop()
 		gs.player[1].resetAll();
 		sm.player[0].resetData();
 		sm.player[1].resetData();
+		gs.returningToSongwheel = false;
+		gs.isVersus = false;
+		gs.isDoubles = false;
 	}
 	else // MAINMENU
 	{
