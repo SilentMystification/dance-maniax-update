@@ -8,6 +8,7 @@
 #include "../headers/ScoreManager.h"
 #include "../headers/songwheelMode.h"
 #include "../headers/analyticsManager.h"
+#include "../headers/settingsMenu.h"
 
 #include "../headers/gameplayRendering.h" // for renderGrade()
 
@@ -137,6 +138,11 @@ int previewSongID = 0;
 bool isInSubmenu = false;
 char currentSubmenu = 0;            // only used for one player
 char separateSubmenu[2] = {0,0};    // only used for versus mode
+
+SettingsMenu playerSettingsMenu[2];
+bool isInSettings[2] = { false, false };
+bool settingsWaitForRelease[2] = { false, false };
+static UTIME s_swDt = 0; // current frame dt, shared between update and render
 bool submenuDone[2] = {0,0};		// only used for versus mode
 bool skippingSubmenu = false;
 char maniaxSelect[2] = {0,0};		// used to access the hidden Maniax difficulty
@@ -272,6 +278,8 @@ void firstSongwheelLoop()
 		introAnimTimer = INTRO_ANIM_LENGTH;
 		introAnimSteps = 3;
 		isRandomSelect = false;
+		isInSettings[0] = isInSettings[1] = false;
+		settingsWaitForRelease[0] = settingsWaitForRelease[1] = false;
 		nextStageAnimTimer = 0;
 		previewTimeStarted = last_utime;
 		previewTimeRemaining = 0;
@@ -301,6 +309,8 @@ void firstSongwheelLoop()
 	introAnimSteps = 3;
 	isRandomSelect = false;
 	nextStageAnimTimer = 0;
+	isInSettings[0] = isInSettings[1] = false;
+	settingsWaitForRelease[0] = settingsWaitForRelease[1] = false;
 
 	// figure out how many songs are visible on the songwheel
 	maxSongwheelIndex = 0;
@@ -452,6 +462,87 @@ void mainSongwheelLoop(UTIME dt)
 	}
 
 	SUBTRACT_TO_ZERO(nextStageAnimTimer, dt);
+
+	// handle open/close/input for settings menus (takes priority over wheel input)
+	for ( int side = 0; side < 2; side++ )
+	{
+		if ( !isInSettings[side] ) continue;
+
+		bool leftHeld  = im.isKeyDown(side == 0 ? MENU_LEFT_1P  : MENU_LEFT_2P)  != 0;
+		bool rightHeld = im.isKeyDown(side == 0 ? MENU_RIGHT_1P : MENU_RIGHT_2P) != 0;
+		bool startHeld = im.isKeyDown(side == 0 ? MENU_START_1P : MENU_START_2P) != 0;
+
+		// block close and input until all buttons from the open combo are released
+		if ( settingsWaitForRelease[side] )
+		{
+			if ( !leftHeld && !rightHeld && !startHeld )
+				settingsWaitForRelease[side] = false;
+		}
+		else
+		{
+			// LEFT+RIGHT closes the settings menu (only when not editing a value)
+			if ( leftHeld && rightHeld && !playerSettingsMenu[side].isEditing() )
+			{
+				playerSettingsMenu[side].close();
+			}
+			else
+			{
+				playerSettingsMenu[side].handleInput(dt);
+			}
+		}
+
+		if ( playerSettingsMenu[side].isFullyClosed() )
+		{
+			isInSettings[side] = false;
+			settingsWaitForRelease[side] = false;
+
+			// copy updated settings to gs.player so they take effect next song
+			int p = (gs.isDoubles ? 0 : side);
+			gs.player[p].judgementPositionMode  = sm.player[p].judgementPositionMode;
+			gs.player[p].judgementMsDisplayMode = sm.player[p].judgementMsDisplayMode;
+			gs.player[p].judgementEarlyLateMode = sm.player[p].judgementEarlyLateMode;
+			gs.player[p].speedMod               = sm.player[p].speedMod;
+			gs.player[p].scrollMode             = sm.player[p].scrollMode;
+			gs.player[p].fixedScrollPPS         = sm.player[p].fixedScrollPPS;
+
+			if ( sm.player[p].isLoggedIn )
+			{
+				sm.savePlayersToDisk();
+			}
+		}
+	}
+
+	// check for settings menu open combo (LEFT+RIGHT+START)
+	if ( !isInSubmenu )
+	{
+		bool canOpen1P = gs.leftPlayerPresent  || gs.isDoubles;
+		bool canOpen2P = gs.rightPlayerPresent || gs.isDoubles;
+
+		if ( canOpen1P && !isInSettings[0] &&
+			im.isKeyDown(MENU_LEFT_1P) && im.isKeyDown(MENU_RIGHT_1P) && im.getKeyState(MENU_START_1P) == JUST_DOWN )
+		{
+			isInSettings[0] = true;
+			settingsWaitForRelease[0] = true;
+			playerSettingsMenu[0].open(0);
+		}
+		if ( canOpen2P && !isInSettings[gs.isDoubles ? 0 : 1] &&
+			im.isKeyDown(MENU_LEFT_2P) && im.isKeyDown(MENU_RIGHT_2P) && im.getKeyState(MENU_START_2P) == JUST_DOWN )
+		{
+			int target = gs.isDoubles ? 0 : 1;
+			isInSettings[target] = true;
+			settingsWaitForRelease[target] = true;
+			playerSettingsMenu[target].open(target);
+		}
+	}
+
+	// suppress normal wheel input while any settings menu is open
+	if ( isInSettings[0] || isInSettings[1] )
+	{
+		s_swDt = dt;
+		if ( gs.g_currentGameMode == SONGWHEEL )
+			renderSongwheelLoop();
+		return;
+	}
 
 	if ( gs.isFreestyleMode && im.getKeyState(MENU_START_2P) == JUST_DOWN )
 	{
@@ -835,6 +926,7 @@ void mainSongwheelLoop(UTIME dt)
 	lm.setLamp(lampLeft+1, use2P ? 100 : 0);
 	lm.setLamp(lampRight+1, use2P ? 100 : 0);
 
+	s_swDt = dt;
 	if ( gs.g_currentGameMode == SONGWHEEL ) // fixes a bug with calling this function after transitioning away
 	{
 		renderSongwheelLoop();
@@ -843,6 +935,7 @@ void mainSongwheelLoop(UTIME dt)
 
 void renderSongwheelLoop()
 {
+	UTIME dt = s_swDt;
 	blit(m_songBG, rm.m_backbuf, 0, 0, 0, 0, 640, 480);
 	draw_trans_sprite(rm.m_backbuf, m_musicSelect, 260, 135); 
 
@@ -933,6 +1026,15 @@ void renderSongwheelLoop()
 	if ( nextStageAnimTimer > 0 )
 	{
 		renderNextStageAnim();
+	}
+
+	// render settings menus on top
+	for ( int p = 0; p < 2; p++ )
+	{
+		if ( isInSettings[p] )
+		{
+			playerSettingsMenu[p].render(dt);
+		}
 	}
 }
 

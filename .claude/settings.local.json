@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -v \"^[0-9]*:.*//.*$\")",
+      "PowerShell(& \"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2022\\\\BuildTools\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" \"c:\\\\Users\\\\Andrew\\\\Documents\\\\GitHub\\\\dance-maniax-update\\\\src\\\\DMX_Remake.vcxproj\" /p:Configuration=DeployToCab /p:Platform=Win32 /p:PlatformToolset=v143 /t:Build /v:minimal)",
+      "Bash(msbuild DMX_Remake.vcxproj /p:Configuration=DeployToCab /p:Platform=Win32 /p:PlatformToolset=v143 /t:Build /v:minimal)",
+      "PowerShell(& \"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\BuildTools\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" \"c:\\\\Users\\\\Andrew\\\\Documents\\\\GitHub\\\\dance-maniax-update\\\\src\\\\DMX_Remake.vcxproj\" /p:Configuration=DeployToCab /p:Platform=Win32 /p:PlatformToolset=v143 /t:Build /v:minimal 2>&1)",
+      "PowerShell(& \"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\18\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" \"c:\\\\Users\\\\Andrew\\\\Documents\\\\GitHub\\\\dance-maniax-update\\\\src\\\\DMX_Remake.vcxproj\" /p:Configuration=DeployToCab /p:Platform=Win32 /p:PlatformToolset=v143 /t:Build /v:minimal 2>&1)"
+    ]
+  }
+}

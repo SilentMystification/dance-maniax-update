@@ -191,9 +191,13 @@ void renderStepZonePiece_DDR(BITMAP* src, int x, int y, int scale)
 
 void renderDDRChart(int player)
 {
-	int n = gs.player[player].currentNote;	
+	int n = gs.player[player].currentNote;
 	int x = getStepZonePos_DDR(player);
-	int pps = gs.player[player].scrollRate * gs.player[player].speedMod / 10; // pixels per second
+	int pps;
+	if ( gs.player[player].scrollMode == 1 && gs.player[player].baseBPM > 0 )
+		pps = gs.player[player].fixedScrollPPS * gs.player[player].scrollRate / gs.player[player].baseBPM;
+	else
+		pps = gs.player[player].scrollRate * gs.player[player].speedMod / 10;
 
 	// where to start rendering the chart?
 	// TODO: implement sudden
@@ -377,7 +381,11 @@ void renderDDRArrow(int player, int column, int color, int judgement, int x, int
 
 char renderDDRHoldNote(int player, struct FREEZE f, UTIME time, long pausedTime)
 {
-	int pps = gs.player[player].scrollRate * gs.player[player].speedMod / 10; // pixels per second
+	int pps;
+	if ( gs.player[player].scrollMode == 1 && gs.player[player].baseBPM > 0 )
+		pps = gs.player[player].fixedScrollPPS * gs.player[player].scrollRate / gs.player[player].baseBPM;
+	else
+		pps = gs.player[player].scrollRate * gs.player[player].speedMod / 10;
 
 	// calculate how much time is spent inside tempo stops between the startTime and the endTime
 	int pauseTotal = pausedTime;

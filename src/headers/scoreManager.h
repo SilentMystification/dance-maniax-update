@@ -172,6 +172,18 @@ struct PLAYER_DATA
 	long numPlaysSP;
 	long numPlaysDP;
 
+	// per-player preferences (persisted to .prefs file, version 2+)
+	int judgementPositionMode;  // 0=Off, 1=Bottom, 2=Lower, 3=Upper, 4=Top
+	int judgementMsDisplayMode; // 0=All, 1=Perfect and Below, 2=Great and Below, 3=Good and Below, 4=Never
+	int judgementEarlyLateMode; // 0=All, 1=Perfect and Below, 2=Great and Below, 3=Good and Below
+	int scrollMode;             // 0=Classic, 1=Fixed
+	int speedMod;               // Classic: x10 (10=1x, 15=1.5x, 20=2x, ..., 80=8x)
+	int fixedScrollPPS;         // Fixed: pixels/sec, range 5-1000, step 5
+	int scoreMode;              // 0=Classic, 1=Expert
+	int audioOffset;            // ms, overrides bgmGap when hasCustomAudioOffset is true
+	bool hasCustomAudioOffset;  // false=mirror operator bgmGap live; true=use audioOffset
+	int visualOffset;           // ms, shifts note Y only (not judgement windows)
+
 	PLAYER_DATA::PLAYER_DATA()
 	{
 		allTime = NULL;
@@ -210,6 +222,17 @@ struct PLAYER_DATA
 		}
 
 		numPlaysSP = numPlaysDP = 0;
+
+		judgementPositionMode  = 0;   // Off
+		judgementMsDisplayMode = 4;   // Never
+		judgementEarlyLateMode = 0;   // All
+		scrollMode             = 0;   // Classic
+		speedMod               = 10;  // 1x
+		fixedScrollPPS         = 300;
+		scoreMode              = 0;   // Classic
+		audioOffset            = 0;
+		hasCustomAudioOffset   = false;
+		visualOffset           = 0;
 	}
 
 	int PLAYER_DATA::getNumStars( int chartID, int minStatus )
@@ -282,7 +305,7 @@ public:
 	bool loadPlayerFromDisk(char* name, char side);
 	// precondition: name is 1-8 letters [0-9,A-Z], side is 0-1
 	// postcondition: loads the player if it exists and sets isLoggedIn to true on success
-	// NOTE: the current file version is v2. Any v1 files will automatically use loadPlayerFromDisk_v1()
+	// NOTE: the current file version is v2. Any v1 files load with new fields at resetData() defaults.
 
 	void savePlayersToDisk();
 	// postcondition: for each player, if isLoggedIn is true, creates a new file on disk
