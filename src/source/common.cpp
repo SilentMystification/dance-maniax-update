@@ -456,7 +456,7 @@ void EffectsManager::initialize()
 		filename[15] = (i/100)%10 + '0';
 		filename[16] = (i/10)%10 + '0';
 		filename[17] = (i % 10) + '0';
-		fmod_sfx[i] = FSOUND_Sample_Load(FSOUND_FREE, filename, FSOUND_NORMAL, 0, 0);
+		fmod_sfx[i] = FSOUND_Sample_Load(FSOUND_FREE, filename, FSOUND_NORMAL | FSOUND_LOOP_OFF, 0, 0);
 	}
 }
 
