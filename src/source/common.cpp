@@ -825,6 +825,28 @@ void renderBoldString(const char* string, int x, int y, int maxWidth, bool fixed
 	renderBoldString((unsigned char*)string, x, y, maxWidth, fixedWidth, color);
 }
 
+int getBoldStringWidth(const char* string)
+{
+	int  width      = 0;
+	bool smallermode = false;
+	for ( int i = 0; string[i] != 0; i++ )
+	{
+		if ( string[i] == '|' ) { smallermode = !smallermode; continue; }
+		unsigned char temp = (unsigned char)string[i];
+		if ( temp == 199 ) temp = 128;
+		if ( temp >= 32 && temp <= 128 )
+		{
+			int ascii = temp - 32;
+			int row   = (ascii / 10) % 10;
+			int col   = ascii % 10;
+			int w     = boldTextWidths[row * 10 + col];
+			if ( smallermode ) w = (w * 3 / 4) + 1;
+			width += w;
+		}
+	}
+	return width;
+}
+
 static char artistTextWidths[] = 
 {
 	 6,  8, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,

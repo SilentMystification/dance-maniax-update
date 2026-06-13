@@ -42,6 +42,7 @@ class SettingsMenu
 public:
 	void open(int player);
 	void close();
+	void forceClose();
 	bool isOpen() const;
 	bool isFullyClosed() const;
 	bool isEditing() const;
@@ -68,6 +69,8 @@ private:
 	int          m_holdDir;      // -1=left, 0=none, 1=right (hold-to-repeat in edit mode)
 	int          m_holdTime;     // ms current direction has been held
 	int          m_repeatTimer;  // ms until next auto-repeat fires
+	int          m_scrollY;      // current animated scroll pixel offset
+	int          m_targetScrollY;// target scroll offset (snaps to keep selected item visible)
 };
 
 #endif

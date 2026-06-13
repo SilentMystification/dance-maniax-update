@@ -538,10 +538,41 @@ void mainSongwheelLoop(UTIME dt)
 	// suppress normal wheel input while any settings menu is open
 	if ( isInSettings[0] || isInSettings[1] )
 	{
-		s_swDt = dt;
-		if ( gs.g_currentGameMode == SONGWHEEL )
-			renderSongwheelLoop();
-		return;
+		if ( !isSphereMoving && !gs.isEventMode && !gs.isFreestyleMode )
+		{
+			SUBTRACT_TO_ZERO(timeRemaining, dt);
+			playTimeLowSFX(dt);
+		}
+
+		if ( timeRemaining <= 0 )
+		{
+			// time ran out — revert any in-progress edits, apply confirmed settings, close menus
+			for ( int side = 0; side < 2; side++ )
+			{
+				if ( !isInSettings[side] ) continue;
+				playerSettingsMenu[side].forceClose();
+				isInSettings[side] = false;
+				settingsWaitForRelease[side] = false;
+
+				int p = (gs.isDoubles ? 0 : side);
+				gs.player[p].judgementPositionMode  = sm.player[p].judgementPositionMode;
+				gs.player[p].judgementMsDisplayMode = sm.player[p].judgementMsDisplayMode;
+				gs.player[p].judgementEarlyLateMode = sm.player[p].judgementEarlyLateMode;
+				gs.player[p].speedMod               = sm.player[p].speedMod;
+				gs.player[p].scrollMode             = sm.player[p].scrollMode;
+				gs.player[p].fixedScrollPPS         = sm.player[p].fixedScrollPPS;
+				if ( sm.player[p].isLoggedIn )
+					sm.savePlayersToDisk();
+			}
+			// fall through to the timeRemaining <= 0 handler below
+		}
+		else
+		{
+			s_swDt = dt;
+			if ( gs.g_currentGameMode == SONGWHEEL )
+				renderSongwheelLoop();
+			return;
+		}
 	}
 
 	if ( gs.isFreestyleMode && im.getKeyState(MENU_START_2P) == JUST_DOWN )

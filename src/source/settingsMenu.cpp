@@ -16,18 +16,20 @@ extern InputManager     im;
 // Visual constants — tweak these without touching logic
 //////////////////////////////////////////////////////////////////////////////
 #define SETTINGS_BG_COLOR        makecol(70, 8, 128)
-#define SETTINGS_HIGHLIGHT_COLOR makecol(255, 255, 255)
+#define SETTINGS_HIGHLIGHT_COLOR makeacol(255, 170, 0, 255) // goldish-orange selection border
 #define SETTINGS_PANEL_WIDTH     256
 #define SETTINGS_SLIDE_MS        200
 #define SETTINGS_OPTION_SLIDE_MS 80
-#define SETTINGS_ITEM_HEIGHT     46
+#define SETTINGS_ITEM_HEIGHT     54
 #define SETTINGS_START_Y         16
 #define SETTINGS_OPTION_SLOT_W   80  // width of each option slot in the option row
 
-#define HOLD_INITIAL_DELAY    400   // ms before auto-repeat begins after initial press
-#define HOLD_INTERVAL_START   500   // ms between repeats at start (2/sec)
-#define HOLD_INTERVAL_END     125   // ms between repeats at full speed (8/sec)
-#define HOLD_RAMP_DURATION   1500   // ms to ramp from start rate to full speed
+#define HOLD_INITIAL_DELAY    250   // ms before auto-repeat begins after initial press
+#define HOLD_INTERVAL_START   300   // ms between repeats at start
+#define HOLD_INTERVAL_END      60   // ms between repeats at full speed
+#define HOLD_RAMP_DURATION   1000   // ms to ramp from start rate to full speed
+
+#define SETTINGS_SCROLL_SPEED 500   // px/sec for smooth scroll animation
 
 //////////////////////////////////////////////////////////////////////////////
 // Static option label arrays
@@ -205,6 +207,8 @@ void SettingsMenu::open(int player)
 	m_holdDir           = 0;
 	m_holdTime          = 0;
 	m_repeatTimer       = 0;
+	m_scrollY           = 0;
+	m_targetScrollY     = 0;
 
 	buildItemList(player);
 
@@ -231,6 +235,17 @@ void SettingsMenu::close()
 		m_isClosing  = true;
 		m_slideTimer = 0;
 	}
+}
+
+void SettingsMenu::forceClose()
+{
+	// revert any in-progress (unconfirmed) edit back to the last confirmed value
+	if ( m_isEditingItem && m_selectedItem >= 0 && m_selectedItem < m_itemCount )
+	{
+		*m_items[m_selectedItem].value = m_items[m_selectedItem].savedValue;
+	}
+	m_isOpen    = false;
+	m_isClosing = false;
 }
 
 bool SettingsMenu::isOpen() const
@@ -306,6 +321,8 @@ void SettingsMenu::handleInput(UTIME dt)
 
 		if ( startDown )
 		{
+			// commit: record the newly confirmed value so it renders green
+			m_items[m_selectedItem].savedValue = *m_items[m_selectedItem].value;
 			m_isEditingItem = false;
 			m_holdDir = 0; m_holdTime = 0; m_repeatTimer = 0;
 			advanceSelectionIfHidden(); // item may have become hidden (e.g. scroll mode change)
@@ -414,40 +431,103 @@ void SettingsMenu::render(UTIME dt)
 			m_slideOffsetX = getValueFromRange(SCREEN_WIDTH - SETTINGS_PANEL_WIDTH, SCREEN_WIDTH, pct);
 	}
 
-	int panelLeft  = m_slideOffsetX;
-	int panelRight = m_slideOffsetX + SETTINGS_PANEL_WIDTH - 1;
+	int panelLeft    = m_slideOffsetX;
+	int panelRight   = m_slideOffsetX + SETTINGS_PANEL_WIDTH - 1;
 	int panelCenterX = panelLeft + SETTINGS_PANEL_WIDTH / 2;
 
-	// draw panel background (solid mode so the panel is fully opaque)
-	solid_mode();
-	rectfill(rm.m_backbuf, panelLeft, 0, panelRight, SCREEN_HEIGHT - 1, SETTINGS_BG_COLOR);
+	// draw semi-transparent panel background
+	set_alpha_blender();
+	drawing_mode(DRAW_MODE_TRANS, NULL, 0, 0);
+	rectfill(rm.m_backbuf, panelLeft, 0, panelRight, SCREEN_HEIGHT - 1, makeacol(70, 8, 128, 220));
 
-	// draw items
-	int itemY = SETTINGS_START_Y;
+	// switch to solid mode for border and all item rendering
+	solid_mode();
+
+	// 2-pixel black border along the panel edges
+	rect(rm.m_backbuf, panelLeft,     0, panelRight,     SCREEN_HEIGHT - 1, makecol(0, 0, 0));
+	rect(rm.m_backbuf, panelLeft + 1, 1, panelRight - 1, SCREEN_HEIGHT - 2, makecol(0, 0, 0));
+
+	// ---- compute scroll target to keep selected item fully in view ----
+	int selectedVisibleIdx = 0;
+	int totalVisible       = 0;
+	for ( int i = 0; i < m_itemCount; i++ )
+	{
+		if ( !isItemVisible(i) ) continue;
+		if ( i < m_selectedItem ) selectedVisibleIdx++;
+		totalVisible++;
+	}
+
+	int visibleHeight = SCREEN_HEIGHT - SETTINGS_START_Y;
+	int selTop        = selectedVisibleIdx * SETTINGS_ITEM_HEIGHT;
+	int selBottom     = selTop + SETTINGS_ITEM_HEIGHT;
+
+	if ( selBottom > m_targetScrollY + visibleHeight ) m_targetScrollY = selBottom - visibleHeight;
+	if ( selTop    < m_targetScrollY                 ) m_targetScrollY = selTop;
+
+	int maxScroll = MAX(0, totalVisible * SETTINGS_ITEM_HEIGHT - visibleHeight);
+	if ( m_targetScrollY < 0         ) m_targetScrollY = 0;
+	if ( m_targetScrollY > maxScroll ) m_targetScrollY = maxScroll;
+
+	// animate scroll toward target
+	if ( m_scrollY != m_targetScrollY )
+	{
+		int diff    = m_targetScrollY - m_scrollY;
+		int maxStep = MAX(1, SETTINGS_SCROLL_SPEED * (int)dt / 1000);
+		if ( diff < 0 ? -diff <= maxStep : diff <= maxStep )
+			m_scrollY = m_targetScrollY;
+		else
+			m_scrollY += (diff > 0) ? maxStep : -maxStep;
+	}
+
+	// pre-pass: find screen Y of the selected item (used to draw highlight before clip rect)
+	int selectedItemScreenY = -9999;
+	{
+		int preY = SETTINGS_START_Y - m_scrollY;
+		for ( int i = 0; i < m_itemCount; i++ )
+		{
+			if ( !isItemVisible(i) ) continue;
+			if ( i == m_selectedItem ) { selectedItemScreenY = preY; break; }
+			preY += SETTINGS_ITEM_HEIGHT;
+		}
+	}
+
+	// gold/orange 2px highlight box — drawn before clip rect so all 4 sides are visible,
+	// inset from the 2px black border so it doesn't get overwritten
+	if ( selectedItemScreenY > -9999 )
+	{
+		int hx1 = panelLeft  + 2, hy1 = selectedItemScreenY;
+		int hx2 = panelRight - 2, hy2 = selectedItemScreenY + SETTINGS_ITEM_HEIGHT - 2;
+		rect(rm.m_backbuf, hx1,     hy1,     hx2,     hy2,     SETTINGS_HIGHLIGHT_COLOR);
+		rect(rm.m_backbuf, hx1 + 1, hy1 + 1, hx2 - 1, hy2 - 1, SETTINGS_HIGHLIGHT_COLOR);
+	}
+
+	// clip to panel inner area so scrolled items don't overdraw the border
+	int savedCX1, savedCY1, savedCX2, savedCY2;
+	get_clip_rect(rm.m_backbuf, &savedCX1, &savedCY1, &savedCX2, &savedCY2);
+	set_clip_rect(rm.m_backbuf, panelLeft + 2, 0, panelRight - 2, SCREEN_HEIGHT - 1);
+
+	// ---- draw items ----
+	int visItemY = SETTINGS_START_Y - m_scrollY;
 	for ( int i = 0; i < m_itemCount; i++ )
 	{
 		if ( !isItemVisible(i) ) continue;
 
-		bool isSelected = (i == m_selectedItem);
+		int itemY = visItemY;
+		visItemY += SETTINGS_ITEM_HEIGHT;
 
-		// highlight box for selected item
-		if ( isSelected )
-		{
-			rect(rm.m_backbuf,
-				panelLeft + 1,       itemY - 1,
-				panelRight - 1,      itemY + SETTINGS_ITEM_HEIGHT - 2,
-				SETTINGS_HIGHLIGHT_COLOR);
-		}
+		// skip items fully off-screen
+		if ( itemY + SETTINGS_ITEM_HEIGHT <= 0 || itemY >= SCREEN_HEIGHT ) continue;
 
-		// item name
-		renderOutlinedColoredString(m_items[i].name, panelLeft + 4, itemY + 3, TEXT_COLOR_WHITE);
+		bool isSelected    = (i == m_selectedItem);
+		bool isAudioOffset = (m_items[i].flagToSetOnChange != NULL);
 
-		// determine option color: green if matches saved, white if changed
-		int valueColor = (*m_items[i].value == m_items[i].savedValue) ? TEXT_COLOR_GREEN : TEXT_COLOR_WHITE;
+		// item name — name font (32px per char), centered in panel; clip rect handles overflow
+		int titleX = panelLeft + SETTINGS_PANEL_WIDTH / 2 - (int)strlen(m_items[i].name) * 16;
+		renderNameString(m_items[i].name, titleX, itemY + 4, 0);
 
-		// option row — offset by slide animation only on selected item
+		// option row sits below the 32px name glyphs (4px top + 32px glyph + 4px gap = 40)
 		int slideOff = (isSelected && m_isEditingItem) ? m_optionSlideOffset : 0;
-		int optRowY  = itemY + 18;
+		int optRowY  = itemY + 40;
 
 		if ( m_items[i].type == SETTINGS_LIST )
 		{
@@ -458,30 +538,36 @@ void SettingsMenu::render(UTIME dt)
 				if ( m_items[i].optionValues[j] == *m_items[i].value ) { idx = j; break; }
 			}
 
-			// center option
+			// current option: green if confirmed (savedValue), white if browsing
+			int curColor = (m_items[i].optionValues[idx] == m_items[i].savedValue)
+				? TEXT_COLOR_GREEN : TEXT_COLOR_WHITE;
 			const char* curLabel = m_items[i].options[idx];
 			int cx = panelCenterX + slideOff;
-			int tw = (int)strlen(curLabel) * 10; // font is 10px wide
-			renderOutlinedColoredString(curLabel, cx - tw/2, optRowY, valueColor);
+			int tw = (int)strlen(curLabel) * 10;
+			renderOutlinedColoredString(curLabel, cx - tw/2, optRowY, curColor);
 
-			// previous option (to the left)
+			// previous option: green if it's the savedValue, white otherwise
 			if ( idx > 0 )
 			{
 				const char* prevLabel = m_items[i].options[idx - 1];
+				int prevColor = (m_items[i].optionValues[idx - 1] == m_items[i].savedValue)
+					? TEXT_COLOR_GREEN : TEXT_COLOR_WHITE;
 				int px = panelCenterX - SETTINGS_OPTION_SLOT_W + slideOff;
 				int pw = (int)strlen(prevLabel) * 10;
-				renderOutlinedColoredString(prevLabel, px - pw/2, optRowY, TEXT_COLOR_WHITE);
+				renderOutlinedColoredString(prevLabel, px - pw/2, optRowY, prevColor);
 			}
-			// next option (to the right)
+			// next option: green if it's the savedValue, white otherwise
 			if ( idx < m_items[i].optionCount - 1 )
 			{
 				const char* nextLabel = m_items[i].options[idx + 1];
+				int nextColor = (m_items[i].optionValues[idx + 1] == m_items[i].savedValue)
+					? TEXT_COLOR_GREEN : TEXT_COLOR_WHITE;
 				int nx = panelCenterX + SETTINGS_OPTION_SLOT_W + slideOff;
 				int nw = (int)strlen(nextLabel) * 10;
-				renderOutlinedColoredString(nextLabel, nx - nw/2, optRowY, TEXT_COLOR_WHITE);
+				renderOutlinedColoredString(nextLabel, nx - nw/2, optRowY, nextColor);
 			}
 
-			// navigation arrows when in edit mode
+			// navigation arrows in edit mode
 			if ( isSelected && m_isEditingItem )
 			{
 				if ( idx > 0 )
@@ -492,19 +578,61 @@ void SettingsMenu::render(UTIME dt)
 		}
 		else // SETTINGS_RANGE
 		{
-			char buf[16];
-			int  dispVal = *m_items[i].value;
-
-			// audio offset special case: show bgmGap when not yet customized
-			if ( m_items[i].flagToSetOnChange != NULL && !(*m_items[i].flagToSetOnChange) )
-			{
+			int dispVal = *m_items[i].value;
+			if ( isAudioOffset && !(*m_items[i].flagToSetOnChange) )
 				dispVal = gs.bgmGap;
+
+			// compute slot width from the widest possible label in this range
+			char tmpBuf[16];
+			int maxChars = 1;
+			sprintf_s(tmpBuf, sizeof(tmpBuf), "%d", m_items[i].minVal);
+			if ( (int)strlen(tmpBuf) > maxChars ) maxChars = (int)strlen(tmpBuf);
+			sprintf_s(tmpBuf, sizeof(tmpBuf), "%d", m_items[i].maxVal);
+			if ( (int)strlen(tmpBuf) > maxChars ) maxChars = (int)strlen(tmpBuf);
+
+			const int charW = 10;
+			int slotW  = maxChars * charW + 4;                  // slot width with minimal gap
+			int availW = SETTINGS_PANEL_WIDTH * 70 / 100;
+			int numH   = MAX(1, (availW - slotW) / (2 * slotW)); // neighbors on each side
+
+			// scale slide animation to match computed slot width
+			int rangeSlide = (isSelected && m_isEditingItem)
+				? (m_optionSlideOffset * slotW / SETTINGS_OPTION_SLOT_W) : 0;
+			int cx = panelCenterX + rangeSlide;
+
+			// helper to pick color for a given range value
+			#define RANGE_COLOR(v) \
+				((isAudioOffset && (v) == gs.bgmGap) ? TEXT_COLOR_BLUE  : \
+				 ((v) == m_items[i].savedValue        ? TEXT_COLOR_GREEN : TEXT_COLOR_WHITE))
+
+			// center value
+			{
+				char buf[16];
+				sprintf_s(buf, sizeof(buf), "%d", dispVal);
+				renderOutlinedColoredString(buf, cx - (int)strlen(buf) * charW / 2, optRowY, RANGE_COLOR(dispVal));
+			}
+			// left neighbors
+			for ( int k = 1; k <= numH; k++ )
+			{
+				int v = dispVal - k * m_items[i].step;
+				if ( v < m_items[i].minVal ) break;
+				char buf[16];
+				sprintf_s(buf, sizeof(buf), "%d", v);
+				int kx = cx - k * slotW;
+				renderOutlinedColoredString(buf, kx - (int)strlen(buf) * charW / 2, optRowY, RANGE_COLOR(v));
+			}
+			// right neighbors
+			for ( int k = 1; k <= numH; k++ )
+			{
+				int v = dispVal + k * m_items[i].step;
+				if ( v > m_items[i].maxVal ) break;
+				char buf[16];
+				sprintf_s(buf, sizeof(buf), "%d", v);
+				int kx = cx + k * slotW;
+				renderOutlinedColoredString(buf, kx - (int)strlen(buf) * charW / 2, optRowY, RANGE_COLOR(v));
 			}
 
-			sprintf_s(buf, sizeof(buf), "%d", dispVal);
-			int tw = (int)strlen(buf) * 10;
-			int cx = panelCenterX + slideOff;
-			renderOutlinedColoredString(buf, cx - tw/2, optRowY, valueColor);
+			#undef RANGE_COLOR
 
 			if ( isSelected && m_isEditingItem )
 			{
@@ -514,10 +642,10 @@ void SettingsMenu::render(UTIME dt)
 					renderOutlinedColoredString(">", panelRight - 14, optRowY, TEXT_COLOR_WHITE);
 			}
 		}
-
-		itemY += SETTINGS_ITEM_HEIGHT;
 	}
 
+	// restore clip rect and alpha blending mode
+	set_clip_rect(rm.m_backbuf, savedCX1, savedCY1, savedCX2, savedCY2);
 	drawing_mode(DRAW_MODE_TRANS, NULL, 0, 0);
-	set_alpha_blender(); // restore drawing mode expected by surrounding rendering code
+	set_alpha_blender();
 }
