@@ -11,6 +11,7 @@ extern GameStateManager gs;
 extern ScoreManager     sm;
 extern RenderingManager rm;
 extern InputManager     im;
+extern EffectsManager   em;
 
 //////////////////////////////////////////////////////////////////////////////
 // Visual constants — tweak these without touching logic
@@ -20,7 +21,9 @@ extern InputManager     im;
 #define SETTINGS_PANEL_WIDTH     256
 #define SETTINGS_SLIDE_MS        200
 #define SETTINGS_OPTION_SLIDE_MS 80
-#define SETTINGS_ITEM_HEIGHT     52
+#define SETTINGS_ITEM_HEIGHT     60
+#define SETTINGS_SELECTOR_SPEED  800
+#define SETTINGS_ITEM_OUTLINE_COLOR makecol(45, 5, 82)
 #define SETTINGS_START_Y         16
 #define SETTINGS_OPTION_SLOT_W   80  // width of each option slot in the option row
 
@@ -55,7 +58,7 @@ static const int   s_judgMsValues[]        = { 0, 1, 2, 3, 4 };
 static const char* s_reverseOptions[]      = { "Off", "Reverse", "Cross", "Inverted" };
 static const int   s_reverseValues[]       = { 0, 1, 2, 3 };
 
-static const char* s_mirrorOptions[]       = { "Off", "Mirror", "Upside-Down" };
+static const char* s_mirrorOptions[]       = { "Off", "Mirror", "V-Flip" };
 static const int   s_mirrorValues[]        = { 0, 1, 2 };
 
 static const char* s_positionOptions[]     = { "Center", "Left", "Right" };
@@ -238,6 +241,7 @@ void SettingsMenu::advanceSelectionIfHidden()
 
 void SettingsMenu::open(int playerData, int side)
 {
+	em.playSample(SFX_COURSE_PREVIEW_LOAD);
 	m_player       = side;
 	m_playerData   = playerData;
 	m_isOpen       = true;
@@ -252,8 +256,12 @@ void SettingsMenu::open(int playerData, int side)
 	m_holdDir           = 0;
 	m_holdTime          = 0;
 	m_repeatTimer       = 0;
-	m_scrollY           = 0;
-	m_targetScrollY     = 0;
+	m_scrollY              = 0;
+	m_targetScrollY        = 0;
+	m_selectorPanelY       = -9999; // snap to correct position on first render frame
+	m_targetSelectorPanelY = SETTINGS_START_Y;
+	m_snapSelector         = false;
+	m_bobTimer             = 0;
 
 	// sync current modifier state from gs.player into sm.player backing fields
 	{
@@ -292,6 +300,7 @@ void SettingsMenu::close()
 {
 	if ( !m_isClosing )
 	{
+		em.playSample(SFX_COURSE_APPEAR);
 		m_isClosing  = true;
 		m_slideTimer = 0;
 	}
@@ -342,6 +351,7 @@ void SettingsMenu::handleInput(UTIME dt)
 		// outer mode: navigate items (tap only)
 		m_holdDir = 0; m_holdTime = 0; m_repeatTimer = 0;
 
+		int prevSelected = m_selectedItem;
 		if ( leftDown )
 		{
 			// move up
@@ -368,8 +378,16 @@ void SettingsMenu::handleInput(UTIME dt)
 				}
 			}
 		}
-		else if ( startDown )
+		if ( m_selectedItem != prevSelected )
 		{
+			bool wrapped = (leftDown  && m_selectedItem > prevSelected) ||
+			               (rightDown && m_selectedItem < prevSelected);
+			if ( wrapped ) m_snapSelector = true;
+			em.playSample(SFX_SONGWHEEL_MOVE);
+		}
+		if ( startDown )
+		{
+			em.playSample(SFX_SONGWHEEL_PICK);
 			m_isEditingItem = true;
 			m_optionSlideOffset = 0;
 		}
@@ -381,6 +399,7 @@ void SettingsMenu::handleInput(UTIME dt)
 
 		if ( startDown )
 		{
+			em.playSample(SFX_SONGWHEEL_APPEAR);
 			// commit: record the newly confirmed value so it renders green
 			m_items[m_selectedItem].savedValue = *m_items[m_selectedItem].value;
 			m_isEditingItem = false;
@@ -436,6 +455,7 @@ void SettingsMenu::handleInput(UTIME dt)
 
 		if ( *item.value != prevVal )
 		{
+			em.playSample(SFX_DIFFICULTY_MOVE);
 			if ( item.flagToSetOnChange != NULL )
 			{
 				*item.flagToSetOnChange = true;
@@ -450,6 +470,7 @@ void SettingsMenu::render(UTIME dt)
 {
 	// update slide timer
 	m_slideTimer += dt;
+	m_bobTimer   += dt;
 	if ( m_slideTimer > SETTINGS_SLIDE_MS )
 	{
 		m_slideTimer = SETTINGS_SLIDE_MS;
@@ -539,32 +560,54 @@ void SettingsMenu::render(UTIME dt)
 			m_scrollY += (diff > 0) ? maxStep : -maxStep;
 	}
 
-	// pre-pass: find screen Y of the selected item (used to draw highlight before clip rect)
-	int selectedItemScreenY = -9999;
+	// animate selector toward target (panel-space Y, subtract m_scrollY for screen Y)
+	m_targetSelectorPanelY = SETTINGS_START_Y + selectedVisibleIdx * SETTINGS_ITEM_HEIGHT;
+	if ( m_selectorPanelY == -9999 || m_snapSelector )
+	{
+		m_selectorPanelY = m_targetSelectorPanelY; // snap on first frame or wrap-around
+		m_snapSelector   = false;
+	}
+	else if ( m_selectorPanelY != m_targetSelectorPanelY )
+	{
+		int sdiff    = m_targetSelectorPanelY - m_selectorPanelY;
+		int smaxStep = MAX(1, SETTINGS_SELECTOR_SPEED * (int)dt / 1000);
+		if ( sdiff < 0 ? -sdiff <= smaxStep : sdiff <= smaxStep )
+			m_selectorPanelY = m_targetSelectorPanelY;
+		else
+			m_selectorPanelY += (sdiff > 0) ? smaxStep : -smaxStep;
+	}
+
+	// clip to panel inner area — set before outlines and selector so nothing overdraws the border
+	int savedCX1, savedCY1, savedCX2, savedCY2;
+	get_clip_rect(rm.m_backbuf, &savedCX1, &savedCY1, &savedCX2, &savedCY2);
+	set_clip_rect(rm.m_backbuf, panelLeft + 2, 0, panelRight - 2, SCREEN_HEIGHT - 1);
+
+	// pre-pass: draw a darker purple outline around every item box
 	{
 		int preY = SETTINGS_START_Y - m_scrollY;
 		for ( int i = 0; i < m_itemCount; i++ )
 		{
 			if ( !isItemVisible(i) ) continue;
-			if ( i == m_selectedItem ) { selectedItemScreenY = preY; break; }
+			int iy = preY;
 			preY += SETTINGS_ITEM_HEIGHT;
+			if ( iy + SETTINGS_ITEM_HEIGHT <= 0 || iy >= SCREEN_HEIGHT ) continue;
+			rect(rm.m_backbuf, panelLeft + 2, iy, panelRight - 2, iy + SETTINGS_ITEM_HEIGHT - 2, SETTINGS_ITEM_OUTLINE_COLOR);
 		}
 	}
 
-	// gold/orange 2px highlight box — drawn before clip rect so all 4 sides are visible,
-	// inset from the 2px black border so it doesn't get overwritten
-	if ( selectedItemScreenY > -9999 )
+	// selector: transparent warm fill + 2px gold outline, both move together with m_selectorPanelY
 	{
-		int hx1 = panelLeft  + 2, hy1 = selectedItemScreenY;
-		int hx2 = panelRight - 2, hy2 = selectedItemScreenY + SETTINGS_ITEM_HEIGHT - 2;
+		int selectorScreenY = m_selectorPanelY - m_scrollY;
+		int hx1 = panelLeft  + 2, hy1 = selectorScreenY;
+		int hx2 = panelRight - 2, hy2 = selectorScreenY + SETTINGS_ITEM_HEIGHT - 2;
+
+		set_alpha_blender();
+		drawing_mode(DRAW_MODE_TRANS, NULL, 0, 0);
+		rectfill(rm.m_backbuf, hx1 + 2, hy1 + 2, hx2 - 2, hy2 - 2, makeacol(255, 220, 100, 35));
+		solid_mode();
 		rect(rm.m_backbuf, hx1,     hy1,     hx2,     hy2,     SETTINGS_HIGHLIGHT_COLOR);
 		rect(rm.m_backbuf, hx1 + 1, hy1 + 1, hx2 - 1, hy2 - 1, SETTINGS_HIGHLIGHT_COLOR);
 	}
-
-	// clip to panel inner area so scrolled items don't overdraw the border
-	int savedCX1, savedCY1, savedCX2, savedCY2;
-	get_clip_rect(rm.m_backbuf, &savedCX1, &savedCY1, &savedCX2, &savedCY2);
-	set_clip_rect(rm.m_backbuf, panelLeft + 2, 0, panelRight - 2, SCREEN_HEIGHT - 1);
 
 	// ---- draw items ----
 	int visItemY = SETTINGS_START_Y - m_scrollY;
@@ -627,13 +670,40 @@ void SettingsMenu::render(UTIME dt)
 				renderOutlinedColoredString(nextLabel, nx - nw/2, optRowY, nextColor);
 			}
 
-			// navigation arrows in edit mode
+			// navigation triangles in edit mode — blue, bob outward
 			if ( isSelected && m_isEditingItem )
 			{
+				int phase     = (int)(m_bobTimer % 600);
+				int bobOffset = (phase < 300) ? (phase * 3 / 300) : ((600 - phase) * 3 / 300);
+				int triCy     = optRowY + 7;
+
+				set_alpha_blender();
+				drawing_mode(DRAW_MODE_TRANS, NULL, 0, 0);
 				if ( idx > 0 )
-					renderOutlinedColoredString("<", panelLeft + 6, optRowY, TEXT_COLOR_WHITE);
+				{
+					int tx = panelLeft + 5 - bobOffset;
+					triangle(rm.m_backbuf, tx, triCy, tx + 6, triCy - 5, tx + 6, triCy + 5, makeacol(0, 120, 255, 160));
+				}
 				if ( idx < m_items[i].optionCount - 1 )
-					renderOutlinedColoredString(">", panelRight - 14, optRowY, TEXT_COLOR_WHITE);
+				{
+					int tx = panelRight - 5 + bobOffset;
+					triangle(rm.m_backbuf, tx, triCy, tx - 6, triCy - 5, tx - 6, triCy + 5, makeacol(0, 120, 255, 160));
+				}
+				solid_mode();
+				if ( idx > 0 )
+				{
+					int tx = panelLeft + 5 - bobOffset;
+					line(rm.m_backbuf, tx, triCy, tx + 6, triCy - 5, makecol(0, 0, 0));
+					line(rm.m_backbuf, tx, triCy, tx + 6, triCy + 5, makecol(0, 0, 0));
+					line(rm.m_backbuf, tx + 6, triCy - 5, tx + 6, triCy + 5, makecol(0, 0, 0));
+				}
+				if ( idx < m_items[i].optionCount - 1 )
+				{
+					int tx = panelRight - 5 + bobOffset;
+					line(rm.m_backbuf, tx, triCy, tx - 6, triCy - 5, makecol(0, 0, 0));
+					line(rm.m_backbuf, tx, triCy, tx - 6, triCy + 5, makecol(0, 0, 0));
+					line(rm.m_backbuf, tx - 6, triCy - 5, tx - 6, triCy + 5, makecol(0, 0, 0));
+				}
 			}
 		}
 		else // SETTINGS_RANGE
@@ -697,11 +767,56 @@ void SettingsMenu::render(UTIME dt)
 
 			if ( isSelected && m_isEditingItem )
 			{
+				int phase     = (int)(m_bobTimer % 600);
+				int bobOffset = (phase < 300) ? (phase * 3 / 300) : ((600 - phase) * 3 / 300);
+				int triCy     = optRowY + 7;
+
+				set_alpha_blender();
+				drawing_mode(DRAW_MODE_TRANS, NULL, 0, 0);
 				if ( dispVal > m_items[i].minVal )
-					renderOutlinedColoredString("<", panelLeft + 6, optRowY, TEXT_COLOR_WHITE);
+				{
+					int tx = panelLeft + 5 - bobOffset;
+					triangle(rm.m_backbuf, tx, triCy, tx + 6, triCy - 5, tx + 6, triCy + 5, makeacol(0, 120, 255, 160));
+				}
 				if ( dispVal < m_items[i].maxVal )
-					renderOutlinedColoredString(">", panelRight - 14, optRowY, TEXT_COLOR_WHITE);
+				{
+					int tx = panelRight - 5 + bobOffset;
+					triangle(rm.m_backbuf, tx, triCy, tx - 6, triCy - 5, tx - 6, triCy + 5, makeacol(0, 120, 255, 160));
+				}
+				solid_mode();
+				if ( dispVal > m_items[i].minVal )
+				{
+					int tx = panelLeft + 5 - bobOffset;
+					line(rm.m_backbuf, tx, triCy, tx + 6, triCy - 5, makecol(0, 0, 0));
+					line(rm.m_backbuf, tx, triCy, tx + 6, triCy + 5, makecol(0, 0, 0));
+					line(rm.m_backbuf, tx + 6, triCy - 5, tx + 6, triCy + 5, makecol(0, 0, 0));
+				}
+				if ( dispVal < m_items[i].maxVal )
+				{
+					int tx = panelRight - 5 + bobOffset;
+					line(rm.m_backbuf, tx, triCy, tx - 6, triCy - 5, makecol(0, 0, 0));
+					line(rm.m_backbuf, tx, triCy, tx - 6, triCy + 5, makecol(0, 0, 0));
+					line(rm.m_backbuf, tx - 6, triCy - 5, tx - 6, triCy + 5, makecol(0, 0, 0));
+				}
 			}
+		}
+
+		// bobbing triangle: visible when editing this item, disappears on confirm
+		if ( isSelected && m_isEditingItem )
+		{
+			int phase     = (int)(m_bobTimer % 600);
+			int bobOffset = (phase < 300) ? (phase * 3 / 300) : ((600 - phase) * 3 / 300);
+			int triTipY   = optRowY + 18 + bobOffset;
+			int triBaseY  = triTipY + 5;
+			int triCx     = panelCenterX;
+
+			set_alpha_blender();
+			drawing_mode(DRAW_MODE_TRANS, NULL, 0, 0);
+			triangle(rm.m_backbuf, triCx, triTipY, triCx - 5, triBaseY, triCx + 5, triBaseY, makeacol(255, 200, 0, 160));
+			solid_mode();
+			line(rm.m_backbuf, triCx,     triTipY,  triCx - 5, triBaseY, makecol(0, 0, 0));
+			line(rm.m_backbuf, triCx,     triTipY,  triCx + 5, triBaseY, makecol(0, 0, 0));
+			line(rm.m_backbuf, triCx - 5, triBaseY, triCx + 5, triBaseY, makecol(0, 0, 0));
 		}
 	}
 

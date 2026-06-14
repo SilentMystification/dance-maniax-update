@@ -73,6 +73,10 @@ private:
 	int          m_repeatTimer;  // ms until next auto-repeat fires
 	int          m_scrollY;      // current animated scroll pixel offset
 	int          m_targetScrollY;// target scroll offset (snaps to keep selected item visible)
+	int          m_selectorPanelY;       // animated selector Y in panel-space (before scroll subtraction)
+	int          m_targetSelectorPanelY; // destination for selector slide animation
+	bool         m_snapSelector;         // true when selector should snap instead of slide (wrap-around)
+	UTIME        m_bobTimer;             // drives the triangle bob animation in edit mode
 };
 
 #endif

@@ -469,7 +469,7 @@ public:
 		}
 		if ( vnum >= 3 )
 		{
-			fread(&bgmGap, sizeof(int), 1, fp);
+			if ( fread(&bgmGap, sizeof(int), 1, fp) != 1 ) bgmGap = 0;
 			if ( fread(&n, sizeof(long), 1, fp) == 1 ) isEventMode     = n != 0;
 			if ( fread(&n, sizeof(long), 1, fp) == 1 ) isFreestyleMode = n != 0;
 		}
