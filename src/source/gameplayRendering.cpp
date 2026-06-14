@@ -17,6 +17,7 @@ extern VideoManager     vm;
 extern unsigned long int frameCounter;
 extern unsigned long int totalGameTime;
 extern int retireTimer;
+extern int speedChangeTimer[2];
 extern int fullComboAnimStep; // 0 = not started, 1 = started
 extern int fullComboAnimTimer;
 extern bool fullComboP1;
@@ -566,16 +567,8 @@ void renderGrade(int grade, int x, int y)
 	masked_blit(m_grades, rm.m_backbuf, sx, sy, x, y, 48, 48);
 }
 
-void renderSpeedMod(int player, int scrollRate, int speedMod)
+void renderSpeedMod(int player, int scrollRate, int speedMod, bool isTemp, int scrollMode, int fixedScrollPPS)
 {
-	//renderWhiteNumber(speedMod/10, x, y);
-	//renderWhiteLetter('.', x+10, y);
-	//renderWhiteNumber(speedMod%10, x+20, y);
-	//renderWhiteLetter('x', x+40, y);
-	//renderWhiteNumber(scrollRate*speedMod/10, x+70, y);
-	//renderWhiteLetter('=', x+100, y);
-	//renderWhiteNumber(MSEC_TO_BPM(scrollRate), x+120, y);
-
 	int x = getColumnOffsetX_ANY(0) - 64;
 	int y = 360;
 	if ( player == 0 && !gs.isDoubles && !gs.isVersus && gs.player[0].isCenter() )
@@ -584,16 +577,32 @@ void renderSpeedMod(int player, int scrollRate, int speedMod)
 	}
 	if ( player == 1 || (player == 0 && gs.player[0].centerRight) )
 	{
-		x = getColumnOffsetX_ANY(7) +32 + 32; // should only happen in DMX mode
+		x = getColumnOffsetX_ANY(7) + 32 + 32;
 	}
 	if ( gs.player[player].reverseModifier != 0 )
 	{
 		y = 84;
 	}
 
-	int index = (speedMod / 5) - 1;
-	UNUSED(scrollRate); // maybe someday render BPM somewhere on screen if it is appropriate?
-	masked_blit(m_speedIcons, rm.m_backbuf, 0, index*24, x, y, 32, 24);
+	UNUSED(scrollRate);
+
+	if ( scrollMode == 1 ) // Fixed: render numeric pps value
+	{
+		char buf[16];
+		sprintf_s(buf, sizeof(buf), "%d", fixedScrollPPS);
+		renderOutlinedColoredString(buf, x, y + 6, isTemp ? TEXT_COLOR_WHITE : TEXT_COLOR_GREEN);
+	}
+	else // Classic: sprite icon
+	{
+		int index = (speedMod / 5) - 1;
+		masked_blit(m_speedIcons, rm.m_backbuf, 0, index*24, x, y, 32, 24);
+	}
+
+	// colored border: white=temp override, no border if matches saved profile
+	if ( isTemp )
+	{
+		rect(rm.m_backbuf, x - 2, y - 2, x + 33, y + 25, makecol(255, 255, 255));
+	}
 }
 
 void renderLifebar(int player)
@@ -888,7 +897,11 @@ void renderGameplay()
 		renderDMCombo(gs.player[p].displayCombo, p);
 	}
 
-	renderSpeedMod(p, gs.player[p].scrollRate, gs.player[p].speedMod);
+	{
+		bool isTemp = speedChangeTimer[p] > 0 &&
+			(gs.player[p].speedMod != sm.player[p].speedMod || gs.player[p].fixedScrollPPS != sm.player[p].fixedScrollPPS);
+		renderSpeedMod(p, gs.player[p].scrollRate, gs.player[p].speedMod, isTemp, gs.player[p].scrollMode, gs.player[p].fixedScrollPPS);
+	}
 
 	} // done with 1P 2P loop
 

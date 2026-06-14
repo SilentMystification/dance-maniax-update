@@ -1171,7 +1171,7 @@ void mainOperatorLoop(UTIME dt)
 			}
 			if ( im.getKeyState(MENU_RIGHT_2P) == JUST_DOWN )
 			{
-				if ( testMenuSubIndex == 0 )
+				if ( testMenuSubIndex == 1 || testMenuSubIndex == 2 )
 				{
 					// TODO: cycle through sound in attract options
 				}
@@ -1182,7 +1182,7 @@ void mainOperatorLoop(UTIME dt)
 			}
 			if ( im.getKeyState(MENU_LEFT_2P) == JUST_DOWN )
 			{
-				if ( testMenuSubIndex == 0 )
+				if ( testMenuSubIndex == 1 || testMenuSubIndex == 2 )
 				{
 					// TODO: cycle through sound in attract options
 				}

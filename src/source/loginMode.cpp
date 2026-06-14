@@ -837,6 +837,17 @@ void endLoginMode()
 		}
 	}
 
+	// copy per-player profile preferences to the in-game player state
+	for ( int p = 0; p < 2; p++ )
+	{
+		gs.player[p].judgementPositionMode  = sm.player[p].judgementPositionMode;
+		gs.player[p].judgementMsDisplayMode = sm.player[p].judgementMsDisplayMode;
+		gs.player[p].judgementEarlyLateMode = sm.player[p].judgementEarlyLateMode;
+		gs.player[p].speedMod               = sm.player[p].speedMod;
+		gs.player[p].scrollMode             = sm.player[p].scrollMode;
+		gs.player[p].fixedScrollPPS         = sm.player[p].fixedScrollPPS;
+	}
+
 	// update and save the most recent player names
 	for ( int player = 0; player < 2; player++ )
 	{

@@ -52,7 +52,7 @@ bool ScoreManager::loadPlayerFromDisk(char* name, char side)
 
 	// read a short version number
 	int vnum = checkFileVersion(fp, "DMXp");
-	if ( vnum != CURRENT_PLAYER_VERSION_NUMBER )
+	if ( vnum > CURRENT_PLAYER_VERSION_NUMBER )
 	{
 		globalError(PLAYER_PREFS_LOST, "version number mismatch");
 	}
@@ -61,6 +61,22 @@ bool ScoreManager::loadPlayerFromDisk(char* name, char side)
 	fread(&p.pinDigits, sizeof(char), 4, fp);
 	fread(&p.numPlaysSP, sizeof(long), 1, fp);
 	fread(&p.numPlaysDP, sizeof(long), 1, fp);
+
+	if ( vnum >= 2 )
+	{
+		fread(&p.judgementPositionMode,  sizeof(int),  1, fp);
+		fread(&p.judgementMsDisplayMode, sizeof(int),  1, fp);
+		fread(&p.judgementEarlyLateMode, sizeof(int),  1, fp);
+		fread(&p.scrollMode,             sizeof(int),  1, fp);
+		fread(&p.speedMod,               sizeof(int),  1, fp);
+		fread(&p.fixedScrollPPS,         sizeof(int),  1, fp);
+		fread(&p.scoreMode,              sizeof(int),  1, fp);
+		fread(&p.audioOffset,            sizeof(int),  1, fp);
+		fread(&p.hasCustomAudioOffset,   sizeof(bool), 1, fp);
+		fread(&p.visualOffset,           sizeof(int),  1, fp);
+	}
+	fread(&p.lastSinglesSongID, sizeof(int), 1, fp);
+	fread(&p.lastDoublesSongID, sizeof(int), 1, fp);
 
 	fclose(fp);
 
@@ -326,6 +342,19 @@ void ScoreManager::savePlayerToDisk(PLAYER_DATA &p)
 	fwrite(&p.pinDigits, sizeof(char), 4, fp);
 	fwrite(&p.numPlaysSP, sizeof(long), 1, fp);
 	fwrite(&p.numPlaysDP, sizeof(long), 1, fp);
+
+	fwrite(&p.judgementPositionMode,  sizeof(int),  1, fp);
+	fwrite(&p.judgementMsDisplayMode, sizeof(int),  1, fp);
+	fwrite(&p.judgementEarlyLateMode, sizeof(int),  1, fp);
+	fwrite(&p.scrollMode,             sizeof(int),  1, fp);
+	fwrite(&p.speedMod,               sizeof(int),  1, fp);
+	fwrite(&p.fixedScrollPPS,         sizeof(int),  1, fp);
+	fwrite(&p.scoreMode,              sizeof(int),  1, fp);
+	fwrite(&p.audioOffset,            sizeof(int),  1, fp);
+	fwrite(&p.hasCustomAudioOffset,   sizeof(bool), 1, fp);
+	fwrite(&p.visualOffset,           sizeof(int),  1, fp);
+	fwrite(&p.lastSinglesSongID,      sizeof(int),  1, fp);
+	fwrite(&p.lastDoublesSongID,      sizeof(int),  1, fp);
 
 	safeCloseFile(fp, prefsFilename);
 

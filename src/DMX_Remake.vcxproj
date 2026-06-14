@@ -296,7 +296,7 @@
       <Message>touch the attract mode to update the __DATE__</Message>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>msbuild "$(ProjectPath)" /p:Configuration=Debug /p:Platform=Win32 /t:Build /v:minimal
+      <Command>msbuild "$(ProjectPath)" /p:Configuration=Debug /p:Platform=Win32 /p:PlatformToolset=v143 /t:Build /v:minimal
 copy /Y "..\deploy\DMX.exe" "V:\DMX_DEV\DMX.exe"
 copy /Y "..\deploy\DMX_Debug.exe" "V:\DMX_DEV\DMX_dev.exe"</Command>
       <Message>Building Debug and deploying to cab...</Message>
@@ -493,6 +493,7 @@ copy /Y "..\deploy\DMX_Debug.exe" "V:\DMX_DEV\DMX_dev.exe"</Command>
     <ClCompile Include="source\render_dmx.cpp" />
     <ClCompile Include="source\resultsMode.cpp" />
     <ClCompile Include="source\ScoreManager.cpp" />
+    <ClCompile Include="source\settingsMenu.cpp" />
     <ClCompile Include="source\songwheelMode.cpp" />
     <ClCompile Include="source\specialEffects.cpp" />
     <ClCompile Include="source\versionManager.cpp" />

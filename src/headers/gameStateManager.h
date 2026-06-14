@@ -89,6 +89,9 @@ public:
 		UTIME stopLength;         // the milliseconds that the current tempo stop lasts for
 		UTIME bpmUpdateTimer;     // allows the BPM to change smoothly from scrollRate to newScrollRate
 		int   speedMod;           // the current speed mod times 10 (for 1.5, 2.5, etc)
+		int   scrollMode;         // 0=Classic, 1=Fixed
+		int   fixedScrollPPS;     // Fixed mode: pixels/sec
+		int   baseBPM;            // BPM at song start, used for fixed scroll pps ratio
 
 		// animation timers and states (mostly timers)
 		UTIME stepZoneBeatTimer;
@@ -103,8 +106,8 @@ public:
 		bool  lastJudgementEarly;        // true if early, false if late
 		std::vector<long> noteDiffs;     // signed ms diff per hit note this song (negative=early, positive=late)
 		int   judgementPositionMode;     // 0=Off, 1=Bottom, 2=Lower, 3=Upper, 4=Top
-		int   judgementMsDisplayMode;    // 0=All, 1=Below Marvelous, 2=Below Perfect, 3=Below Great, 4=Below Good
-		int   judgementEarlyLateMode;    // 0=All, 1=Below Marvelous, 2=Below Perfect, 3=Below Great
+		int   judgementMsDisplayMode;    // 0=All, 1=Perfect and Below, 2=Great and Below, 3=Good and Below, 4=Never
+		int   judgementEarlyLateMode;    // 0=All, 1=Perfect and Below, 2=Great and Below, 3=Good and Below
 		int   columnJudgeTime[10];
 		int   columnJudgement[10];
 		int   laneFlareColors[10];
@@ -177,9 +180,6 @@ public:
 			lastJudgementDiff = 0;
 			lastJudgementEarly = false;
 			noteDiffs.clear();
-			judgementPositionMode = 2;
-			judgementMsDisplayMode = 1;
-			judgementEarlyLateMode = 2;
 			shockAnimTimer = 0;
 			drummaniaCombo[0] = drummaniaCombo[1] = drummaniaCombo[2] = drummaniaCombo[3] = 0;
 
@@ -200,6 +200,9 @@ public:
 			scrollRate = 150;
 			newScrollRate = 150;
 			speedMod = 10;
+			scrollMode = 0;
+			fixedScrollPPS = 200;
+			baseBPM = 0;
 
 			// player's score
 			displayCombo = 0;
@@ -291,6 +294,7 @@ public:
 		bgmAnchorFmodMs = 0;
 		bgmLastFmodPos = 0;
 		currentSongIsPreview = false;
+		bgmGap = 0;
 
 		// global game state
 		isSolo = false;
@@ -474,7 +478,9 @@ public:
 		}
 		if ( vnum >= 3 )
 		{
-			fread(&bgmGap, sizeof(int), 1, fp);
+			if ( fread(&bgmGap, sizeof(int), 1, fp) != 1 ) bgmGap = 0;
+			if ( fread(&n, sizeof(long), 1, fp) == 1 ) isEventMode     = n != 0;
+			if ( fread(&n, sizeof(long), 1, fp) == 1 ) isFreestyleMode = n != 0;
 		}
 
 		isInitialized = true;
@@ -507,6 +513,10 @@ public:
 		n = allowLogins ? 1 : 0;
 		fwrite(&n, sizeof(long), 1, fp);
 		fwrite(&bgmGap, sizeof(int), 1, fp);
+		n = isEventMode ? 1 : 0;
+		fwrite(&n, sizeof(long), 1, fp);
+		n = isFreestyleMode ? 1 : 0;
+		fwrite(&n, sizeof(long), 1, fp);
 
 		safeCloseFile(fp, MSETTING_FILENAME);
 	}

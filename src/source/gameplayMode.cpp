@@ -87,6 +87,12 @@ extern InputManager im;
 int retireTimer = 0; // for ending the game early when there is a lack of input
 int lampCycle = 0;
 
+// in-song speed adjustment
+static const int SPEED_CHANGE_DISPLAY_MS = 3000;
+static const int classicSpeeds[]         = {10,15,20,25,30,35,40,50,60,70,80};
+static const int numClassicSpeeds        = 11;
+int speedChangeTimer[2]                  = {0, 0};
+
 // full combo
 int fullComboAnimStep = 0; // 0 = not started, 1 = started
 int fullComboAnimTimer = 0;
@@ -138,7 +144,7 @@ void loadNextSong();
 // precondition: gs.player[] has a setlist setlist, the chart data is loaded
 // postcondition: reloads the audio and resets certain variables
 
-void arrangeChart(std::vector<struct ARROW> *chart, std::vector<struct FREEZE> *holds, char type, bool isDoubles);
+void arrangeChart(std::vector<struct ARROW> *chart, std::vector<struct FREEZE> *holds, char type, bool isDoubles, bool isCenter);
 // precondition: see description of arguments at function declaration
 // postcondition: if type != 0 then the chart and holds will be modified
 
@@ -337,40 +343,38 @@ void mainGameplayLoop(UTIME dt)
 		return;
 	}
 
-	// check for the player changing their speed-mod at the start of the song
-	//if ( gs.player[0].timeElapsed < 10000 )
+	// in-song speed adjustment: LEFT/RIGHT = coarse change, START+LEFT/RIGHT = fine change (fixed mode only)
+	for ( int side = 0; side < 2; side++ )
 	{
-		if ( gs.player[0].speedMod > 5 && im.getKeyState(MENU_LEFT_1P) == JUST_DOWN )
+		int target = (gs.isVersus ? side : 0);
+		bool left  = im.getKeyState(side == 0 ? MENU_LEFT_1P  : MENU_LEFT_2P)  == JUST_DOWN;
+		bool right = im.getKeyState(side == 0 ? MENU_RIGHT_1P : MENU_RIGHT_2P) == JUST_DOWN;
+		bool start = im.isKeyDown(side == 0 ? MENU_START_1P : MENU_START_2P) != 0;
+
+		if ( left || right )
 		{
-			gs.player[0].speedMod -= 5;
-		}
-		if ( gs.player[0].speedMod < 80 && im.getKeyState(MENU_RIGHT_1P) == JUST_DOWN )
-		{
-			gs.player[0].speedMod += 5;
-		}
-		if ( gs.isVersus )
-		{
-			if ( gs.player[1].speedMod > 5 && im.getKeyState(MENU_LEFT_2P) == JUST_DOWN )
+			if ( gs.player[target].scrollMode == 1 ) // Fixed mode
 			{
-				gs.player[1].speedMod -= 5;
+				int delta = start ? 5 : 50;
+				if ( left )  gs.player[target].fixedScrollPPS = MAX(25,  gs.player[target].fixedScrollPPS - delta);
+				if ( right ) gs.player[target].fixedScrollPPS = MIN(700, gs.player[target].fixedScrollPPS + delta);
 			}
-			if ( gs.player[1].speedMod < 80 && im.getKeyState(MENU_RIGHT_2P) == JUST_DOWN )
+			else // Classic mode: cycle through discrete speed list
 			{
-				gs.player[1].speedMod += 5;
+				int idx = 0;
+				for ( int i = 0; i < numClassicSpeeds; i++ )
+				{
+					if ( classicSpeeds[i] == gs.player[target].speedMod ) { idx = i; break; }
+				}
+				if ( left )  idx = MAX(0, idx - 1);
+				if ( right ) idx = MIN(numClassicSpeeds - 1, idx + 1);
+				gs.player[target].speedMod = classicSpeeds[idx];
 			}
-		}
-		else
-		{
-			if ( gs.player[0].speedMod > 5 && im.getKeyState(MENU_LEFT_2P) == JUST_DOWN )
-			{
-				gs.player[0].speedMod -= 5;
-			}
-			if ( gs.player[0].speedMod < 80 && im.getKeyState(MENU_RIGHT_2P) == JUST_DOWN )
-			{
-				gs.player[0].speedMod += 5;
-			}
+			speedChangeTimer[target] = SPEED_CHANGE_DISPLAY_MS;
 		}
 	}
+	for ( int t = 0; t < (gs.isVersus ? 2 : 1); t++ )
+		speedChangeTimer[t] = MAX(0, speedChangeTimer[t] - (int)dt);
 
 	// update the per-column judgements and the "step zone resize" effect when a panel is newly hit (DDR only)
 	for ( int i = 0; i < 10; i++ )
@@ -1117,6 +1121,7 @@ void scoreNote(int p, int judgement, int column)
 		{
 			gs.player[p].drummaniaCombo[2] = DRUMMANIA_COMBO_BOUNCE_TIME;
 			em.announceCombo(gs.player[p].displayCombo);
+			announcerLastCheckTotal = announcerPlusPoints = announcerMinusPoints = 0;
 		}
 		if ( gs.player[p].displayCombo % 1000 == 0 )
 		{
@@ -1236,6 +1241,17 @@ void loadNextSong()
 	{
 		gs.player[p].nextStage();
 
+		// capture initial BPM for fixed scroll mode pps ratio
+		gs.player[p].baseBPM = 0;
+		for ( int i = 0; i < (int)gs.player[p].currentChart.size(); i++ )
+		{
+			if ( gs.player[p].currentChart[i].type == BPM_CHANGE )
+			{
+				gs.player[p].baseBPM = gs.player[p].currentChart[i].color;
+				break;
+			}
+		}
+
 		sm.player[p].currentSet[gs.currentStage].resetData();
 		sm.player[p].currentSet[gs.currentStage].time = time(NULL);
 		sm.player[p].currentSet[gs.currentStage].status = STATUS_NONE;
@@ -1250,7 +1266,7 @@ void loadNextSong()
 
 		if ( gs.player[p].arrangeModifier > 0 )
 		{
-			arrangeChart(&gs.player[p].currentChart, &gs.player[p].freezeArrows, gs.player[p].arrangeModifier, gs.isDoubles);
+			arrangeChart(&gs.player[p].currentChart, &gs.player[p].freezeArrows, gs.player[p].arrangeModifier, gs.isDoubles, gs.isSingles() && gs.player[0].isCenter());
 		}
 	}
 	
@@ -1290,17 +1306,18 @@ void loadNextSong()
 
 // chart - list of tap notes
 // holds - list of hold notes
-// type  - 0 = no change, 1 = mirror (horizontal), 2 = upside down (v-mirror), 3 = shuffle
+// type     - 0 = no change, 1 = mirror (horizontal), 2 = upside down (v-mirror), 3 = shuffle
 // isDoubles - matters for some types
-void arrangeChart(std::vector<struct ARROW> *chart, std::vector<struct FREEZE> *holds, char type, bool isDoubles)
+// isCenter  - true when playing singles in center position (cols 2-5 active)
+void arrangeChart(std::vector<struct ARROW> *chart, std::vector<struct FREEZE> *holds, char type, bool isDoubles, bool isCenter)
 {
-	char arrangeMatrix[4][2][8] = { 
-		{ {0,1,2,3,4,5,6,7}, {0,1,2,3,4,5,6,7} }, // original chart
-		{ {3,2,1,0,7,6,5,4}, {7,6,5,4,3,2,1,0} }, // mirror
-		{ {1,0,3,2,5,4,7,6}, {1,0,3,2,5,4,7,6} }, // upside down
-		{ {2,1,0,3,6,5,4,7}, {0,1,2,3,4,5,6,7} }, // one shuffle pattern
+	char arrangeMatrix[4][3][8] = {
+		{ {0,1,2,3,4,5,6,7}, {0,1,2,3,4,5,6,7}, {0,1,2,3,4,5,6,7} }, // original chart
+		{ {3,2,1,0,7,6,5,4}, {7,6,5,4,3,2,1,0}, {0,1,5,4,3,2,7,6} }, // mirror (center: swap 2<->5, 3<->4)
+		{ {1,0,3,2,5,4,7,6}, {1,0,3,2,5,4,7,6}, {1,0,3,2,5,4,7,6} }, // upside down
+		{ {2,1,0,3,6,5,4,7}, {0,1,2,3,4,5,6,7}, {0,1,2,3,4,5,6,7} }, // one shuffle pattern
 	};
-	char doubles = isDoubles ? 1 : 0;
+	int mode = isCenter ? 2 : (isDoubles ? 1 : 0);
 
 	for ( std::vector<struct ARROW>::iterator c = chart->begin(); c != chart->end(); c++ )
 	{
@@ -1308,7 +1325,7 @@ void arrangeChart(std::vector<struct ARROW> *chart, std::vector<struct FREEZE> *
 		{
 			if ( c->columns[i] >= 0 && c->columns[i] <= 7 ) // -1 means no note here (very important for triples
 			{
-				c->columns[i] = arrangeMatrix[type][doubles][c->columns[i]];
+				c->columns[i] = arrangeMatrix[type][mode][c->columns[i]];
 			}
 		}
 	}

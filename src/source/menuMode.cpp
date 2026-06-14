@@ -171,6 +171,24 @@ void firstMenuLoop()
 	p2row = 0;
 	mods[0][0] = mods[0][1] = mods[0][2] = mods[0][3] = 0;
 	mods[1][0] = mods[1][1] = mods[1][2] = mods[1][3] = 0;
+
+	// pre-populate speed mod from the saved player preference so the mods menu
+	// reflects the player's chosen speed rather than always defaulting to 1x
+	for ( int side = 0; side < 2; side++ )
+	{
+		if ( sm.player[side].isLoggedIn )
+		{
+			for ( int i = 0; i < MOD_LIMITS[0]; i++ )
+			{
+				if ( SPEED_MOD_EFFECTS[i] == sm.player[side].speedMod )
+				{
+					mods[side][0] = i;
+					break;
+				}
+			}
+		}
+	}
+
 	if ( gs.isSingles() )
 	{
 		mods[0][3] = gs.leftPlayerPresent ? 1 : 2; // pick "LEFT" or "RIGHT" over "CENTER" as the default
@@ -493,7 +511,8 @@ void mainMenuLoop(UTIME dt)
 		// set modifiers
 		for ( int side = 0; side < 2; side++ )
 		{
-			gs.player[side].speedMod = SPEED_MOD_EFFECTS[mods[side][0]];
+			gs.player[side].speedMod     = SPEED_MOD_EFFECTS[mods[side][0]];
+			sm.player[side].speedMod     = gs.player[side].speedMod;
 			if ( mods[side][1] > 0 )
 			{
 				gs.player[side].reverseModifier = 0xFF;
