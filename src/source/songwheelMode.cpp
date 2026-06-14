@@ -455,6 +455,24 @@ void firstSongwheelLoop()
 		gs.isDoubles = false;
 	}
 
+	// apply play position (singles only)
+	if ( !gs.isDoubles && !gs.isVersus )
+	{
+		int p = (gs.rightPlayerPresent && !gs.leftPlayerPresent) ? 1 : 0;
+		if ( sm.player[p].playPosition == -1 ) // freestyle: menuMode didn't run, use login side
+		{
+			bool loginOnRight = (p == 1);
+			gs.player[p].centerLeft   = !loginOnRight;
+			gs.player[p].centerRight  = loginOnRight;
+			sm.player[p].playPosition = loginOnRight ? 2 : 1;
+		}
+		else // menuMode confirmed a value (or saved center): apply directly
+		{
+			gs.player[p].centerLeft  = (sm.player[p].playPosition == 1);
+			gs.player[p].centerRight = (sm.player[p].playPosition == 2);
+		}
+	}
+
 	// pick a random extra stage and save it for later, just in case it is needed
 	// (it is easier to do this now instead of later, sinze we just built the list of elegible songs)
 	int randIndex = rand()%maxSongwheelIndex;
@@ -535,7 +553,7 @@ void mainSongwheelLoop(UTIME dt)
 			{ int rm = sm.player[p].reverseMode;
 			  gs.player[p].reverseModifier = (rm == 2) ? (unsigned char)0x99 : (rm != 0 ? (unsigned char)0xFF : (unsigned char)0x00); }
 			gs.player[p].arrangeModifier = (char)sm.player[p].mirrorMode;
-			if ( gs.isSingles() || gs.isFreestyleMode )
+			if ( !gs.isDoubles && !gs.isVersus )
 			{
 				gs.player[p].centerLeft  = (sm.player[p].playPosition == 1);
 				gs.player[p].centerRight = (sm.player[p].playPosition == 2);
@@ -594,7 +612,18 @@ void mainSongwheelLoop(UTIME dt)
 
 	if ( gs.isFreestyleMode && im.getKeyState(MENU_START_2P) == JUST_DOWN )
 	{
-		gs.isDoubles = !gs.isDoubles; // another special case for this mode
+		gs.isDoubles = !gs.isDoubles;
+		int p = (gs.rightPlayerPresent && !gs.leftPlayerPresent) ? 1 : 0;
+		if ( !gs.isDoubles )
+		{
+			gs.player[p].centerLeft  = (sm.player[p].playPosition == 1);
+			gs.player[p].centerRight = (sm.player[p].playPosition == 2);
+		}
+		else
+		{
+			gs.player[p].centerLeft  = false;
+			gs.player[p].centerRight = false;
+		}
 	}
 	else if ( isSphereMoving )
 	{
@@ -958,7 +987,7 @@ void mainSongwheelLoop(UTIME dt)
 			{ int rm = sm.player[p].reverseMode;
 			  gs.player[p].reverseModifier = (rm == 2) ? (unsigned char)0x99 : (rm != 0 ? (unsigned char)0xFF : (unsigned char)0x00); }
 			gs.player[p].arrangeModifier = (char)sm.player[p].mirrorMode;
-			if ( gs.isSingles() || gs.isFreestyleMode )
+			if ( !gs.isDoubles && !gs.isVersus )
 			{
 				gs.player[p].centerLeft  = (sm.player[p].playPosition == 1);
 				gs.player[p].centerRight = (sm.player[p].playPosition == 2);

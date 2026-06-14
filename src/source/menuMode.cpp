@@ -191,7 +191,7 @@ void firstMenuLoop()
 
 	if ( gs.isSingles() )
 	{
-		mods[0][3] = gs.leftPlayerPresent ? 1 : 2; // pick "LEFT" or "RIGHT" over "CENTER" as the default
+		mods[0][3] = (sm.player[0].playPosition == 0) ? 0 : (gs.leftPlayerPresent ? 1 : 2);
 	}
 	modeMovingTimer = 0;
 	hazardCount[0] = hazardCount[1] = 0;
@@ -246,7 +246,7 @@ void mainMenuLoop(UTIME dt)
 	bool noDouble = !gs.isFreeplay && !gs.isDoublePremium && gs.numCoins < gs.numCoinsPerCredit*2;
 	bool noVersus = !gs.isFreeplay && !gs.isVersusPremium && gs.numCoins < gs.numCoinsPerCredit*2;
 	bool forcedVersus = gs.leftPlayerPresent && gs.rightPlayerPresent;
-	int numModRows = gs.isDoubles || gs.isVersus ? 3 : 4; // only show the last modifier (which side) for singles play
+	int numModRows = gs.isDoubles || gs.isVersus ? 3 : 4;
 
 	// check input
 	if ( currentRow == 0 && modesDirection == 0 )
@@ -539,17 +539,10 @@ void mainMenuLoop(UTIME dt)
 			*/
 		}
 
-		// the side option is only available when playing alone
+		// store confirmed play position so songwheel can apply it
 		if ( gs.isSingles() )
 		{
-			if ( mods[0][3] == 1 )
-			{
-				gs.player[0].centerLeft = true;
-			}
-			if ( mods[0][3] == 2 )
-			{
-				gs.player[0].centerRight = true;
-			}
+			sm.player[0].playPosition = mods[0][3];
 		}
 
 		// update bookkeeping, stats, progress to next determined screen

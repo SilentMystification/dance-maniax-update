@@ -220,7 +220,7 @@ bool SettingsMenu::isItemVisible(int index) const
 	case DEP_JUDGMENT_ON:
 		return sm.player[m_playerData].judgementPositionMode != 0;
 	case DEP_PLAY_POSITION:
-		return gs.isSingles() || gs.isFreestyleMode;
+		return !gs.isDoubles && !gs.isVersus;
 	}
 	return true;
 }
@@ -269,7 +269,10 @@ void SettingsMenu::open(int playerData, int side)
 		unsigned char rv = (unsigned char)gs.player[m_playerData].reverseModifier;
 		pd.reverseMode  = (rv == 0x00) ? 0 : (rv == 0x99 ? 2 : 1);
 		pd.mirrorMode   = (int)gs.player[m_playerData].arrangeModifier;
-		pd.playPosition = gs.player[m_playerData].centerLeft ? 1 : (gs.player[m_playerData].centerRight ? 2 : 0);
+		if ( !gs.isDoubles && !gs.isVersus )
+		{
+			pd.playPosition = gs.player[m_playerData].centerLeft ? 1 : (gs.player[m_playerData].centerRight ? 2 : 0);
+		}
 	}
 
 	buildItemList(m_playerData);
