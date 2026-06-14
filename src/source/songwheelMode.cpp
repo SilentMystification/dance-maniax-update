@@ -142,6 +142,7 @@ char separateSubmenu[2] = {0,0};    // only used for versus mode
 SettingsMenu playerSettingsMenu[2];
 bool isInSettings[2] = { false, false };
 bool settingsWaitForRelease[2] = { false, false };
+int  settingsPlayerSlot[2] = { 0, 1 }; // maps panel side -> sm.player[] slot used when that panel was opened
 static UTIME s_swDt = 0; // current frame dt, shared between update and render
 bool submenuDone[2] = {0,0};		// only used for versus mode
 bool skippingSubmenu = false;
@@ -281,6 +282,7 @@ void firstSongwheelLoop()
 		isRandomSelect = false;
 		isInSettings[0] = isInSettings[1] = false;
 		settingsWaitForRelease[0] = settingsWaitForRelease[1] = false;
+		settingsPlayerSlot[0] = 0; settingsPlayerSlot[1] = 1;
 		nextStageAnimTimer = 0;
 		previewTimeStarted = last_utime;
 		previewTimeRemaining = 0;
@@ -312,6 +314,7 @@ void firstSongwheelLoop()
 	nextStageAnimTimer = 0;
 	isInSettings[0] = isInSettings[1] = false;
 	settingsWaitForRelease[0] = settingsWaitForRelease[1] = false;
+	settingsPlayerSlot[0] = 0; settingsPlayerSlot[1] = 1;
 
 	// figure out how many songs are visible on the songwheel
 	maxSongwheelIndex = 0;
@@ -544,7 +547,7 @@ void mainSongwheelLoop(UTIME dt)
 			settingsWaitForRelease[side] = false;
 
 			// copy updated settings to gs.player so they take effect next song
-			int p = (gs.isDoubles ? 0 : side);
+			int p = settingsPlayerSlot[side];
 			gs.player[p].judgementPositionMode  = sm.player[p].judgementPositionMode;
 			gs.player[p].judgementMsDisplayMode = sm.player[p].judgementMsDisplayMode;
 			gs.player[p].judgementEarlyLateMode = sm.player[p].judgementEarlyLateMode;
@@ -579,6 +582,7 @@ void mainSongwheelLoop(UTIME dt)
 			{
 				isInSettings[0] = true;
 				settingsWaitForRelease[0] = true;
+				settingsPlayerSlot[0] = 0;
 				playerSettingsMenu[0].open(0, 0);
 			}
 			if ( gs.rightPlayerPresent && !isInSettings[1] &&
@@ -586,23 +590,49 @@ void mainSongwheelLoop(UTIME dt)
 			{
 				isInSettings[1] = true;
 				settingsWaitForRelease[1] = true;
+				settingsPlayerSlot[1] = 1;
 				playerSettingsMenu[1].open(1, 1);
+			}
+		}
+		else if ( gs.isDoubles )
+		{
+			// doubles: either side can open the panel; left wins on same-frame tie
+			bool combo1P = im.isKeyDown(MENU_LEFT_1P) && im.isKeyDown(MENU_RIGHT_1P) && im.getKeyState(MENU_START_1P) == JUST_DOWN;
+			bool combo2P = im.isKeyDown(MENU_LEFT_2P) && im.isKeyDown(MENU_RIGHT_2P) && im.getKeyState(MENU_START_2P) == JUST_DOWN;
+			if ( !isInSettings[0] && !isInSettings[1] && combo1P )
+			{
+				isInSettings[0] = true;
+				settingsWaitForRelease[0] = true;
+				settingsPlayerSlot[0] = 0;
+				playerSettingsMenu[0].open(0, 0);
+			}
+			else if ( !isInSettings[0] && !isInSettings[1] && combo2P )
+			{
+				isInSettings[1] = true;
+				settingsWaitForRelease[1] = true;
+				settingsPlayerSlot[1] = 0;
+				playerSettingsMenu[1].open(0, 1);
 			}
 		}
 		else
 		{
-			// singles or doubles: either button set can open the menu;
-			// panel appears on the side the player logged in on
+			// singles: only the active side's combo opens the panel
 			int loginSide  = (gs.rightPlayerPresent && !gs.leftPlayerPresent) ? 1 : 0;
-			int playerSlot = gs.isDoubles ? 0 : loginSide;
-			bool combo1P   = im.isKeyDown(MENU_LEFT_1P) && im.isKeyDown(MENU_RIGHT_1P) && im.getKeyState(MENU_START_1P) == JUST_DOWN;
-			bool combo2P   = im.isKeyDown(MENU_LEFT_2P) && im.isKeyDown(MENU_RIGHT_2P) && im.getKeyState(MENU_START_2P) == JUST_DOWN;
+			int playerSlot = loginSide;
+			int activeSide = loginSide;
+			if      (gs.player[playerSlot].centerRight) activeSide = 1;
+			else if (gs.player[playerSlot].centerLeft)  activeSide = 0;
 
-			if ( !isInSettings[loginSide] && (combo1P || combo2P) )
+			bool comboActive = (activeSide == 0)
+				? (im.isKeyDown(MENU_LEFT_1P) && im.isKeyDown(MENU_RIGHT_1P) && im.getKeyState(MENU_START_1P) == JUST_DOWN)
+				: (im.isKeyDown(MENU_LEFT_2P) && im.isKeyDown(MENU_RIGHT_2P) && im.getKeyState(MENU_START_2P) == JUST_DOWN);
+
+			if ( !isInSettings[activeSide] && comboActive )
 			{
-				isInSettings[loginSide] = true;
-				settingsWaitForRelease[loginSide] = true;
-				playerSettingsMenu[loginSide].open(playerSlot, loginSide);
+				isInSettings[activeSide] = true;
+				settingsWaitForRelease[activeSide] = true;
+				settingsPlayerSlot[activeSide] = playerSlot;
+				playerSettingsMenu[activeSide].open(playerSlot, activeSide);
 			}
 		}
 	}
@@ -979,7 +1009,7 @@ void mainSongwheelLoop(UTIME dt)
 			isInSettings[side] = false;
 			settingsWaitForRelease[side] = false;
 
-			int p = (gs.isDoubles ? 0 : side);
+			int p = settingsPlayerSlot[side];
 			gs.player[p].judgementPositionMode  = sm.player[p].judgementPositionMode;
 			gs.player[p].judgementMsDisplayMode = sm.player[p].judgementMsDisplayMode;
 			gs.player[p].judgementEarlyLateMode = sm.player[p].judgementEarlyLateMode;
@@ -1039,9 +1069,21 @@ void mainSongwheelLoop(UTIME dt)
 		//stop_sample(currentPreview);
 	}
 
-	// light the menu buttons for whoever is logged in (although either works)
-	bool use1P = gs.isDoubles || gs.isVersus || gs.leftPlayerPresent;
-	bool use2P = gs.isDoubles || gs.isVersus || gs.rightPlayerPresent;
+	// light the active side's buttons; doubles/versus light both sides
+	bool use1P, use2P;
+	if ( gs.isDoubles || gs.isVersus )
+	{
+		use1P = use2P = true;
+	}
+	else
+	{
+		int loginSide  = (gs.rightPlayerPresent && !gs.leftPlayerPresent) ? 1 : 0;
+		int activeSide = loginSide;
+		if      (gs.player[loginSide].centerRight) activeSide = 1;
+		else if (gs.player[loginSide].centerLeft)  activeSide = 0;
+		use1P = (activeSide == 0);
+		use2P = (activeSide == 1);
+	}
 	lm.setLamp(lampStart, use1P ? 100 : 0);
 	lm.setLamp(lampLeft, use1P ? 100 : 0);
 	lm.setLamp(lampRight, use1P ? 100 : 0);
