@@ -237,6 +237,7 @@ bool isManiaxChartAvailableHere()
 void killPreviewClip()
 {
 	gs.killSongIfPreview();
+	previewSongID = -1;
 	//stop_sample(currentPreview);
 }
 
