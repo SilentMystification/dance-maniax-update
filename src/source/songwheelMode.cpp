@@ -472,10 +472,13 @@ void mainSongwheelLoop(UTIME dt)
 		bool rightHeld = im.isKeyDown(side == 0 ? MENU_RIGHT_1P : MENU_RIGHT_2P) != 0;
 		bool startHeld = im.isKeyDown(side == 0 ? MENU_START_1P : MENU_START_2P) != 0;
 
-		// block close and input until all buttons from the open combo are released
+		// block close and input until the open combo buttons are released;
+		// check both button sets so that opening with the opposite side's buttons doesn't hang
 		if ( settingsWaitForRelease[side] )
 		{
-			if ( !leftHeld && !rightHeld && !startHeld )
+			bool any1P = im.isKeyDown(MENU_LEFT_1P) || im.isKeyDown(MENU_RIGHT_1P) || im.isKeyDown(MENU_START_1P);
+			bool any2P = im.isKeyDown(MENU_LEFT_2P) || im.isKeyDown(MENU_RIGHT_2P) || im.isKeyDown(MENU_START_2P);
+			if ( !any1P && !any2P )
 				settingsWaitForRelease[side] = false;
 		}
 		else
@@ -504,6 +507,14 @@ void mainSongwheelLoop(UTIME dt)
 			gs.player[p].speedMod               = sm.player[p].speedMod;
 			gs.player[p].scrollMode             = sm.player[p].scrollMode;
 			gs.player[p].fixedScrollPPS         = sm.player[p].fixedScrollPPS;
+			{ int rm = sm.player[p].reverseMode;
+			  gs.player[p].reverseModifier = (rm == 2) ? (unsigned char)0x99 : (rm != 0 ? (unsigned char)0xFF : (unsigned char)0x00); }
+			gs.player[p].arrangeModifier = (char)sm.player[p].mirrorMode;
+			if ( gs.isSingles() || gs.isFreestyleMode )
+			{
+				gs.player[p].centerLeft  = (sm.player[p].playPosition == 1);
+				gs.player[p].centerRight = (sm.player[p].playPosition == 2);
+			}
 
 			if ( sm.player[p].isLoggedIn )
 			{
@@ -515,65 +526,46 @@ void mainSongwheelLoop(UTIME dt)
 	// check for settings menu open combo (LEFT+RIGHT+START)
 	if ( !isInSubmenu )
 	{
-		bool canOpen1P = gs.leftPlayerPresent  || gs.isDoubles;
-		bool canOpen2P = gs.rightPlayerPresent || gs.isDoubles;
-
-		if ( canOpen1P && !isInSettings[0] &&
-			im.isKeyDown(MENU_LEFT_1P) && im.isKeyDown(MENU_RIGHT_1P) && im.getKeyState(MENU_START_1P) == JUST_DOWN )
+		if ( gs.isVersus )
 		{
-			isInSettings[0] = true;
-			settingsWaitForRelease[0] = true;
-			playerSettingsMenu[0].open(0);
-		}
-		if ( canOpen2P && !isInSettings[gs.isDoubles ? 0 : 1] &&
-			im.isKeyDown(MENU_LEFT_2P) && im.isKeyDown(MENU_RIGHT_2P) && im.getKeyState(MENU_START_2P) == JUST_DOWN )
-		{
-			int target = gs.isDoubles ? 0 : 1;
-			isInSettings[target] = true;
-			settingsWaitForRelease[target] = true;
-			playerSettingsMenu[target].open(target);
-		}
-	}
-
-	// suppress normal wheel input while any settings menu is open
-	if ( isInSettings[0] || isInSettings[1] )
-	{
-		if ( !isSphereMoving && !gs.isEventMode && !gs.isFreestyleMode )
-		{
-			SUBTRACT_TO_ZERO(timeRemaining, dt);
-			playTimeLowSFX(dt);
-		}
-
-		if ( timeRemaining <= 0 )
-		{
-			// time ran out — revert any in-progress edits, apply confirmed settings, close menus
-			for ( int side = 0; side < 2; side++ )
+			// versus: each player manages their own panel independently
+			if ( gs.leftPlayerPresent && !isInSettings[0] &&
+				im.isKeyDown(MENU_LEFT_1P) && im.isKeyDown(MENU_RIGHT_1P) && im.getKeyState(MENU_START_1P) == JUST_DOWN )
 			{
-				if ( !isInSettings[side] ) continue;
-				playerSettingsMenu[side].forceClose();
-				isInSettings[side] = false;
-				settingsWaitForRelease[side] = false;
-
-				int p = (gs.isDoubles ? 0 : side);
-				gs.player[p].judgementPositionMode  = sm.player[p].judgementPositionMode;
-				gs.player[p].judgementMsDisplayMode = sm.player[p].judgementMsDisplayMode;
-				gs.player[p].judgementEarlyLateMode = sm.player[p].judgementEarlyLateMode;
-				gs.player[p].speedMod               = sm.player[p].speedMod;
-				gs.player[p].scrollMode             = sm.player[p].scrollMode;
-				gs.player[p].fixedScrollPPS         = sm.player[p].fixedScrollPPS;
-				if ( sm.player[p].isLoggedIn )
-					sm.savePlayersToDisk();
+				isInSettings[0] = true;
+				settingsWaitForRelease[0] = true;
+				playerSettingsMenu[0].open(0, 0);
 			}
-			// fall through to the timeRemaining <= 0 handler below
+			if ( gs.rightPlayerPresent && !isInSettings[1] &&
+				im.isKeyDown(MENU_LEFT_2P) && im.isKeyDown(MENU_RIGHT_2P) && im.getKeyState(MENU_START_2P) == JUST_DOWN )
+			{
+				isInSettings[1] = true;
+				settingsWaitForRelease[1] = true;
+				playerSettingsMenu[1].open(1, 1);
+			}
 		}
 		else
 		{
-			s_swDt = dt;
-			if ( gs.g_currentGameMode == SONGWHEEL )
-				renderSongwheelLoop();
-			return;
+			// singles or doubles: either button set can open the menu;
+			// panel appears on the side the player logged in on
+			int loginSide  = (gs.rightPlayerPresent && !gs.leftPlayerPresent) ? 1 : 0;
+			int playerSlot = gs.isDoubles ? 0 : loginSide;
+			bool combo1P   = im.isKeyDown(MENU_LEFT_1P) && im.isKeyDown(MENU_RIGHT_1P) && im.getKeyState(MENU_START_1P) == JUST_DOWN;
+			bool combo2P   = im.isKeyDown(MENU_LEFT_2P) && im.isKeyDown(MENU_RIGHT_2P) && im.getKeyState(MENU_START_2P) == JUST_DOWN;
+
+			if ( !isInSettings[loginSide] && (combo1P || combo2P) )
+			{
+				isInSettings[loginSide] = true;
+				settingsWaitForRelease[loginSide] = true;
+				playerSettingsMenu[loginSide].open(playerSlot, loginSide);
+			}
 		}
 	}
+
+	// while settings menus are open, suppress normal wheel/submenu input;
+	// all other state (timer, preview, animations, render) runs normally below
+	if ( !(isInSettings[0] || isInSettings[1]) )
+	{
 
 	if ( gs.isFreestyleMode && im.getKeyState(MENU_START_2P) == JUST_DOWN )
 	{
@@ -851,6 +843,8 @@ void mainSongwheelLoop(UTIME dt)
 		}
 	}
 
+	} // end !isInSettings input guard
+
 	// update the display BPM
 	displayBPMTimer += dt;
 	switch (displayBPMState)
@@ -907,6 +901,33 @@ void mainSongwheelLoop(UTIME dt)
 	}
 	if ( timeRemaining <= 0 ) // ran out of time - pick randomly
 	{
+		// close any open settings menus, applying confirmed settings
+		for ( int side = 0; side < 2; side++ )
+		{
+			if ( !isInSettings[side] ) continue;
+			playerSettingsMenu[side].forceClose();
+			isInSettings[side] = false;
+			settingsWaitForRelease[side] = false;
+
+			int p = (gs.isDoubles ? 0 : side);
+			gs.player[p].judgementPositionMode  = sm.player[p].judgementPositionMode;
+			gs.player[p].judgementMsDisplayMode = sm.player[p].judgementMsDisplayMode;
+			gs.player[p].judgementEarlyLateMode = sm.player[p].judgementEarlyLateMode;
+			gs.player[p].speedMod               = sm.player[p].speedMod;
+			gs.player[p].scrollMode             = sm.player[p].scrollMode;
+			gs.player[p].fixedScrollPPS         = sm.player[p].fixedScrollPPS;
+			{ int rm = sm.player[p].reverseMode;
+			  gs.player[p].reverseModifier = (rm == 2) ? (unsigned char)0x99 : (rm != 0 ? (unsigned char)0xFF : (unsigned char)0x00); }
+			gs.player[p].arrangeModifier = (char)sm.player[p].mirrorMode;
+			if ( gs.isSingles() || gs.isFreestyleMode )
+			{
+				gs.player[p].centerLeft  = (sm.player[p].playPosition == 1);
+				gs.player[p].centerRight = (sm.player[p].playPosition == 2);
+			}
+			if ( sm.player[p].isLoggedIn )
+				sm.savePlayersToDisk();
+		}
+
 		int startStage = gs.currentStage;
 		while ( gs.currentStage < gs.numSongsPerSet )
 		{

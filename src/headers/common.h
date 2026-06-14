@@ -186,6 +186,7 @@ void debugRenderTextFontColors(int x, int y);
 void renderBoldString(const unsigned char* string, int x, int y, int maxWidth, bool fixedWidth, int color = 0);
 void renderBoldString(const char* string, int x, int y, int maxWidth, bool fixedWidth, int color = 0);
 int  getBoldStringWidth(const char* string);
+int  getArtistStringWidth(const char* string);
 void renderArtistString(const unsigned char* string, int x, int y, int width, int height);
 void renderArtistString(const char* string, int x, int y, int width, int height);
 void renderScoreString(const char* string, int x, int y, int width, int height);

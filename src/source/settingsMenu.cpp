@@ -20,7 +20,7 @@ extern InputManager     im;
 #define SETTINGS_PANEL_WIDTH     256
 #define SETTINGS_SLIDE_MS        200
 #define SETTINGS_OPTION_SLIDE_MS 80
-#define SETTINGS_ITEM_HEIGHT     54
+#define SETTINGS_ITEM_HEIGHT     52
 #define SETTINGS_START_Y         16
 #define SETTINGS_OPTION_SLOT_W   80  // width of each option slot in the option row
 
@@ -51,6 +51,15 @@ static const int   s_judgTextValues[]      = { 0, 1, 2, 3 };
 
 static const char* s_judgMsOptions[]       = { "All","Perfect+","Great+","Good+","Never" };
 static const int   s_judgMsValues[]        = { 0, 1, 2, 3, 4 };
+
+static const char* s_reverseOptions[]      = { "Off", "Reverse", "Cross", "Inverted" };
+static const int   s_reverseValues[]       = { 0, 1, 2, 3 };
+
+static const char* s_mirrorOptions[]       = { "Off", "Mirror", "Upside-Down" };
+static const int   s_mirrorValues[]        = { 0, 1, 2 };
+
+static const char* s_positionOptions[]     = { "Center", "Left", "Right" };
+static const int   s_positionValues[]      = { 0, 1, 2 };
 
 //////////////////////////////////////////////////////////////////////////////
 // SettingsMenu implementation
@@ -83,8 +92,8 @@ void SettingsMenu::buildItemList(int player)
 	m_items[m_itemCount].flagToSetOnChange= NULL;
 	m_itemCount++;
 
-	// 3. Classic Speed (visible when Classic scroll mode)
-	m_items[m_itemCount].name             = "Classic Speed";
+	// 3. Lane Speed (visible when Classic scroll mode)
+	m_items[m_itemCount].name             = "Lane Speed";
 	m_items[m_itemCount].type             = SETTINGS_LIST;
 	m_items[m_itemCount].dependency       = DEP_SCROLL_CLASSIC;
 	m_items[m_itemCount].options          = s_classicSpeedOptions;
@@ -94,8 +103,8 @@ void SettingsMenu::buildItemList(int player)
 	m_items[m_itemCount].flagToSetOnChange= NULL;
 	m_itemCount++;
 
-	// 4. Fixed Scroll Speed (visible when Fixed scroll mode)
-	m_items[m_itemCount].name             = "Fixed Speed";
+	// 4. Lane Speed (visible when Fixed scroll mode)
+	m_items[m_itemCount].name             = "Lane Speed";
 	m_items[m_itemCount].type             = SETTINGS_RANGE;
 	m_items[m_itemCount].dependency       = DEP_SCROLL_FIXED;
 	m_items[m_itemCount].minVal           = 5;
@@ -105,7 +114,40 @@ void SettingsMenu::buildItemList(int player)
 	m_items[m_itemCount].flagToSetOnChange= NULL;
 	m_itemCount++;
 
-	// 5. Audio Offset (wiring deferred; hasCustomAudioOffset flag set on change)
+	// 5. Reverse
+	m_items[m_itemCount].name             = "Reverse";
+	m_items[m_itemCount].type             = SETTINGS_LIST;
+	m_items[m_itemCount].dependency       = DEP_NONE;
+	m_items[m_itemCount].options          = s_reverseOptions;
+	m_items[m_itemCount].optionValues     = s_reverseValues;
+	m_items[m_itemCount].optionCount      = 4;
+	m_items[m_itemCount].value            = &p.reverseMode;
+	m_items[m_itemCount].flagToSetOnChange= NULL;
+	m_itemCount++;
+
+	// 6. Mirror
+	m_items[m_itemCount].name             = "Mirror";
+	m_items[m_itemCount].type             = SETTINGS_LIST;
+	m_items[m_itemCount].dependency       = DEP_NONE;
+	m_items[m_itemCount].options          = s_mirrorOptions;
+	m_items[m_itemCount].optionValues     = s_mirrorValues;
+	m_items[m_itemCount].optionCount      = 3;
+	m_items[m_itemCount].value            = &p.mirrorMode;
+	m_items[m_itemCount].flagToSetOnChange= NULL;
+	m_itemCount++;
+
+	// 7. Play Position (singles / freestyle only)
+	m_items[m_itemCount].name             = "Play Position";
+	m_items[m_itemCount].type             = SETTINGS_LIST;
+	m_items[m_itemCount].dependency       = DEP_PLAY_POSITION;
+	m_items[m_itemCount].options          = s_positionOptions;
+	m_items[m_itemCount].optionValues     = s_positionValues;
+	m_items[m_itemCount].optionCount      = 3;
+	m_items[m_itemCount].value            = &p.playPosition;
+	m_items[m_itemCount].flagToSetOnChange= NULL;
+	m_itemCount++;
+
+	// 8. Audio Offset (wiring deferred; hasCustomAudioOffset flag set on change)
 	m_items[m_itemCount].name             = "Audio Offset";
 	m_items[m_itemCount].type             = SETTINGS_RANGE;
 	m_items[m_itemCount].dependency       = DEP_NONE;
@@ -116,7 +158,7 @@ void SettingsMenu::buildItemList(int player)
 	m_items[m_itemCount].flagToSetOnChange= &p.hasCustomAudioOffset;
 	m_itemCount++;
 
-	// 6. Visual Offset (wiring deferred)
+	// 9. Visual Offset (wiring deferred)
 	m_items[m_itemCount].name             = "Visual Offset";
 	m_items[m_itemCount].type             = SETTINGS_RANGE;
 	m_items[m_itemCount].dependency       = DEP_NONE;
@@ -127,7 +169,7 @@ void SettingsMenu::buildItemList(int player)
 	m_items[m_itemCount].flagToSetOnChange= NULL;
 	m_itemCount++;
 
-	// 7. Judgment Display Position
+	// 10. Judgment Display Position
 	m_items[m_itemCount].name             = "Judgment Position";
 	m_items[m_itemCount].type             = SETTINGS_LIST;
 	m_items[m_itemCount].dependency       = DEP_NONE;
@@ -138,7 +180,7 @@ void SettingsMenu::buildItemList(int player)
 	m_items[m_itemCount].flagToSetOnChange= NULL;
 	m_itemCount++;
 
-	// 8. Judgment Display Text (visible when Position != Off)
+	// 11. Judgment Display Text (visible when Position != Off)
 	m_items[m_itemCount].name             = "Judgment Text";
 	m_items[m_itemCount].type             = SETTINGS_LIST;
 	m_items[m_itemCount].dependency       = DEP_JUDGMENT_ON;
@@ -149,7 +191,7 @@ void SettingsMenu::buildItemList(int player)
 	m_items[m_itemCount].flagToSetOnChange= NULL;
 	m_itemCount++;
 
-	// 9. Judgment Display MS (visible when Position != Off)
+	// 12. Judgment Display MS (visible when Position != Off)
 	m_items[m_itemCount].name             = "Judgment MS";
 	m_items[m_itemCount].type             = SETTINGS_LIST;
 	m_items[m_itemCount].dependency       = DEP_JUDGMENT_ON;
@@ -169,11 +211,13 @@ bool SettingsMenu::isItemVisible(int index) const
 	case DEP_NONE:
 		return true;
 	case DEP_SCROLL_CLASSIC:
-		return sm.player[m_player].scrollMode == 0;
+		return sm.player[m_playerData].scrollMode == 0;
 	case DEP_SCROLL_FIXED:
-		return sm.player[m_player].scrollMode == 1;
+		return sm.player[m_playerData].scrollMode == 1;
 	case DEP_JUDGMENT_ON:
-		return sm.player[m_player].judgementPositionMode != 0;
+		return sm.player[m_playerData].judgementPositionMode != 0;
+	case DEP_PLAY_POSITION:
+		return gs.isSingles() || gs.isFreestyleMode;
 	}
 	return true;
 }
@@ -192,13 +236,14 @@ void SettingsMenu::advanceSelectionIfHidden()
 	}
 }
 
-void SettingsMenu::open(int player)
+void SettingsMenu::open(int playerData, int side)
 {
-	m_player       = player;
+	m_player       = side;
+	m_playerData   = playerData;
 	m_isOpen       = true;
 	m_isClosing    = false;
 	m_slideTimer   = 0;
-	m_slideOffsetX = (player == 0) ? -SETTINGS_PANEL_WIDTH : SCREEN_WIDTH;
+	m_slideOffsetX = (m_player == 0) ? -SETTINGS_PANEL_WIDTH : SCREEN_WIDTH;
 	m_selectedItem = 0;
 	m_isEditingItem= false;
 	m_optionSlideOffset = 0;
@@ -210,7 +255,16 @@ void SettingsMenu::open(int player)
 	m_scrollY           = 0;
 	m_targetScrollY     = 0;
 
-	buildItemList(player);
+	// sync current modifier state from gs.player into sm.player backing fields
+	{
+		PLAYER_DATA& pd = sm.player[m_playerData];
+		unsigned char rv = (unsigned char)gs.player[m_playerData].reverseModifier;
+		pd.reverseMode  = (rv == 0x00) ? 0 : (rv == 0x99 ? 2 : 1);
+		pd.mirrorMode   = (int)gs.player[m_playerData].arrangeModifier;
+		pd.playPosition = gs.player[m_playerData].centerLeft ? 1 : (gs.player[m_playerData].centerRight ? 2 : 0);
+	}
+
+	buildItemList(m_playerData);
 
 	// snapshot saved values at open time
 	for ( int i = 0; i < m_itemCount; i++ )
@@ -218,11 +272,17 @@ void SettingsMenu::open(int player)
 		m_items[i].savedValue = *m_items[i].value;
 	}
 	// audio offset: if not custom, show bgmGap as the "saved" value
-	// (item index 4 is Audio Offset)
-	if ( !sm.player[player].hasCustomAudioOffset )
+	for ( int i = 0; i < m_itemCount; i++ )
 	{
-		m_items[4].savedValue = gs.bgmGap;
-		*m_items[4].value     = gs.bgmGap;
+		if ( m_items[i].flagToSetOnChange == &sm.player[m_playerData].hasCustomAudioOffset )
+		{
+			if ( !sm.player[m_playerData].hasCustomAudioOffset )
+			{
+				m_items[i].savedValue = gs.bgmGap;
+				*m_items[i].value     = gs.bgmGap;
+			}
+			break;
+		}
 	}
 
 	advanceSelectionIfHidden();
@@ -521,13 +581,14 @@ void SettingsMenu::render(UTIME dt)
 		bool isSelected    = (i == m_selectedItem);
 		bool isAudioOffset = (m_items[i].flagToSetOnChange != NULL);
 
-		// item name — name font (32px per char), centered in panel; clip rect handles overflow
-		int titleX = panelLeft + SETTINGS_PANEL_WIDTH / 2 - (int)strlen(m_items[i].name) * 16;
-		renderNameString(m_items[i].name, titleX, itemY + 4, 0);
+		// item name — bold font, centered; clip rect handles overflow
+		int nameW  = getBoldStringWidth(m_items[i].name);
+		int titleX = MAX(panelLeft + 4, panelLeft + SETTINGS_PANEL_WIDTH / 2 - nameW / 2);
+		renderBoldString(m_items[i].name, titleX, itemY + 4, SETTINGS_PANEL_WIDTH - 8, false, 0);
 
-		// option row sits below the 32px name glyphs (4px top + 32px glyph + 4px gap = 40)
+		// option row: |smaller| bold glyph renders at y+10, 18px tall → ends at y+28; 4px gap
 		int slideOff = (isSelected && m_isEditingItem) ? m_optionSlideOffset : 0;
-		int optRowY  = itemY + 40;
+		int optRowY  = itemY + 32;
 
 		if ( m_items[i].type == SETTINGS_LIST )
 		{
@@ -538,13 +599,12 @@ void SettingsMenu::render(UTIME dt)
 				if ( m_items[i].optionValues[j] == *m_items[i].value ) { idx = j; break; }
 			}
 
-			// current option: green if confirmed (savedValue), white if browsing
-			int curColor = (m_items[i].optionValues[idx] == m_items[i].savedValue)
-				? TEXT_COLOR_GREEN : TEXT_COLOR_WHITE;
+			// current option — centered, green if confirmed, white if not yet confirmed
 			const char* curLabel = m_items[i].options[idx];
 			int cx = panelCenterX + slideOff;
-			int tw = (int)strlen(curLabel) * 10;
-			renderOutlinedColoredString(curLabel, cx - tw/2, optRowY, curColor);
+			int cw = (int)strlen(curLabel) * 10;
+			int centerColor = (m_items[i].optionValues[idx] == m_items[i].savedValue) ? TEXT_COLOR_GREEN : TEXT_COLOR_WHITE;
+			renderOutlinedColoredString(curLabel, cx - cw / 2, optRowY, centerColor);
 
 			// previous option: green if it's the savedValue, white otherwise
 			if ( idx > 0 )
@@ -590,17 +650,17 @@ void SettingsMenu::render(UTIME dt)
 			sprintf_s(tmpBuf, sizeof(tmpBuf), "%d", m_items[i].maxVal);
 			if ( (int)strlen(tmpBuf) > maxChars ) maxChars = (int)strlen(tmpBuf);
 
-			const int charW = 10;
-			int slotW  = maxChars * charW + 4;                  // slot width with minimal gap
-			int availW = SETTINGS_PANEL_WIDTH * 70 / 100;
-			int numH   = MAX(1, (availW - slotW) / (2 * slotW)); // neighbors on each side
+			// 5-slot strip: divide 90% of panel width into 5 equal slots
+			const int numH  = 2;   // 2 neighbors on each side = 5 total
+			const int slotW = (SETTINGS_PANEL_WIDTH * 9 / 10) / (2 * numH + 1);
+			const int charW = 10;  // outlined font char width for neighbors
 
-			// scale slide animation to match computed slot width
+			// scale slide animation to match slot width
 			int rangeSlide = (isSelected && m_isEditingItem)
 				? (m_optionSlideOffset * slotW / SETTINGS_OPTION_SLOT_W) : 0;
 			int cx = panelCenterX + rangeSlide;
 
-			// helper to pick color for a given range value
+			// helper to pick color for a given range value (neighbors use outlined colored string)
 			#define RANGE_COLOR(v) \
 				((isAudioOffset && (v) == gs.bgmGap) ? TEXT_COLOR_BLUE  : \
 				 ((v) == m_items[i].savedValue        ? TEXT_COLOR_GREEN : TEXT_COLOR_WHITE))
@@ -609,7 +669,8 @@ void SettingsMenu::render(UTIME dt)
 			{
 				char buf[16];
 				sprintf_s(buf, sizeof(buf), "%d", dispVal);
-				renderOutlinedColoredString(buf, cx - (int)strlen(buf) * charW / 2, optRowY, RANGE_COLOR(dispVal));
+				int cw = (int)strlen(buf) * 10;
+				renderOutlinedColoredString(buf, cx - cw / 2, optRowY, RANGE_COLOR(dispVal));
 			}
 			// left neighbors
 			for ( int k = 1; k <= numH; k++ )

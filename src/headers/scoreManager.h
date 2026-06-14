@@ -183,6 +183,9 @@ struct PLAYER_DATA
 	int audioOffset;            // ms, overrides bgmGap when hasCustomAudioOffset is true
 	bool hasCustomAudioOffset;  // false=mirror operator bgmGap live; true=use audioOffset
 	int visualOffset;           // ms, shifts note Y only (not judgement windows)
+	int reverseMode;            // 0=Off, 1=Reverse, 2=Cross, 3=Inverted (stub=Reverse)
+	int mirrorMode;             // 0=Off, 1=Mirror, 2=Upside-Down
+	int playPosition;           // 0=Center, 1=Left, 2=Right
 
 	PLAYER_DATA::PLAYER_DATA()
 	{
@@ -233,6 +236,9 @@ struct PLAYER_DATA
 		audioOffset            = 0;
 		hasCustomAudioOffset   = false;
 		visualOffset           = 0;
+		reverseMode            = 0;
+		mirrorMode             = 0;
+		playPosition           = 0;
 	}
 
 	int PLAYER_DATA::getNumStars( int chartID, int minStatus )

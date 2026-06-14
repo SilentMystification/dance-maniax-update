@@ -13,6 +13,7 @@ enum SettingsDependency
 	DEP_SCROLL_CLASSIC, // visible only when scrollMode == 0
 	DEP_SCROLL_FIXED,   // visible only when scrollMode == 1
 	DEP_JUDGMENT_ON,    // visible only when judgementPositionMode != 0
+	DEP_PLAY_POSITION,  // visible in singles or freestyle; not available in doubles or versus
 };
 
 struct SettingsItem
@@ -40,7 +41,7 @@ struct SettingsItem
 class SettingsMenu
 {
 public:
-	void open(int player);
+	void open(int playerData, int side);
 	void close();
 	void forceClose();
 	bool isOpen() const;
@@ -54,8 +55,9 @@ private:
 	bool isItemVisible(int index) const;
 	void advanceSelectionIfHidden();
 
-	int          m_player;
-	SettingsItem m_items[12];
+	int          m_player;     // visual/input side: 0=left panel+1P buttons, 1=right panel+2P buttons
+	int          m_playerData; // which sm.player[] slot holds the settings (may differ from m_player in doubles)
+	SettingsItem m_items[16];
 	int          m_itemCount;
 	int          m_selectedItem;
 	bool         m_isEditingItem;
