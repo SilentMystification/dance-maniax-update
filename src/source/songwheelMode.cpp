@@ -8,6 +8,7 @@
 #include "../headers/ScoreManager.h"
 #include "../headers/songwheelMode.h"
 #include "../headers/analyticsManager.h"
+#include "../headers/settingsMenu.h"
 
 #include "../headers/gameplayRendering.h" // for renderGrade()
 
@@ -137,6 +138,11 @@ int previewSongID = 0;
 bool isInSubmenu = false;
 char currentSubmenu = 0;            // only used for one player
 char separateSubmenu[2] = {0,0};    // only used for versus mode
+
+SettingsMenu playerSettingsMenu[2];
+bool isInSettings[2] = { false, false };
+bool settingsWaitForRelease[2] = { false, false };
+static UTIME s_swDt = 0; // current frame dt, shared between update and render
 bool submenuDone[2] = {0,0};		// only used for versus mode
 bool skippingSubmenu = false;
 char maniaxSelect[2] = {0,0};		// used to access the hidden Maniax difficulty
@@ -272,6 +278,8 @@ void firstSongwheelLoop()
 		introAnimTimer = INTRO_ANIM_LENGTH;
 		introAnimSteps = 3;
 		isRandomSelect = false;
+		isInSettings[0] = isInSettings[1] = false;
+		settingsWaitForRelease[0] = settingsWaitForRelease[1] = false;
 		nextStageAnimTimer = 0;
 		previewTimeStarted = last_utime;
 		previewTimeRemaining = 0;
@@ -301,6 +309,8 @@ void firstSongwheelLoop()
 	introAnimSteps = 3;
 	isRandomSelect = false;
 	nextStageAnimTimer = 0;
+	isInSettings[0] = isInSettings[1] = false;
+	settingsWaitForRelease[0] = settingsWaitForRelease[1] = false;
 
 	// figure out how many songs are visible on the songwheel
 	maxSongwheelIndex = 0;
@@ -374,6 +384,31 @@ void firstSongwheelLoop()
 		SongEntry wuvu = songlist[futureStartIndex];
 		songlist[futureStartIndex] = songlist[favoriteMusicHack];
 		songlist[favoriteMusicHack] = wuvu;
+	}
+
+	// resume at last song if player is logged in (singles or doubles only, not versus)
+	if ( !gs.isVersus )
+	{
+		int loginSide    = (gs.rightPlayerPresent && !gs.leftPlayerPresent) ? 1 : 0;
+		int playerSlot   = gs.isDoubles ? 0 : loginSide;
+		int resumeSongID = gs.isDoubles
+			? sm.player[playerSlot].lastDoublesSongID
+			: sm.player[playerSlot].lastSinglesSongID;
+		if ( sm.player[playerSlot].isLoggedIn && resumeSongID != 0 )
+		{
+			bool found = false;
+			for ( int i = 0; i < maxSongwheelIndex; i++ )
+			{
+				if ( songlist[i].songID == resumeSongID )
+				{
+					futureStartIndex = i;
+					found = true;
+					break;
+				}
+			}
+			if ( !found )
+				futureStartIndex = 0;
+		}
 	}
 
 	// this is for the intro anim
@@ -452,6 +487,110 @@ void mainSongwheelLoop(UTIME dt)
 	}
 
 	SUBTRACT_TO_ZERO(nextStageAnimTimer, dt);
+
+	// handle open/close/input for settings menus (takes priority over wheel input)
+	for ( int side = 0; side < 2; side++ )
+	{
+		if ( !isInSettings[side] ) continue;
+
+		bool leftHeld  = im.isKeyDown(side == 0 ? MENU_LEFT_1P  : MENU_LEFT_2P)  != 0;
+		bool rightHeld = im.isKeyDown(side == 0 ? MENU_RIGHT_1P : MENU_RIGHT_2P) != 0;
+		bool startHeld = im.isKeyDown(side == 0 ? MENU_START_1P : MENU_START_2P) != 0;
+
+		// block close and input until the open combo buttons are released;
+		// check both button sets so that opening with the opposite side's buttons doesn't hang
+		if ( settingsWaitForRelease[side] )
+		{
+			bool any1P = im.isKeyDown(MENU_LEFT_1P) || im.isKeyDown(MENU_RIGHT_1P) || im.isKeyDown(MENU_START_1P);
+			bool any2P = im.isKeyDown(MENU_LEFT_2P) || im.isKeyDown(MENU_RIGHT_2P) || im.isKeyDown(MENU_START_2P);
+			if ( !any1P && !any2P )
+				settingsWaitForRelease[side] = false;
+		}
+		else
+		{
+			// LEFT+RIGHT closes the settings menu (only when not editing a value)
+			if ( leftHeld && rightHeld && !playerSettingsMenu[side].isEditing() )
+			{
+				playerSettingsMenu[side].close();
+			}
+			else
+			{
+				playerSettingsMenu[side].handleInput(dt);
+			}
+		}
+
+		if ( playerSettingsMenu[side].isFullyClosed() )
+		{
+			isInSettings[side] = false;
+			settingsWaitForRelease[side] = false;
+
+			// copy updated settings to gs.player so they take effect next song
+			int p = (gs.isDoubles ? 0 : side);
+			gs.player[p].judgementPositionMode  = sm.player[p].judgementPositionMode;
+			gs.player[p].judgementMsDisplayMode = sm.player[p].judgementMsDisplayMode;
+			gs.player[p].judgementEarlyLateMode = sm.player[p].judgementEarlyLateMode;
+			gs.player[p].speedMod               = sm.player[p].speedMod;
+			gs.player[p].scrollMode             = sm.player[p].scrollMode;
+			gs.player[p].fixedScrollPPS         = sm.player[p].fixedScrollPPS;
+			{ int rm = sm.player[p].reverseMode;
+			  gs.player[p].reverseModifier = (rm == 2) ? (unsigned char)0x99 : (rm != 0 ? (unsigned char)0xFF : (unsigned char)0x00); }
+			gs.player[p].arrangeModifier = (char)sm.player[p].mirrorMode;
+			if ( gs.isSingles() || gs.isFreestyleMode )
+			{
+				gs.player[p].centerLeft  = (sm.player[p].playPosition == 1);
+				gs.player[p].centerRight = (sm.player[p].playPosition == 2);
+			}
+
+			if ( sm.player[p].isLoggedIn )
+			{
+				sm.savePlayersToDisk();
+			}
+		}
+	}
+
+	// check for settings menu open combo (LEFT+RIGHT+START)
+	if ( !isInSubmenu )
+	{
+		if ( gs.isVersus )
+		{
+			// versus: each player manages their own panel independently
+			if ( gs.leftPlayerPresent && !isInSettings[0] &&
+				im.isKeyDown(MENU_LEFT_1P) && im.isKeyDown(MENU_RIGHT_1P) && im.getKeyState(MENU_START_1P) == JUST_DOWN )
+			{
+				isInSettings[0] = true;
+				settingsWaitForRelease[0] = true;
+				playerSettingsMenu[0].open(0, 0);
+			}
+			if ( gs.rightPlayerPresent && !isInSettings[1] &&
+				im.isKeyDown(MENU_LEFT_2P) && im.isKeyDown(MENU_RIGHT_2P) && im.getKeyState(MENU_START_2P) == JUST_DOWN )
+			{
+				isInSettings[1] = true;
+				settingsWaitForRelease[1] = true;
+				playerSettingsMenu[1].open(1, 1);
+			}
+		}
+		else
+		{
+			// singles or doubles: either button set can open the menu;
+			// panel appears on the side the player logged in on
+			int loginSide  = (gs.rightPlayerPresent && !gs.leftPlayerPresent) ? 1 : 0;
+			int playerSlot = gs.isDoubles ? 0 : loginSide;
+			bool combo1P   = im.isKeyDown(MENU_LEFT_1P) && im.isKeyDown(MENU_RIGHT_1P) && im.getKeyState(MENU_START_1P) == JUST_DOWN;
+			bool combo2P   = im.isKeyDown(MENU_LEFT_2P) && im.isKeyDown(MENU_RIGHT_2P) && im.getKeyState(MENU_START_2P) == JUST_DOWN;
+
+			if ( !isInSettings[loginSide] && (combo1P || combo2P) )
+			{
+				isInSettings[loginSide] = true;
+				settingsWaitForRelease[loginSide] = true;
+				playerSettingsMenu[loginSide].open(playerSlot, loginSide);
+			}
+		}
+	}
+
+	// while settings menus are open, suppress normal wheel/submenu input;
+	// all other state (timer, preview, animations, render) runs normally below
+	if ( !(isInSettings[0] || isInSettings[1]) )
+	{
 
 	if ( gs.isFreestyleMode && im.getKeyState(MENU_START_2P) == JUST_DOWN )
 	{
@@ -666,6 +805,20 @@ void mainSongwheelLoop(UTIME dt)
 				separateSubmenu[1] = separateSubmenu[1] == 3 ? 1 : separateSubmenu[1];
 				maniaxSelect[0] = maniaxSelect[1] = 0;
 
+				// save last manually selected song to profile for next-credit resume
+				if ( !gs.isVersus )
+				{
+					int loginSide  = (gs.rightPlayerPresent && !gs.leftPlayerPresent) ? 1 : 0;
+					int playerSlot = gs.isDoubles ? 0 : loginSide;
+					if ( sm.player[playerSlot].isLoggedIn )
+					{
+						if ( gs.isDoubles )
+							sm.player[playerSlot].lastDoublesSongID = songlist[songwheelIndex].songID;
+						else
+							sm.player[playerSlot].lastSinglesSongID = songlist[songwheelIndex].songID;
+					}
+				}
+
 				// go directly to gameplay — player picks one song at a time now
 				gs.g_currentGameMode = GAMEPLAY;
 				gs.g_gameModeTransition = 1;
@@ -729,6 +882,8 @@ void mainSongwheelLoop(UTIME dt)
 		}
 	}
 
+	} // end !isInSettings input guard
+
 	// update the display BPM
 	displayBPMTimer += dt;
 	switch (displayBPMState)
@@ -785,6 +940,33 @@ void mainSongwheelLoop(UTIME dt)
 	}
 	if ( timeRemaining <= 0 ) // ran out of time - pick randomly
 	{
+		// close any open settings menus, applying confirmed settings
+		for ( int side = 0; side < 2; side++ )
+		{
+			if ( !isInSettings[side] ) continue;
+			playerSettingsMenu[side].forceClose();
+			isInSettings[side] = false;
+			settingsWaitForRelease[side] = false;
+
+			int p = (gs.isDoubles ? 0 : side);
+			gs.player[p].judgementPositionMode  = sm.player[p].judgementPositionMode;
+			gs.player[p].judgementMsDisplayMode = sm.player[p].judgementMsDisplayMode;
+			gs.player[p].judgementEarlyLateMode = sm.player[p].judgementEarlyLateMode;
+			gs.player[p].speedMod               = sm.player[p].speedMod;
+			gs.player[p].scrollMode             = sm.player[p].scrollMode;
+			gs.player[p].fixedScrollPPS         = sm.player[p].fixedScrollPPS;
+			{ int rm = sm.player[p].reverseMode;
+			  gs.player[p].reverseModifier = (rm == 2) ? (unsigned char)0x99 : (rm != 0 ? (unsigned char)0xFF : (unsigned char)0x00); }
+			gs.player[p].arrangeModifier = (char)sm.player[p].mirrorMode;
+			if ( gs.isSingles() || gs.isFreestyleMode )
+			{
+				gs.player[p].centerLeft  = (sm.player[p].playPosition == 1);
+				gs.player[p].centerRight = (sm.player[p].playPosition == 2);
+			}
+			if ( sm.player[p].isLoggedIn )
+				sm.savePlayersToDisk();
+		}
+
 		int startStage = gs.currentStage;
 		while ( gs.currentStage < gs.numSongsPerSet )
 		{
@@ -835,6 +1017,7 @@ void mainSongwheelLoop(UTIME dt)
 	lm.setLamp(lampLeft+1, use2P ? 100 : 0);
 	lm.setLamp(lampRight+1, use2P ? 100 : 0);
 
+	s_swDt = dt;
 	if ( gs.g_currentGameMode == SONGWHEEL ) // fixes a bug with calling this function after transitioning away
 	{
 		renderSongwheelLoop();
@@ -843,6 +1026,7 @@ void mainSongwheelLoop(UTIME dt)
 
 void renderSongwheelLoop()
 {
+	UTIME dt = s_swDt;
 	blit(m_songBG, rm.m_backbuf, 0, 0, 0, 0, 640, 480);
 	draw_trans_sprite(rm.m_backbuf, m_musicSelect, 260, 135); 
 
@@ -933,6 +1117,15 @@ void renderSongwheelLoop()
 	if ( nextStageAnimTimer > 0 )
 	{
 		renderNextStageAnim();
+	}
+
+	// render settings menus on top
+	for ( int p = 0; p < 2; p++ )
+	{
+		if ( isInSettings[p] )
+		{
+			playerSettingsMenu[p].render(dt);
+		}
 	}
 }
 

@@ -37,6 +37,56 @@ extract them (about 2 GB total), and then delete the zip files. To run a
 Powershell file, first open a Powershell prompt, then type "./" followed by the
 name of the file.
 
+The output of the working game will be in the `deploy` folder. This can be run as-is or if you build this project for debugging and need further testing capabilities  
+
 To run the game simply run DMX.exe after a successful install. The first run of
 the program will prompt you to change the default settings.
 It will also download even more songs!
+
+
+
+This will run on basically anything.
+
+Recommended Hardware (I run on this, but have run on much less)
+* Windows 7 or higher
+* 4GB RAM
+* Intel i3 4330
+* Intel HD Graphics 
+
+### MAJOR CHANGES IN 2026 UPDATE
+
+# PHOENIX IO
+The 2026 update brings an updated firmware for cab IO. It is fully backwards compatible with devices previously flashed with extio firmware. 
+
+To enable the new PHOENIX IO, flash the `extio_phoenix.ino` in Arduino Studio or your prefered Arduino flashing tool.
+
+After, enable the new IO backend by renaming the `usephoenixio.option` file to `usephoenixio`
+
+Both of these must done or else the game will fail to properly initialize IO.
+
+If you want to revert back to the original firmware, flash the original `extio.ino` and rename or remove the `usephoenixio` file.
+
+At it's core the new firmware only changes the BAUD rate of the IO's serial device from 9600 BAUD to 115200 BAUD.
+This change should reduce input latency and make the game engine drive IO sync instead of waiting for the serial device to respond.
+
+# ASIO SUPPORT
+With the 2026 Update, native ASIO is now supported! Originally DMX Update used DirectSound as it's audio backend. 
+
+Now it is togglable between DirectSound and ASIO. To toggle the ASIO backend simply rename the `enableasio.option` file to `enableasio` and boot the game!
+
+This was done a part of the larger goal of improving judgement accuracy. 
+Additionally, while this does reduce the latency in the audio pipeline the major gain from this is to reduce latency jitter that is inherent to the DirectSound implementation
+
+To enable support you MUST meet the following prerequisites:
+* Native ASIO driver for your hardware that supports outputting on channel 0
+* 32-bit ASIO driver for your hardware (64-bit OS is fine, but you must have a 32-bit driver for this application to function as it is 32-bit)
+
+Do note, most Realtek ALC chipsets natively support ASIO, just not out of the box. 
+If you have a realtek audio device you can try to enable ASIO support using the bundled installer in the `.\ASIO` folder.
+
+On boot you will see one of the 3 messages printed during the DanceManiax System Startup boot screen:
+| Boot message | Meaning |
+|---|---|
+| `SOUND CHECK: OK` | Original DirectSound backend used, ASIO is NOT enabled with an option file |
+| `SOUND CHECK: OK - ASIO` | ASIO is enabled via option and successfully initialized |
+| `SOUND CHECK: OK - ASIO -> DSOUND` | ASIO is enabled but it did NOT successfully initialize, falling back to DirectSound |

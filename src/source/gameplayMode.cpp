@@ -87,6 +87,12 @@ extern InputManager im;
 int retireTimer = 0; // for ending the game early when there is a lack of input
 int lampCycle = 0;
 
+// in-song speed adjustment
+static const int SPEED_CHANGE_DISPLAY_MS = 3000;
+static const int classicSpeeds[]         = {10,15,20,25,30,35,40,50,60,70,80};
+static const int numClassicSpeeds        = 11;
+int speedChangeTimer[2]                  = {0, 0};
+
 // full combo
 int fullComboAnimStep = 0; // 0 = not started, 1 = started
 int fullComboAnimTimer = 0;
@@ -308,40 +314,38 @@ void mainGameplayLoop(UTIME dt)
 		return;
 	}
 
-	// check for the player changing their speed-mod at the start of the song
-	//if ( gs.player[0].timeElapsed < 10000 )
+	// in-song speed adjustment: LEFT/RIGHT = coarse change, START+LEFT/RIGHT = fine change (fixed mode only)
+	for ( int side = 0; side < 2; side++ )
 	{
-		if ( gs.player[0].speedMod > 5 && im.getKeyState(MENU_LEFT_1P) == JUST_DOWN )
+		int target = (gs.isVersus ? side : 0);
+		bool left  = im.getKeyState(side == 0 ? MENU_LEFT_1P  : MENU_LEFT_2P)  == JUST_DOWN;
+		bool right = im.getKeyState(side == 0 ? MENU_RIGHT_1P : MENU_RIGHT_2P) == JUST_DOWN;
+		bool start = im.isKeyDown(side == 0 ? MENU_START_1P : MENU_START_2P) != 0;
+
+		if ( left || right )
 		{
-			gs.player[0].speedMod -= 5;
-		}
-		if ( gs.player[0].speedMod < 80 && im.getKeyState(MENU_RIGHT_1P) == JUST_DOWN )
-		{
-			gs.player[0].speedMod += 5;
-		}
-		if ( gs.isVersus )
-		{
-			if ( gs.player[1].speedMod > 5 && im.getKeyState(MENU_LEFT_2P) == JUST_DOWN )
+			if ( gs.player[target].scrollMode == 1 ) // Fixed mode
 			{
-				gs.player[1].speedMod -= 5;
+				int delta = start ? 5 : 50;
+				if ( left )  gs.player[target].fixedScrollPPS = MAX(25,  gs.player[target].fixedScrollPPS - delta);
+				if ( right ) gs.player[target].fixedScrollPPS = MIN(700, gs.player[target].fixedScrollPPS + delta);
 			}
-			if ( gs.player[1].speedMod < 80 && im.getKeyState(MENU_RIGHT_2P) == JUST_DOWN )
+			else // Classic mode: cycle through discrete speed list
 			{
-				gs.player[1].speedMod += 5;
+				int idx = 0;
+				for ( int i = 0; i < numClassicSpeeds; i++ )
+				{
+					if ( classicSpeeds[i] == gs.player[target].speedMod ) { idx = i; break; }
+				}
+				if ( left )  idx = MAX(0, idx - 1);
+				if ( right ) idx = MIN(numClassicSpeeds - 1, idx + 1);
+				gs.player[target].speedMod = classicSpeeds[idx];
 			}
-		}
-		else
-		{
-			if ( gs.player[0].speedMod > 5 && im.getKeyState(MENU_LEFT_2P) == JUST_DOWN )
-			{
-				gs.player[0].speedMod -= 5;
-			}
-			if ( gs.player[0].speedMod < 80 && im.getKeyState(MENU_RIGHT_2P) == JUST_DOWN )
-			{
-				gs.player[0].speedMod += 5;
-			}
+			speedChangeTimer[target] = SPEED_CHANGE_DISPLAY_MS;
 		}
 	}
+	for ( int t = 0; t < (gs.isVersus ? 2 : 1); t++ )
+		speedChangeTimer[t] = MAX(0, speedChangeTimer[t] - (int)dt);
 
 	// update the per-column judgements and the "step zone resize" effect when a panel is newly hit (DDR only)
 	for ( int i = 0; i < 10; i++ )
@@ -1207,6 +1211,17 @@ void loadNextSong()
 	for ( int p = 0; p < (gs.isVersus ? 2 : 1); p++ )
 	{
 		gs.player[p].nextStage();
+
+		// capture initial BPM for fixed scroll mode pps ratio
+		gs.player[p].baseBPM = 0;
+		for ( int i = 0; i < (int)gs.player[p].currentChart.size(); i++ )
+		{
+			if ( gs.player[p].currentChart[i].type == BPM_CHANGE )
+			{
+				gs.player[p].baseBPM = gs.player[p].currentChart[i].color;
+				break;
+			}
+		}
 
 		sm.player[p].currentSet[gs.currentStage].resetData();
 		sm.player[p].currentSet[gs.currentStage].time = time(NULL);

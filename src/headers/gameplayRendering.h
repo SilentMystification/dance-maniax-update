@@ -158,7 +158,7 @@ void renderGrade(int grade, int x, int y);
 // precondition: grade is a valid grade enumeration
 // postcondition: the letter grade is rendered to the screen
 
-void renderSpeedMod(int scrollRate, int speedMod, int x, int y);
+void renderSpeedMod(int player, int scrollRate, int speedMod, bool isTemp, int scrollMode, int fixedScrollPPS);
 //
 //
 

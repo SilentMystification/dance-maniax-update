@@ -33,11 +33,11 @@
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 480
 
-#define CURRENT_SETTING_VERSION_NUMBER 2
+#define CURRENT_SETTING_VERSION_NUMBER 3
 #define CURRENT_BKEEP_VERSION_NUMBER 1
 #define CURRENT_HITLIST_VERSION_NUMBER 1
 #define CURRENT_SCORE_VERSION_NUMBER 3
-#define CURRENT_PLAYER_VERSION_NUMBER 1
+#define CURRENT_PLAYER_VERSION_NUMBER 2
 
 // for the operator menu
 #define WHITE makeacol(255,255,255, 255)
@@ -185,6 +185,8 @@ void renderTextString(const char* string, int x, int y, int width, int height, i
 void debugRenderTextFontColors(int x, int y);
 void renderBoldString(const unsigned char* string, int x, int y, int maxWidth, bool fixedWidth, int color = 0);
 void renderBoldString(const char* string, int x, int y, int maxWidth, bool fixedWidth, int color = 0);
+int  getBoldStringWidth(const char* string);
+int  getArtistStringWidth(const char* string);
 void renderArtistString(const unsigned char* string, int x, int y, int width, int height);
 void renderArtistString(const char* string, int x, int y, int width, int height);
 void renderScoreString(const char* string, int x, int y, int width, int height);

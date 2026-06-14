@@ -48,8 +48,6 @@ UTIME scrollTweenTime = 0;
 int stageLimit = 3;
 bool isMidCreditResults = false;
 int midCreditDisplayStage = 0;
-// TODO: wire enableAdvancedJudgement to an operator setting
-bool enableAdvancedJudgement = true;
 
 #define INTRO_ANIM_LENGTH 1000
 
@@ -62,7 +60,7 @@ void renderResult(int which, int x, int player);
 // postcondition: renders graphics to the backbuf
 
 void renderResultAdvanced(int which, int player);
-// precondition: enableAdvancedJudgement is true, isMidCreditResults is true, not versus
+// precondition: player's scoreMode == 1, isMidCreditResults is true, not versus
 // postcondition: renders the advanced judgement breakdown centered on screen
 
 void firstResultsLoop()
@@ -335,7 +333,7 @@ void renderResult(int which, int x, int player)
 		return; // it's fine to call this function on every stage. It just won't do anything for the non-stages.
 	}
 
-	if ( enableAdvancedJudgement && isMidCreditResults && !gs.isVersus )
+	if ( sm.player[currentPlayer].scoreMode == 1 && isMidCreditResults && !gs.isVersus )
 	{
 		renderResultAdvanced(which, player);
 		return;
