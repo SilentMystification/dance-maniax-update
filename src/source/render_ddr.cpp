@@ -219,7 +219,7 @@ void renderDDRChart(int player)
 	int y = (gs.player[player].currentChart[n].timing - time) * pps / 1000;
 	while ( y - (pausedTime * pps / 1000) < SCREEN_HEIGHT )
 	{
-		y = ((gs.player[player].currentChart[n].timing - time - pausedTime) * pps / 1000);	
+		y = ((gs.player[player].currentChart[n].timing - time - pausedTime - gs.player[player].visualOffset) * pps / 1000);
 		renderDDRNote(player, gs.player[player].currentChart[n], x, y + DDR_STEP_ZONE_Y);
 
 		// implement the correct calculation of the distance between notes due to tempo stops
@@ -408,9 +408,10 @@ char renderDDRHoldNote(int player, struct FREEZE f, UTIME time, long pausedTime)
 	}
 
 	// find the top and bottom of this hold note
-	int topy = DDR_STEP_ZONE_Y + ((f.startTime - time - pausedTime) * pps / 1000);
-	int bot1 = DDR_STEP_ZONE_Y + ((f.endTime1 - time - pauseTotal) * pps / 1000);
-	int bot2 = DDR_STEP_ZONE_Y + ((f.endTime2 - time - pauseTotal) * pps / 1000);
+	int vo = gs.player[player].visualOffset;
+	int topy = DDR_STEP_ZONE_Y + ((f.startTime - time - pausedTime - vo) * pps / 1000);
+	int bot1 = DDR_STEP_ZONE_Y + ((f.endTime1  - time - pauseTotal  - vo) * pps / 1000);
+	int bot2 = DDR_STEP_ZONE_Y + ((f.endTime2  - time - pauseTotal  - vo) * pps / 1000);
 	if ( f.startTime < time )
 	{
 		topy = DDR_STEP_ZONE_Y - ((time - f.startTime) * pps / 1000);

@@ -161,12 +161,12 @@ void SettingsMenu::buildItemList(int player)
 	m_items[m_itemCount].flagToSetOnChange= &p.hasCustomAudioOffset;
 	m_itemCount++;
 
-	// 9. Visual Offset (wiring deferred)
+	// 9. Visual Offset
 	m_items[m_itemCount].name             = "Visual Offset";
 	m_items[m_itemCount].type             = SETTINGS_RANGE;
 	m_items[m_itemCount].dependency       = DEP_NONE;
-	m_items[m_itemCount].minVal           = -500;
-	m_items[m_itemCount].maxVal           = 500;
+	m_items[m_itemCount].minVal           = -100;
+	m_items[m_itemCount].maxVal           = 100;
 	m_items[m_itemCount].step             = 1;
 	m_items[m_itemCount].value            = &p.visualOffset;
 	m_items[m_itemCount].flagToSetOnChange= NULL;

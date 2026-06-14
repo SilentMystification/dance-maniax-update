@@ -163,7 +163,7 @@ void renderDMXChart(int player)
 	int y = (int(gs.player[player].currentChart[n].timing) - int(time)) * pps / 1000;
 	while ( y - (pausedTime * pps / 1000) < SCREEN_HEIGHT )
 	{
-		y = (int(gs.player[player].currentChart[n].timing) - int(time) - pausedTime) * pps / 1000;
+		y = (int(gs.player[player].currentChart[n].timing) - int(time) - pausedTime - gs.player[player].visualOffset) * pps / 1000;
 		renderDMXNote(player, gs.player[player].currentChart[n], y + DMX_STEP_ZONE_Y);
 
 		// implement the correct calculation of the distance between notes due to tempo stops
@@ -315,9 +315,10 @@ char renderDMXHoldNote(int player, struct FREEZE f, UTIME time, long pausedTime)
 	}
 
 	// calculate how many pixels away from the stepzone the hold note is
-	int headPosition = (int(f.startTime) - int(time) - pausedTime) * pps / 1000;
-	int tailPosition1 = (int(f.endTime1) - int(time) - pauseTotal) * pps / 1000;
-	int tailPosition2 = (int(f.endTime2) - int(time) - pauseTotal) * pps / 1000;
+	int vo = gs.player[player].visualOffset;
+	int headPosition  = (int(f.startTime) - int(time) - pausedTime - vo) * pps / 1000;
+	int tailPosition1 = (int(f.endTime1)  - int(time) - pauseTotal - vo) * pps / 1000;
+	int tailPosition2 = (int(f.endTime2)  - int(time) - pauseTotal - vo) * pps / 1000;
 	if ( f.isHeld == 1 )
 	{
 		headPosition = 0; // it's being held

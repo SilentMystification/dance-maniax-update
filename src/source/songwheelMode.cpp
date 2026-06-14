@@ -551,6 +551,7 @@ void mainSongwheelLoop(UTIME dt)
 			gs.player[p].speedMod               = sm.player[p].speedMod;
 			gs.player[p].scrollMode             = sm.player[p].scrollMode;
 			gs.player[p].fixedScrollPPS         = sm.player[p].fixedScrollPPS;
+			gs.player[p].visualOffset           = sm.player[p].visualOffset;
 			{ int rm = sm.player[p].reverseMode;
 			  gs.player[p].reverseModifier = (rm == 2) ? (unsigned char)0x99 : (rm != 0 ? (unsigned char)0xFF : (unsigned char)0x00); }
 			gs.player[p].arrangeModifier = (char)sm.player[p].mirrorMode;
@@ -985,6 +986,7 @@ void mainSongwheelLoop(UTIME dt)
 			gs.player[p].speedMod               = sm.player[p].speedMod;
 			gs.player[p].scrollMode             = sm.player[p].scrollMode;
 			gs.player[p].fixedScrollPPS         = sm.player[p].fixedScrollPPS;
+			gs.player[p].visualOffset           = sm.player[p].visualOffset;
 			{ int rm = sm.player[p].reverseMode;
 			  gs.player[p].reverseModifier = (rm == 2) ? (unsigned char)0x99 : (rm != 0 ? (unsigned char)0xFF : (unsigned char)0x00); }
 			gs.player[p].arrangeModifier = (char)sm.player[p].mirrorMode;
