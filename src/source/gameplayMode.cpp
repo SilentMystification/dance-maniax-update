@@ -144,7 +144,7 @@ void loadNextSong();
 // precondition: gs.player[] has a setlist setlist, the chart data is loaded
 // postcondition: reloads the audio and resets certain variables
 
-void arrangeChart(std::vector<struct ARROW> *chart, std::vector<struct FREEZE> *holds, char type, bool isDoubles);
+void arrangeChart(std::vector<struct ARROW> *chart, std::vector<struct FREEZE> *holds, char type, bool isDoubles, bool isCenter);
 // precondition: see description of arguments at function declaration
 // postcondition: if type != 0 then the chart and holds will be modified
 
@@ -1248,7 +1248,7 @@ void loadNextSong()
 
 		if ( gs.player[p].arrangeModifier > 0 )
 		{
-			arrangeChart(&gs.player[p].currentChart, &gs.player[p].freezeArrows, gs.player[p].arrangeModifier, gs.isDoubles);
+			arrangeChart(&gs.player[p].currentChart, &gs.player[p].freezeArrows, gs.player[p].arrangeModifier, gs.isDoubles, gs.isSingles() && gs.player[0].isCenter());
 		}
 	}
 	
@@ -1284,17 +1284,18 @@ void loadNextSong()
 
 // chart - list of tap notes
 // holds - list of hold notes
-// type  - 0 = no change, 1 = mirror (horizontal), 2 = upside down (v-mirror), 3 = shuffle
+// type     - 0 = no change, 1 = mirror (horizontal), 2 = upside down (v-mirror), 3 = shuffle
 // isDoubles - matters for some types
-void arrangeChart(std::vector<struct ARROW> *chart, std::vector<struct FREEZE> *holds, char type, bool isDoubles)
+// isCenter  - true when playing singles in center position (cols 2-5 active)
+void arrangeChart(std::vector<struct ARROW> *chart, std::vector<struct FREEZE> *holds, char type, bool isDoubles, bool isCenter)
 {
-	char arrangeMatrix[4][2][8] = { 
-		{ {0,1,2,3,4,5,6,7}, {0,1,2,3,4,5,6,7} }, // original chart
-		{ {3,2,1,0,7,6,5,4}, {7,6,5,4,3,2,1,0} }, // mirror
-		{ {1,0,3,2,5,4,7,6}, {1,0,3,2,5,4,7,6} }, // upside down
-		{ {2,1,0,3,6,5,4,7}, {0,1,2,3,4,5,6,7} }, // one shuffle pattern
+	char arrangeMatrix[4][3][8] = {
+		{ {0,1,2,3,4,5,6,7}, {0,1,2,3,4,5,6,7}, {0,1,2,3,4,5,6,7} }, // original chart
+		{ {3,2,1,0,7,6,5,4}, {7,6,5,4,3,2,1,0}, {0,1,5,4,3,2,7,6} }, // mirror (center: swap 2<->5, 3<->4)
+		{ {1,0,3,2,5,4,7,6}, {1,0,3,2,5,4,7,6}, {1,0,3,2,5,4,7,6} }, // upside down
+		{ {2,1,0,3,6,5,4,7}, {0,1,2,3,4,5,6,7}, {0,1,2,3,4,5,6,7} }, // one shuffle pattern
 	};
-	char doubles = isDoubles ? 1 : 0;
+	int mode = isCenter ? 2 : (isDoubles ? 1 : 0);
 
 	for ( std::vector<struct ARROW>::iterator c = chart->begin(); c != chart->end(); c++ )
 	{
@@ -1302,7 +1303,7 @@ void arrangeChart(std::vector<struct ARROW> *chart, std::vector<struct FREEZE> *
 		{
 			if ( c->columns[i] >= 0 && c->columns[i] <= 7 ) // -1 means no note here (very important for triples
 			{
-				c->columns[i] = arrangeMatrix[type][doubles][c->columns[i]];
+				c->columns[i] = arrangeMatrix[type][mode][c->columns[i]];
 			}
 		}
 	}
