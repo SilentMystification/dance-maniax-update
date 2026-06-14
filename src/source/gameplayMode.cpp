@@ -295,27 +295,27 @@ void mainGameplayLoop(UTIME dt)
 	gs.player[0].judgementTime += dt;
 	gs.player[1].judgementTime += dt;
 
-	// implement the "retire" timer (game was abandoned)
-	if ( !autoplay )
+	// implement the "retire" timer (game was abandoned) -- disabled in continuous mode
+	if ( !autoplay && !gs.isFreestyleMode )
 	{
 		retireTimer += dt;
-	}
-	for ( int i = 0; i < 8; i++ )
-	{
-		if ( im.getReleaseLength(i) < retireTimer )
+		for ( int i = 0; i < 8; i++ )
 		{
-			retireTimer = 0;
+			if ( im.getReleaseLength(i) < retireTimer )
+			{
+				retireTimer = 0;
+			}
 		}
-	}
-	if ( retireTimer > 20000 )
-	{
-		finalizeCurrentSongStats(0);
-		finalizeCurrentSongStats(1);
-		gs.g_currentGameMode = RESULTS;
-		gs.g_gameModeTransition = 1;
-		sm.savePlayersToDisk();
-		em.announcerQuip(86); // say "I can't wait anymore"
-		return;
+		if ( retireTimer > 20000 )
+		{
+			finalizeCurrentSongStats(0);
+			finalizeCurrentSongStats(1);
+			gs.g_currentGameMode = RESULTS;
+			gs.g_gameModeTransition = 1;
+			sm.savePlayersToDisk();
+			em.announcerQuip(86); // say "I can't wait anymore"
+			return;
+		}
 	}
 
 	// quick quit: all 6 buttons held simultaneously ends the song and continues the credit

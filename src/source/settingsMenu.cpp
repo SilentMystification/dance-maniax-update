@@ -161,12 +161,12 @@ void SettingsMenu::buildItemList(int player)
 	m_items[m_itemCount].flagToSetOnChange= &p.hasCustomAudioOffset;
 	m_itemCount++;
 
-	// 9. Visual Offset (wiring deferred)
+	// 9. Visual Offset
 	m_items[m_itemCount].name             = "Visual Offset";
 	m_items[m_itemCount].type             = SETTINGS_RANGE;
 	m_items[m_itemCount].dependency       = DEP_NONE;
-	m_items[m_itemCount].minVal           = -500;
-	m_items[m_itemCount].maxVal           = 500;
+	m_items[m_itemCount].minVal           = -100;
+	m_items[m_itemCount].maxVal           = 100;
 	m_items[m_itemCount].step             = 1;
 	m_items[m_itemCount].value            = &p.visualOffset;
 	m_items[m_itemCount].flagToSetOnChange= NULL;
@@ -220,7 +220,7 @@ bool SettingsMenu::isItemVisible(int index) const
 	case DEP_JUDGMENT_ON:
 		return sm.player[m_playerData].judgementPositionMode != 0;
 	case DEP_PLAY_POSITION:
-		return gs.isSingles() || gs.isFreestyleMode;
+		return !gs.isDoubles && !gs.isVersus;
 	}
 	return true;
 }
@@ -269,7 +269,10 @@ void SettingsMenu::open(int playerData, int side)
 		unsigned char rv = (unsigned char)gs.player[m_playerData].reverseModifier;
 		pd.reverseMode  = (rv == 0x00) ? 0 : (rv == 0x99 ? 2 : 1);
 		pd.mirrorMode   = (int)gs.player[m_playerData].arrangeModifier;
-		pd.playPosition = gs.player[m_playerData].centerLeft ? 1 : (gs.player[m_playerData].centerRight ? 2 : 0);
+		if ( !gs.isDoubles && !gs.isVersus )
+		{
+			pd.playPosition = gs.player[m_playerData].centerLeft ? 1 : (gs.player[m_playerData].centerRight ? 2 : 0);
+		}
 	}
 
 	buildItemList(m_playerData);

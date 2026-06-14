@@ -92,6 +92,7 @@ public:
 		int   scrollMode;         // 0=Classic, 1=Fixed
 		int   fixedScrollPPS;     // Fixed mode: pixels/sec
 		int   baseBPM;            // BPM at song start, used for fixed scroll pps ratio
+		int   visualOffset;       // ms, shifts note Y only (not judgement windows)
 
 		// animation timers and states (mostly timers)
 		UTIME stepZoneBeatTimer;
@@ -203,6 +204,7 @@ public:
 			scrollMode = 0;
 			fixedScrollPPS = 200;
 			baseBPM = 0;
+			visualOffset = 0;
 
 			// player's score
 			displayCombo = 0;
