@@ -386,6 +386,31 @@ void firstSongwheelLoop()
 		songlist[favoriteMusicHack] = wuvu;
 	}
 
+	// resume at last song if player is logged in (singles or doubles only, not versus)
+	if ( !gs.isVersus )
+	{
+		int loginSide    = (gs.rightPlayerPresent && !gs.leftPlayerPresent) ? 1 : 0;
+		int playerSlot   = gs.isDoubles ? 0 : loginSide;
+		int resumeSongID = gs.isDoubles
+			? sm.player[playerSlot].lastDoublesSongID
+			: sm.player[playerSlot].lastSinglesSongID;
+		if ( sm.player[playerSlot].isLoggedIn && resumeSongID != 0 )
+		{
+			bool found = false;
+			for ( int i = 0; i < maxSongwheelIndex; i++ )
+			{
+				if ( songlist[i].songID == resumeSongID )
+				{
+					futureStartIndex = i;
+					found = true;
+					break;
+				}
+			}
+			if ( !found )
+				futureStartIndex = 0;
+		}
+	}
+
 	// this is for the intro anim
 	songwheelIndex = futureStartIndex-3;
 	isMovementClockwise = true;
@@ -779,6 +804,20 @@ void mainSongwheelLoop(UTIME dt)
 				separateSubmenu[0] = separateSubmenu[0] == 3 ? 1 : separateSubmenu[0];
 				separateSubmenu[1] = separateSubmenu[1] == 3 ? 1 : separateSubmenu[1];
 				maniaxSelect[0] = maniaxSelect[1] = 0;
+
+				// save last manually selected song to profile for next-credit resume
+				if ( !gs.isVersus )
+				{
+					int loginSide  = (gs.rightPlayerPresent && !gs.leftPlayerPresent) ? 1 : 0;
+					int playerSlot = gs.isDoubles ? 0 : loginSide;
+					if ( sm.player[playerSlot].isLoggedIn )
+					{
+						if ( gs.isDoubles )
+							sm.player[playerSlot].lastDoublesSongID = songlist[songwheelIndex].songID;
+						else
+							sm.player[playerSlot].lastSinglesSongID = songlist[songwheelIndex].songID;
+					}
+				}
 
 				// go directly to gameplay — player picks one song at a time now
 				gs.g_currentGameMode = GAMEPLAY;

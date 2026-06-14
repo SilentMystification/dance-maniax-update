@@ -49,10 +49,10 @@ static const int   s_classicSpeedValues[]  = { 10, 15, 20, 25, 30, 35, 40, 50, 6
 static const char* s_judgPosOptions[]      = { "Off","Bottom","Lower","Upper","Top" };
 static const int   s_judgPosValues[]       = { 0, 1, 2, 3, 4 };
 
-static const char* s_judgTextOptions[]     = { "All","Perfect+","Great+","Good+" };
+static const char* s_judgTextOptions[]     = { "All","Perfect-","Great-","Good-" };
 static const int   s_judgTextValues[]      = { 0, 1, 2, 3 };
 
-static const char* s_judgMsOptions[]       = { "All","Perfect+","Great+","Good+","Never" };
+static const char* s_judgMsOptions[]       = { "All","Perfect-","Great-","Good-","Never" };
 static const int   s_judgMsValues[]        = { 0, 1, 2, 3, 4 };
 
 static const char* s_reverseOptions[]      = { "Off", "Reverse", "Cross", "Inverted" };
@@ -110,8 +110,8 @@ void SettingsMenu::buildItemList(int player)
 	m_items[m_itemCount].name             = "Lane Speed";
 	m_items[m_itemCount].type             = SETTINGS_RANGE;
 	m_items[m_itemCount].dependency       = DEP_SCROLL_FIXED;
-	m_items[m_itemCount].minVal           = 5;
-	m_items[m_itemCount].maxVal           = 1000;
+	m_items[m_itemCount].minVal           = 25;
+	m_items[m_itemCount].maxVal           = 700;
 	m_items[m_itemCount].step             = 5;
 	m_items[m_itemCount].value            = &p.fixedScrollPPS;
 	m_items[m_itemCount].flagToSetOnChange= NULL;
@@ -184,7 +184,7 @@ void SettingsMenu::buildItemList(int player)
 	m_itemCount++;
 
 	// 11. Judgment Display Text (visible when Position != Off)
-	m_items[m_itemCount].name             = "Judgment Text";
+	m_items[m_itemCount].name             = "Early / Late Display";
 	m_items[m_itemCount].type             = SETTINGS_LIST;
 	m_items[m_itemCount].dependency       = DEP_JUDGMENT_ON;
 	m_items[m_itemCount].options          = s_judgTextOptions;
@@ -195,7 +195,7 @@ void SettingsMenu::buildItemList(int player)
 	m_itemCount++;
 
 	// 12. Judgment Display MS (visible when Position != Off)
-	m_items[m_itemCount].name             = "Judgment MS";
+	m_items[m_itemCount].name             = "+- MS Display";
 	m_items[m_itemCount].type             = SETTINGS_LIST;
 	m_items[m_itemCount].dependency       = DEP_JUDGMENT_ON;
 	m_items[m_itemCount].options          = s_judgMsOptions;
@@ -624,14 +624,14 @@ void SettingsMenu::render(UTIME dt)
 		bool isSelected    = (i == m_selectedItem);
 		bool isAudioOffset = (m_items[i].flagToSetOnChange != NULL);
 
-		// item name — bold font, centered; clip rect handles overflow
+		// item name — bold font (24px tall), centered horizontally, 10px from top
 		int nameW  = getBoldStringWidth(m_items[i].name);
 		int titleX = MAX(panelLeft + 4, panelLeft + SETTINGS_PANEL_WIDTH / 2 - nameW / 2);
-		renderBoldString(m_items[i].name, titleX, itemY + 4, SETTINGS_PANEL_WIDTH - 8, false, 0);
+		renderBoldString(m_items[i].name, titleX, itemY + 10, SETTINGS_PANEL_WIDTH - 8, false, 0);
 
-		// option row: |smaller| bold glyph renders at y+10, 18px tall → ends at y+28; 4px gap
+		// option row: color font (12px tall) — 4px gap below name → top at itemY+38
 		int slideOff = (isSelected && m_isEditingItem) ? m_optionSlideOffset : 0;
-		int optRowY  = itemY + 32;
+		int optRowY  = itemY + 38;
 
 		if ( m_items[i].type == SETTINGS_LIST )
 		{
@@ -688,19 +688,16 @@ void SettingsMenu::render(UTIME dt)
 					int tx = panelRight - 5 + bobOffset;
 					triangle(rm.m_backbuf, tx + 1, triCy, tx - 7, triCy - 6, tx - 7, triCy + 6, makecol(0, 0, 0));
 				}
-				set_alpha_blender();
-				drawing_mode(DRAW_MODE_TRANS, NULL, 0, 0);
 				if ( idx > 0 )
 				{
 					int tx = panelLeft + 5 - bobOffset;
-					triangle(rm.m_backbuf, tx, triCy, tx + 6, triCy - 5, tx + 6, triCy + 5, makeacol(80, 180, 255, 160));
+					triangle(rm.m_backbuf, tx, triCy, tx + 6, triCy - 5, tx + 6, triCy + 5, makecol(0, 180, 255));
 				}
 				if ( idx < m_items[i].optionCount - 1 )
 				{
 					int tx = panelRight - 5 + bobOffset;
-					triangle(rm.m_backbuf, tx, triCy, tx - 6, triCy - 5, tx - 6, triCy + 5, makeacol(80, 180, 255, 160));
+					triangle(rm.m_backbuf, tx, triCy, tx - 6, triCy - 5, tx - 6, triCy + 5, makecol(0, 180, 255));
 				}
-				solid_mode();
 			}
 		}
 		else // SETTINGS_RANGE
@@ -779,19 +776,16 @@ void SettingsMenu::render(UTIME dt)
 					int tx = panelRight - 5 + bobOffset;
 					triangle(rm.m_backbuf, tx + 1, triCy, tx - 7, triCy - 6, tx - 7, triCy + 6, makecol(0, 0, 0));
 				}
-				set_alpha_blender();
-				drawing_mode(DRAW_MODE_TRANS, NULL, 0, 0);
 				if ( dispVal > m_items[i].minVal )
 				{
 					int tx = panelLeft + 5 - bobOffset;
-					triangle(rm.m_backbuf, tx, triCy, tx + 6, triCy - 5, tx + 6, triCy + 5, makeacol(80, 180, 255, 160));
+					triangle(rm.m_backbuf, tx, triCy, tx + 6, triCy - 5, tx + 6, triCy + 5, makecol(0, 180, 255));
 				}
 				if ( dispVal < m_items[i].maxVal )
 				{
 					int tx = panelRight - 5 + bobOffset;
-					triangle(rm.m_backbuf, tx, triCy, tx - 6, triCy - 5, tx - 6, triCy + 5, makeacol(80, 180, 255, 160));
+					triangle(rm.m_backbuf, tx, triCy, tx - 6, triCy - 5, tx - 6, triCy + 5, makecol(0, 180, 255));
 				}
-				solid_mode();
 			}
 		}
 
@@ -800,16 +794,13 @@ void SettingsMenu::render(UTIME dt)
 		{
 			int phase     = (int)(m_bobTimer % 600);
 			int bobOffset = (phase < 300) ? (phase * 3 / 300) : ((600 - phase) * 3 / 300);
-			int triTipY   = optRowY + 18 + bobOffset;
+			int triTipY   = optRowY + 12 + bobOffset;
 			int triBaseY  = triTipY + 5;
 			int triCx     = panelCenterX;
 
 			solid_mode();
 			triangle(rm.m_backbuf, triCx, triTipY - 1, triCx - 6, triBaseY + 1, triCx + 6, triBaseY + 1, makecol(0, 0, 0));
-			set_alpha_blender();
-			drawing_mode(DRAW_MODE_TRANS, NULL, 0, 0);
-			triangle(rm.m_backbuf, triCx, triTipY, triCx - 5, triBaseY, triCx + 5, triBaseY, makeacol(255, 200, 0, 160));
-			solid_mode();
+			triangle(rm.m_backbuf, triCx, triTipY, triCx - 5, triBaseY, triCx + 5, triBaseY, makecol(255, 215, 0));
 		}
 	}
 

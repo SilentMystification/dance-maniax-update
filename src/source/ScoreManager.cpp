@@ -75,6 +75,8 @@ bool ScoreManager::loadPlayerFromDisk(char* name, char side)
 		fread(&p.hasCustomAudioOffset,   sizeof(bool), 1, fp);
 		fread(&p.visualOffset,           sizeof(int),  1, fp);
 	}
+	fread(&p.lastSinglesSongID, sizeof(int), 1, fp);
+	fread(&p.lastDoublesSongID, sizeof(int), 1, fp);
 
 	fclose(fp);
 
@@ -351,6 +353,8 @@ void ScoreManager::savePlayerToDisk(PLAYER_DATA &p)
 	fwrite(&p.audioOffset,            sizeof(int),  1, fp);
 	fwrite(&p.hasCustomAudioOffset,   sizeof(bool), 1, fp);
 	fwrite(&p.visualOffset,           sizeof(int),  1, fp);
+	fwrite(&p.lastSinglesSongID,      sizeof(int),  1, fp);
+	fwrite(&p.lastDoublesSongID,      sizeof(int),  1, fp);
 
 	safeCloseFile(fp, prefsFilename);
 

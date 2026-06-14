@@ -186,6 +186,8 @@ struct PLAYER_DATA
 	int reverseMode;            // 0=Off, 1=Reverse, 2=Cross, 3=Inverted (stub=Reverse)
 	int mirrorMode;             // 0=Off, 1=Mirror, 2=Upside-Down
 	int playPosition;           // 0=Center, 1=Left, 2=Right
+	int lastSinglesSongID;      // songID of last manually selected singles song; 0 if none
+	int lastDoublesSongID;      // songID of last manually selected doubles song; 0 if none
 
 	PLAYER_DATA::PLAYER_DATA()
 	{
@@ -231,7 +233,7 @@ struct PLAYER_DATA
 		judgementEarlyLateMode = 0;   // All
 		scrollMode             = 0;   // Classic
 		speedMod               = 10;  // 1x
-		fixedScrollPPS         = 300;
+		fixedScrollPPS         = 200;
 		scoreMode              = 0;   // Classic
 		audioOffset            = 0;
 		hasCustomAudioOffset   = false;
@@ -239,6 +241,8 @@ struct PLAYER_DATA
 		reverseMode            = 0;
 		mirrorMode             = 0;
 		playPosition           = 0;
+		lastSinglesSongID      = 0;
+		lastDoublesSongID      = 0;
 	}
 
 	int PLAYER_DATA::getNumStars( int chartID, int minStatus )

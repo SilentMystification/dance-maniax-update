@@ -314,20 +314,21 @@ void mainGameplayLoop(UTIME dt)
 		return;
 	}
 
-	// in-song speed adjustment: LEFT/RIGHT to change, START to commit to profile
+	// in-song speed adjustment: LEFT/RIGHT = coarse change, START+LEFT/RIGHT = fine change (fixed mode only)
 	for ( int side = 0; side < 2; side++ )
 	{
 		int target = (gs.isVersus ? side : 0);
 		bool left  = im.getKeyState(side == 0 ? MENU_LEFT_1P  : MENU_LEFT_2P)  == JUST_DOWN;
 		bool right = im.getKeyState(side == 0 ? MENU_RIGHT_1P : MENU_RIGHT_2P) == JUST_DOWN;
-		bool start = im.getKeyState(side == 0 ? MENU_START_1P : MENU_START_2P) == JUST_DOWN;
+		bool start = im.isKeyDown(side == 0 ? MENU_START_1P : MENU_START_2P) != 0;
 
 		if ( left || right )
 		{
 			if ( gs.player[target].scrollMode == 1 ) // Fixed mode
 			{
-				if ( left )  gs.player[target].fixedScrollPPS = MAX(5,    gs.player[target].fixedScrollPPS - 5);
-				if ( right ) gs.player[target].fixedScrollPPS = MIN(1000, gs.player[target].fixedScrollPPS + 5);
+				int delta = start ? 5 : 50;
+				if ( left )  gs.player[target].fixedScrollPPS = MAX(25,  gs.player[target].fixedScrollPPS - delta);
+				if ( right ) gs.player[target].fixedScrollPPS = MIN(700, gs.player[target].fixedScrollPPS + delta);
 			}
 			else // Classic mode: cycle through discrete speed list
 			{
@@ -341,18 +342,6 @@ void mainGameplayLoop(UTIME dt)
 				gs.player[target].speedMod = classicSpeeds[idx];
 			}
 			speedChangeTimer[target] = SPEED_CHANGE_DISPLAY_MS;
-		}
-
-		bool leftHeld  = im.isKeyDown(side == 0 ? MENU_LEFT_1P  : MENU_LEFT_2P)  != 0;
-		bool rightHeld = im.isKeyDown(side == 0 ? MENU_RIGHT_1P : MENU_RIGHT_2P) != 0;
-		if ( start && speedChangeTimer[target] > 0 && !leftHeld && !rightHeld )
-		{
-			sm.player[target].speedMod        = gs.player[target].speedMod;
-			sm.player[target].fixedScrollPPS  = gs.player[target].fixedScrollPPS;
-			if ( sm.player[target].isLoggedIn )
-			{
-				sm.savePlayersToDisk();
-			}
 		}
 	}
 	speedChangeTimer[0] = MAX(0, speedChangeTimer[0] - (int)dt);

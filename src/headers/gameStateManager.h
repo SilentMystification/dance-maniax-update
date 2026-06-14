@@ -197,7 +197,7 @@ public:
 			newScrollRate = 150;
 			speedMod = 10;
 			scrollMode = 0;
-			fixedScrollPPS = 300;
+			fixedScrollPPS = 200;
 			baseBPM = 0;
 
 			// player's score
