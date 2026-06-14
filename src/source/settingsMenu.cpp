@@ -61,8 +61,8 @@ static const int   s_reverseValues[]       = { 0, 1, 2, 3 };
 static const char* s_mirrorOptions[]       = { "Off", "Mirror", "V-Flip" };
 static const int   s_mirrorValues[]        = { 0, 1, 2 };
 
-static const char* s_positionOptions[]     = { "Center", "Left", "Right" };
-static const int   s_positionValues[]      = { 0, 1, 2 };
+static const char* s_positionOptions[]     = { "Left", "Center", "Right" };
+static const int   s_positionValues[]      = { 1, 0, 2 };
 
 //////////////////////////////////////////////////////////////////////////////
 // SettingsMenu implementation

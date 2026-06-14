@@ -301,7 +301,8 @@ void mainMenuLoop(UTIME dt)
 			// second player added! versus mode is auto-confirmed
 			if ( (leftPlayerAdding || rightPlayerAdding) && enoughCreditsForVersus )
 			{
-				gs.leftPlayerPresent = true;
+				gs.leftPlayerPresent  = true;
+				gs.rightPlayerPresent = true;
 				playersChoice = 2;
 				em.playSample(SFX_CREDIT_BEGIN);
 			}
