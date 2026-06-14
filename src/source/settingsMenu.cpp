@@ -677,33 +677,30 @@ void SettingsMenu::render(UTIME dt)
 				int bobOffset = (phase < 300) ? (phase * 3 / 300) : ((600 - phase) * 3 / 300);
 				int triCy     = optRowY + 7;
 
+				solid_mode();
+				if ( idx > 0 )
+				{
+					int tx = panelLeft + 5 - bobOffset;
+					triangle(rm.m_backbuf, tx - 1, triCy, tx + 7, triCy - 6, tx + 7, triCy + 6, makecol(0, 0, 0));
+				}
+				if ( idx < m_items[i].optionCount - 1 )
+				{
+					int tx = panelRight - 5 + bobOffset;
+					triangle(rm.m_backbuf, tx + 1, triCy, tx - 7, triCy - 6, tx - 7, triCy + 6, makecol(0, 0, 0));
+				}
 				set_alpha_blender();
 				drawing_mode(DRAW_MODE_TRANS, NULL, 0, 0);
 				if ( idx > 0 )
 				{
 					int tx = panelLeft + 5 - bobOffset;
-					triangle(rm.m_backbuf, tx, triCy, tx + 6, triCy - 5, tx + 6, triCy + 5, makeacol(0, 120, 255, 160));
+					triangle(rm.m_backbuf, tx, triCy, tx + 6, triCy - 5, tx + 6, triCy + 5, makeacol(80, 180, 255, 160));
 				}
 				if ( idx < m_items[i].optionCount - 1 )
 				{
 					int tx = panelRight - 5 + bobOffset;
-					triangle(rm.m_backbuf, tx, triCy, tx - 6, triCy - 5, tx - 6, triCy + 5, makeacol(0, 120, 255, 160));
+					triangle(rm.m_backbuf, tx, triCy, tx - 6, triCy - 5, tx - 6, triCy + 5, makeacol(80, 180, 255, 160));
 				}
 				solid_mode();
-				if ( idx > 0 )
-				{
-					int tx = panelLeft + 5 - bobOffset;
-					line(rm.m_backbuf, tx, triCy, tx + 6, triCy - 5, makecol(0, 0, 0));
-					line(rm.m_backbuf, tx, triCy, tx + 6, triCy + 5, makecol(0, 0, 0));
-					line(rm.m_backbuf, tx + 6, triCy - 5, tx + 6, triCy + 5, makecol(0, 0, 0));
-				}
-				if ( idx < m_items[i].optionCount - 1 )
-				{
-					int tx = panelRight - 5 + bobOffset;
-					line(rm.m_backbuf, tx, triCy, tx - 6, triCy - 5, makecol(0, 0, 0));
-					line(rm.m_backbuf, tx, triCy, tx - 6, triCy + 5, makecol(0, 0, 0));
-					line(rm.m_backbuf, tx - 6, triCy - 5, tx - 6, triCy + 5, makecol(0, 0, 0));
-				}
 			}
 		}
 		else // SETTINGS_RANGE
@@ -771,33 +768,30 @@ void SettingsMenu::render(UTIME dt)
 				int bobOffset = (phase < 300) ? (phase * 3 / 300) : ((600 - phase) * 3 / 300);
 				int triCy     = optRowY + 7;
 
+				solid_mode();
+				if ( dispVal > m_items[i].minVal )
+				{
+					int tx = panelLeft + 5 - bobOffset;
+					triangle(rm.m_backbuf, tx - 1, triCy, tx + 7, triCy - 6, tx + 7, triCy + 6, makecol(0, 0, 0));
+				}
+				if ( dispVal < m_items[i].maxVal )
+				{
+					int tx = panelRight - 5 + bobOffset;
+					triangle(rm.m_backbuf, tx + 1, triCy, tx - 7, triCy - 6, tx - 7, triCy + 6, makecol(0, 0, 0));
+				}
 				set_alpha_blender();
 				drawing_mode(DRAW_MODE_TRANS, NULL, 0, 0);
 				if ( dispVal > m_items[i].minVal )
 				{
 					int tx = panelLeft + 5 - bobOffset;
-					triangle(rm.m_backbuf, tx, triCy, tx + 6, triCy - 5, tx + 6, triCy + 5, makeacol(0, 120, 255, 160));
+					triangle(rm.m_backbuf, tx, triCy, tx + 6, triCy - 5, tx + 6, triCy + 5, makeacol(80, 180, 255, 160));
 				}
 				if ( dispVal < m_items[i].maxVal )
 				{
 					int tx = panelRight - 5 + bobOffset;
-					triangle(rm.m_backbuf, tx, triCy, tx - 6, triCy - 5, tx - 6, triCy + 5, makeacol(0, 120, 255, 160));
+					triangle(rm.m_backbuf, tx, triCy, tx - 6, triCy - 5, tx - 6, triCy + 5, makeacol(80, 180, 255, 160));
 				}
 				solid_mode();
-				if ( dispVal > m_items[i].minVal )
-				{
-					int tx = panelLeft + 5 - bobOffset;
-					line(rm.m_backbuf, tx, triCy, tx + 6, triCy - 5, makecol(0, 0, 0));
-					line(rm.m_backbuf, tx, triCy, tx + 6, triCy + 5, makecol(0, 0, 0));
-					line(rm.m_backbuf, tx + 6, triCy - 5, tx + 6, triCy + 5, makecol(0, 0, 0));
-				}
-				if ( dispVal < m_items[i].maxVal )
-				{
-					int tx = panelRight - 5 + bobOffset;
-					line(rm.m_backbuf, tx, triCy, tx - 6, triCy - 5, makecol(0, 0, 0));
-					line(rm.m_backbuf, tx, triCy, tx - 6, triCy + 5, makecol(0, 0, 0));
-					line(rm.m_backbuf, tx - 6, triCy - 5, tx - 6, triCy + 5, makecol(0, 0, 0));
-				}
 			}
 		}
 
@@ -810,13 +804,12 @@ void SettingsMenu::render(UTIME dt)
 			int triBaseY  = triTipY + 5;
 			int triCx     = panelCenterX;
 
+			solid_mode();
+			triangle(rm.m_backbuf, triCx, triTipY - 1, triCx - 6, triBaseY + 1, triCx + 6, triBaseY + 1, makecol(0, 0, 0));
 			set_alpha_blender();
 			drawing_mode(DRAW_MODE_TRANS, NULL, 0, 0);
 			triangle(rm.m_backbuf, triCx, triTipY, triCx - 5, triBaseY, triCx + 5, triBaseY, makeacol(255, 200, 0, 160));
 			solid_mode();
-			line(rm.m_backbuf, triCx,     triTipY,  triCx - 5, triBaseY, makecol(0, 0, 0));
-			line(rm.m_backbuf, triCx,     triTipY,  triCx + 5, triBaseY, makecol(0, 0, 0));
-			line(rm.m_backbuf, triCx - 5, triBaseY, triCx + 5, triBaseY, makecol(0, 0, 0));
 		}
 	}
 
