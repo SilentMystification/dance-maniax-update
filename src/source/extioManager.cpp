@@ -11,6 +11,7 @@
 
 extern InputManager im;
 extern LightsManager lm;
+extern bool usePhoenixIO;
 
 extioManager::extioManager()
 {
@@ -202,7 +203,16 @@ bool extioManager::attemptConnection(const char* port)
 	}
 
 	//Define serial connection parameters for the arduino board
-	dcbSerialParams.BaudRate = CBR_9600;
+	if ( usePhoenixIO )
+	{
+		dcbSerialParams.BaudRate = CBR_115200;
+		al_trace("Using Phoenix IO\r\n");
+	}
+	else
+	{
+		dcbSerialParams.BaudRate = CBR_9600;
+		al_trace("Using Standard IO\r\n");
+	}
 	dcbSerialParams.ByteSize = 8;
 	dcbSerialParams.StopBits = ONESTOPBIT;
 	dcbSerialParams.Parity = NOPARITY;
