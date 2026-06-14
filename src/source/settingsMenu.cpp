@@ -621,10 +621,8 @@ void SettingsMenu::render(UTIME dt)
 		// skip items fully off-screen
 		if ( itemY + SETTINGS_ITEM_HEIGHT <= 0 || itemY >= SCREEN_HEIGHT ) continue;
 
-		bool isSelected    = (i == m_selectedItem);
-		bool isAudioOffset = (m_items[i].flagToSetOnChange != NULL);
+		bool isSelected = (i == m_selectedItem);
 
-		// item name — bold font (24px tall), centered horizontally, 10px from top
 		int nameW  = getBoldStringWidth(m_items[i].name);
 		int titleX = MAX(panelLeft + 4, panelLeft + SETTINGS_PANEL_WIDTH / 2 - nameW / 2);
 		renderBoldString(m_items[i].name, titleX, itemY + 10, SETTINGS_PANEL_WIDTH - 8, false, 0);
@@ -677,7 +675,6 @@ void SettingsMenu::render(UTIME dt)
 				int bobOffset = (phase < 300) ? (phase * 3 / 300) : ((600 - phase) * 3 / 300);
 				int triCy     = optRowY + 7;
 
-				solid_mode();
 				if ( idx > 0 )
 				{
 					int tx = panelLeft + 5 - bobOffset;
@@ -702,6 +699,7 @@ void SettingsMenu::render(UTIME dt)
 		}
 		else // SETTINGS_RANGE
 		{
+			bool isAudioOffset = (m_items[i].flagToSetOnChange != NULL);
 			int dispVal = *m_items[i].value;
 			if ( isAudioOffset && !(*m_items[i].flagToSetOnChange) )
 				dispVal = gs.bgmGap;
@@ -765,7 +763,6 @@ void SettingsMenu::render(UTIME dt)
 				int bobOffset = (phase < 300) ? (phase * 3 / 300) : ((600 - phase) * 3 / 300);
 				int triCy     = optRowY + 7;
 
-				solid_mode();
 				if ( dispVal > m_items[i].minVal )
 				{
 					int tx = panelLeft + 5 - bobOffset;
@@ -798,7 +795,6 @@ void SettingsMenu::render(UTIME dt)
 			int triBaseY  = triTipY + 5;
 			int triCx     = panelCenterX;
 
-			solid_mode();
 			triangle(rm.m_backbuf, triCx, triTipY - 1, triCx - 6, triBaseY + 1, triCx + 6, triBaseY + 1, makecol(0, 0, 0));
 			triangle(rm.m_backbuf, triCx, triTipY, triCx - 5, triBaseY, triCx + 5, triBaseY, makecol(255, 215, 0));
 		}

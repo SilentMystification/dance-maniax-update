@@ -344,8 +344,8 @@ void mainGameplayLoop(UTIME dt)
 			speedChangeTimer[target] = SPEED_CHANGE_DISPLAY_MS;
 		}
 	}
-	speedChangeTimer[0] = MAX(0, speedChangeTimer[0] - (int)dt);
-	speedChangeTimer[1] = MAX(0, speedChangeTimer[1] - (int)dt);
+	for ( int t = 0; t < (gs.isVersus ? 2 : 1); t++ )
+		speedChangeTimer[t] = MAX(0, speedChangeTimer[t] - (int)dt);
 
 	// update the per-column judgements and the "step zone resize" effect when a panel is newly hit (DDR only)
 	for ( int i = 0; i < 10; i++ )
