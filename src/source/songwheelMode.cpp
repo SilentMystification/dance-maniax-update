@@ -616,23 +616,25 @@ void mainSongwheelLoop(UTIME dt)
 		}
 		else
 		{
-			// singles: only the active side's combo opens the panel
-			int loginSide  = (gs.rightPlayerPresent && !gs.leftPlayerPresent) ? 1 : 0;
-			int playerSlot = loginSide;
-			int activeSide = loginSide;
-			if      (gs.player[playerSlot].centerRight) activeSide = 1;
-			else if (gs.player[playerSlot].centerLeft)  activeSide = 0;
-
-			bool comboActive = (activeSide == 0)
-				? (im.isKeyDown(MENU_LEFT_1P) && im.isKeyDown(MENU_RIGHT_1P) && im.getKeyState(MENU_START_1P) == JUST_DOWN)
-				: (im.isKeyDown(MENU_LEFT_2P) && im.isKeyDown(MENU_RIGHT_2P) && im.getKeyState(MENU_START_2P) == JUST_DOWN);
-
-			if ( !isInSettings[activeSide] && comboActive )
+			// singles: active side from play position; center allows either (left wins on tie)
+			int loginSide = (gs.rightPlayerPresent && !gs.leftPlayerPresent) ? 1 : 0;
+			bool try1P = !gs.player[loginSide].centerRight; // left eligible unless explicitly right
+			bool try2P = !gs.player[loginSide].centerLeft;  // right eligible unless explicitly left
+			bool combo1P = try1P && im.isKeyDown(MENU_LEFT_1P) && im.isKeyDown(MENU_RIGHT_1P) && im.getKeyState(MENU_START_1P) == JUST_DOWN;
+			bool combo2P = try2P && im.isKeyDown(MENU_LEFT_2P) && im.isKeyDown(MENU_RIGHT_2P) && im.getKeyState(MENU_START_2P) == JUST_DOWN;
+			if ( !isInSettings[0] && !isInSettings[1] && combo1P )
 			{
-				isInSettings[activeSide] = true;
-				settingsWaitForRelease[activeSide] = true;
-				settingsPlayerSlot[activeSide] = playerSlot;
-				playerSettingsMenu[activeSide].open(playerSlot, activeSide);
+				isInSettings[0] = true;
+				settingsWaitForRelease[0] = true;
+				settingsPlayerSlot[0] = loginSide;
+				playerSettingsMenu[0].open(loginSide, 0);
+			}
+			else if ( !isInSettings[0] && !isInSettings[1] && combo2P )
+			{
+				isInSettings[1] = true;
+				settingsWaitForRelease[1] = true;
+				settingsPlayerSlot[1] = loginSide;
+				playerSettingsMenu[1].open(loginSide, 1);
 			}
 		}
 	}
@@ -1077,12 +1079,9 @@ void mainSongwheelLoop(UTIME dt)
 	}
 	else
 	{
-		int loginSide  = (gs.rightPlayerPresent && !gs.leftPlayerPresent) ? 1 : 0;
-		int activeSide = loginSide;
-		if      (gs.player[loginSide].centerRight) activeSide = 1;
-		else if (gs.player[loginSide].centerLeft)  activeSide = 0;
-		use1P = (activeSide == 0);
-		use2P = (activeSide == 1);
+		int loginSide = (gs.rightPlayerPresent && !gs.leftPlayerPresent) ? 1 : 0;
+		use1P = !gs.player[loginSide].centerRight;
+		use2P = !gs.player[loginSide].centerLeft;
 	}
 	lm.setLamp(lampStart, use1P ? 100 : 0);
 	lm.setLamp(lampLeft, use1P ? 100 : 0);
