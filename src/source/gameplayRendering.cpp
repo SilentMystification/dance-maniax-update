@@ -761,17 +761,18 @@ void renderJudgementText(int centered_x, int y, int diff, bool isEarly, bool sho
 	if (!showMs && !showEarlyLate) return;
 	if (diff == 0 && !showMs) return;
 
-	int color;
+	int labelColor = isEarly ? TEXT_COLOR_RED : TEXT_COLOR_BLUE;
+	int msColor;
 	if (lastJudgement <= MARVELLOUS)
-		color = TEXT_COLOR_GREY;
+		msColor = TEXT_COLOR_GREY;
 	else if (lastJudgement <= PERFECT)
-		color = isEarly ? TEXT_COLOR_RED : TEXT_COLOR_BLUE;
+		msColor = isEarly ? TEXT_COLOR_RED : TEXT_COLOR_BLUE;
 	else
-		color = isEarly ? TEXT_COLOR_HRED : TEXT_COLOR_HBLUE;
+		msColor = isEarly ? TEXT_COLOR_HRED : TEXT_COLOR_HBLUE;
 
 	if (diff == 0)
 	{
-		renderColoredString("0ms", centered_x - 15, y, color);
+		renderColoredString("0ms", centered_x - 15, y, msColor);
 		return;
 	}
 
@@ -786,10 +787,10 @@ void renderJudgementText(int centered_x, int y, int diff, bool isEarly, bool sho
 	int startX = centered_x - (LABEL_SLOT + GAP + msWidth) / 2;
 
 	if (showEarlyLate)
-		renderColoredString(isEarly ? "early" : "late", startX, y, color);
+		renderColoredString(isEarly ? "early" : "late", startX, y, labelColor);
 
 	if (showMs)
-		renderColoredString(msText, startX + LABEL_SLOT + GAP, y, color);
+		renderColoredString(msText, startX + LABEL_SLOT + GAP, y, msColor);
 }
 
 void renderGameplay()
