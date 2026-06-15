@@ -163,11 +163,18 @@ int checkFileVersion(FILE* fp, char* expected);
 #define TEXT_COLOR_GREEN   1  // (170,255,170)
 #define TEXT_COLOR_RED     2  // (255,170,170)
 #define TEXT_COLOR_BLUE    3  // (170,170,255)
-#define TEXT_COLOR_CYAN    4
+#define TEXT_COLOR_CYAN    4  // (0,255,255)
 #define TEXT_COLOR_MAGENTA 5  // (255,0,220) — avoids Allegro's exact mask color (255,0,255)
-#define TEXT_COLOR_YELLOW  6
-#define TEXT_COLOR_BLACK   7
+#define TEXT_COLOR_YELLOW  6  // (255,255,0)
+#define TEXT_COLOR_BLACK   7  // (0,0,0)
 #define TEXT_COLOR_GOLD    8  // (212,175,55)
+#define TEXT_COLOR_FRED    9  // (255,0,0)   — full saturated red
+#define TEXT_COLOR_FGREEN  10 // (0,255,0)   — full saturated green
+#define TEXT_COLOR_FBLUE   11 // (0,0,255)   — full saturated blue
+#define TEXT_COLOR_HRED    12 // (255,85,85) — halfway between RED and FRED
+#define TEXT_COLOR_HGREEN  13 // (85,255,85) — halfway between GREEN and FGREEN
+#define TEXT_COLOR_HBLUE   14 // (85,85,255) — halfway between BLUE and FBLUE
+#define TEXT_COLOR_GREY    15 // (192,192,192)
 
 // font reference — all bitmaps loaded in RenderingManager::Initialize (common.cpp)
 //   white       renderWhiteString / renderWhiteNumber   white_font.bmp  10x12px monospace, uppercase + digits
@@ -209,8 +216,8 @@ public:
 	BITMAP* m_backbuf2;
 
 	BITMAP* m_whiteFont;
-	BITMAP* m_colorFont[9];
-	BITMAP* m_colorFontNoOutline[9];
+	BITMAP* m_colorFont[16];
+	BITMAP* m_colorFontNoOutline[16];
 	BITMAP* m_textFont[4];
 	BITMAP* m_boldFont[4];
 	BITMAP* m_artistFont;

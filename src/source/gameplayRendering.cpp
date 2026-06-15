@@ -756,12 +756,18 @@ static int getJudgementTextY(int posMode)
 	}
 }
 
-void renderJudgementText(int centered_x, int y, int diff, bool isEarly, bool showMs, bool showEarlyLate)
+void renderJudgementText(int centered_x, int y, int diff, bool isEarly, bool showMs, bool showEarlyLate, int lastJudgement)
 {
 	if (!showMs && !showEarlyLate) return;
 	if (diff == 0 && !showMs) return;
 
-	int color = (diff == 0) ? TEXT_COLOR_WHITE : (isEarly ? TEXT_COLOR_RED : TEXT_COLOR_BLUE);
+	int color;
+	if (lastJudgement <= MARVELLOUS)
+		color = TEXT_COLOR_GREY;
+	else if (lastJudgement <= PERFECT)
+		color = isEarly ? TEXT_COLOR_RED : TEXT_COLOR_BLUE;
+	else
+		color = isEarly ? TEXT_COLOR_HRED : TEXT_COLOR_HBLUE;
 
 	if (diff == 0)
 	{
@@ -851,7 +857,7 @@ void renderGameplay()
 				bool showMs = shouldShowForJudgement(gs.player[p].lastJudgement, gs.player[p].judgementMsDisplayMode);
 				bool showEL = shouldShowForJudgement(gs.player[p].lastJudgement, gs.player[p].judgementEarlyLateMode);
 				if ( showMs || showEL )
-					renderJudgementText(centered_x, getJudgementTextY(gs.player[p].judgementPositionMode), gs.player[p].lastJudgementDiff, gs.player[p].lastJudgementEarly, showMs, showEL);
+					renderJudgementText(centered_x, getJudgementTextY(gs.player[p].judgementPositionMode), gs.player[p].lastJudgementDiff, gs.player[p].lastJudgementEarly, showMs, showEL, gs.player[p].lastJudgement);
 			}
 		}
 	}
@@ -885,7 +891,7 @@ void renderGameplay()
 				bool showMs = shouldShowForJudgement(gs.player[p].lastJudgement, gs.player[p].judgementMsDisplayMode);
 				bool showEL = shouldShowForJudgement(gs.player[p].lastJudgement, gs.player[p].judgementEarlyLateMode);
 				if ( showMs || showEL )
-					renderJudgementText(centered_x, getJudgementTextY(gs.player[p].judgementPositionMode), gs.player[p].lastJudgementDiff, gs.player[p].lastJudgementEarly, showMs, showEL);
+					renderJudgementText(centered_x, getJudgementTextY(gs.player[p].judgementPositionMode), gs.player[p].lastJudgementDiff, gs.player[p].lastJudgementEarly, showMs, showEL, gs.player[p].lastJudgement);
 			}
 		}
 	}
