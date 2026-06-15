@@ -79,6 +79,9 @@ private:
 	int          m_targetSelectorPanelY; // destination for selector slide animation
 	bool         m_snapSelector;         // true when selector should snap instead of slide (wrap-around)
 	UTIME        m_bobTimer;             // drives the triangle bob animation in edit mode
+	int          m_cancelHoldTimer;      // ms L+R have been held during edit mode (2000 = cancel)
+	int          m_lastNavTimer;         // ms since last navigation input (for chord detection)
+	int          m_lastNavDir;           // direction of last nav: -1=up, +1=down, 0=none
 };
 
 #endif

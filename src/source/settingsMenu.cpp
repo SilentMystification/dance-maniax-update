@@ -12,6 +12,7 @@ extern ScoreManager     sm;
 extern RenderingManager rm;
 extern InputManager     im;
 extern EffectsManager   em;
+extern SongEntry*       songs;
 
 //////////////////////////////////////////////////////////////////////////////
 // Visual constants — tweak these without touching logic
@@ -67,6 +68,48 @@ static const int   s_positionValues[]      = { 1, 0, 2 };
 //////////////////////////////////////////////////////////////////////////////
 // SettingsMenu implementation
 //////////////////////////////////////////////////////////////////////////////
+
+// Draw a directional arrow with a 1px black shadow. dir: 0=left, 1=right, 2=up, 3=down.
+// tipX/tipY is the point of the arrow. halfBase and depth control the triangle size.
+static void drawNavArrow(int tipX, int tipY, int dir, int halfBase, int depth, int rgb)
+{
+	int sdx = 0, sdy = 0;
+	int bx1, by1, bx2, by2;
+	int sbx1, sby1, sbx2, sby2;
+	switch ( dir )
+	{
+	case 0: // left
+		sdx = -1;
+		bx1 = tipX + depth;     by1 = tipY - halfBase;
+		bx2 = tipX + depth;     by2 = tipY + halfBase;
+		sbx1 = bx1 + 1; sby1 = by1 - 1;
+		sbx2 = bx2 + 1; sby2 = by2 + 1;
+		break;
+	case 1: // right
+		sdx = +1;
+		bx1 = tipX - depth;     by1 = tipY - halfBase;
+		bx2 = tipX - depth;     by2 = tipY + halfBase;
+		sbx1 = bx1 - 1; sby1 = by1 - 1;
+		sbx2 = bx2 - 1; sby2 = by2 + 1;
+		break;
+	case 2: // up
+		sdy = -1;
+		bx1 = tipX - halfBase;  by1 = tipY + depth;
+		bx2 = tipX + halfBase;  by2 = tipY + depth;
+		sbx1 = bx1 - 1; sby1 = by1 + 1;
+		sbx2 = bx2 + 1; sby2 = by2 + 1;
+		break;
+	default: // down
+		sdy = +1;
+		bx1 = tipX - halfBase;  by1 = tipY - depth;
+		bx2 = tipX + halfBase;  by2 = tipY - depth;
+		sbx1 = bx1 - 1; sby1 = by1 - 1;
+		sbx2 = bx2 + 1; sby2 = by2 - 1;
+		break;
+	}
+	triangle(rm.m_backbuf, tipX + sdx, tipY + sdy, sbx1, sby1, sbx2, sby2, makecol(0,0,0));
+	triangle(rm.m_backbuf, tipX,       tipY,        bx1,  by1,  bx2,  by2,  rgb);
+}
 
 static void fillToggleItem(SettingsItem& item, PLAYER_DATA& p)
 {
@@ -366,6 +409,9 @@ void SettingsMenu::open(int playerData, int side)
 	m_targetSelectorPanelY = SETTINGS_START_Y;
 	m_snapSelector         = false;
 	m_bobTimer             = 0;
+	m_cancelHoldTimer      = 0;
+	m_lastNavTimer         = 9999; // large value so no chord suppression on first open
+	m_lastNavDir           = 0;
 
 	// sync current modifier state from gs.player into sm.player backing fields
 	{
@@ -461,18 +507,48 @@ void SettingsMenu::handleInput(UTIME dt)
 	bool startDown = (start == JUST_DOWN);
 	bool bothDown  = (left != 0) && (right != 0);
 
-	// LEFT+RIGHT (both held) closes menu — handled by caller, not here
-	if ( bothDown ) return;
+	// always advance the nav-recency timer
+	m_lastNavTimer += (int)dt;
 
 	if ( !m_isEditingItem )
 	{
-		// outer mode: navigate items (tap only)
 		m_holdDir = 0; m_holdTime = 0; m_repeatTimer = 0;
+
+		if ( bothDown )
+		{
+			// undo the last navigation if it happened very recently (accidental press before L+R chord)
+			if ( m_lastNavTimer < 150 && m_lastNavDir != 0 )
+			{
+				int undoDir = -m_lastNavDir; // opposite direction
+				int prevItem = m_selectedItem;
+				for ( int i = 1; i <= m_itemCount; i++ )
+				{
+					int candidate = (m_selectedItem + undoDir * i + m_itemCount) % m_itemCount;
+					if ( isItemVisible(candidate) )
+					{
+						m_selectedItem = candidate;
+						break;
+					}
+				}
+				if ( m_selectedItem != prevItem && m_isAdvanced )
+				{
+					int totalVisible = 0;
+					for ( int i = 0; i < m_itemCount; i++ )
+						if ( isItemVisible(i) ) totalVisible++;
+					int totalListH = totalVisible * SETTINGS_ITEM_HEIGHT;
+					if ( undoDir > 0 ) m_scrollY -= totalListH;
+					else               m_scrollY += totalListH;
+				}
+				m_lastNavDir   = 0;
+				m_lastNavTimer = 9999;
+			}
+			return; // close handled by caller
+		}
 
 		int prevSelected = m_selectedItem;
 		if ( leftDown )
 		{
-			// move up — advanced mode wraps infinitely; simple mode stops at top
+			// move up — expert mode wraps infinitely; simple mode stops at top
 			for ( int i = 1; i <= m_itemCount; i++ )
 			{
 				int candidate = (m_selectedItem - i + m_itemCount) % m_itemCount;
@@ -486,7 +562,7 @@ void SettingsMenu::handleInput(UTIME dt)
 		}
 		else if ( rightDown )
 		{
-			// move down — advanced mode wraps infinitely; simple mode stops at bottom
+			// move down — expert mode wraps infinitely; simple mode stops at bottom
 			for ( int i = 1; i <= m_itemCount; i++ )
 			{
 				int candidate = (m_selectedItem + i) % m_itemCount;
@@ -519,12 +595,15 @@ void SettingsMenu::handleInput(UTIME dt)
 					m_snapSelector = true; // simple mode (no wrap, safety only)
 				}
 			}
+			m_lastNavTimer = 0;
+			m_lastNavDir   = leftDown ? -1 : 1;
 			em.playSample(SFX_SONGWHEEL_MOVE);
 		}
 		if ( startDown )
 		{
 			em.playSample(SFX_SONGWHEEL_PICK);
-			m_isEditingItem = true;
+			m_isEditingItem    = true;
+			m_cancelHoldTimer  = 0;
 			m_optionSlideOffset = 0;
 		}
 	}
@@ -532,6 +611,22 @@ void SettingsMenu::handleInput(UTIME dt)
 	{
 		// inner mode: adjust value with hold-to-repeat
 		SettingsItem& item = m_items[m_selectedItem];
+
+		// L+R held while editing: cancel after 2 seconds, reverting to saved value
+		if ( bothDown )
+		{
+			m_cancelHoldTimer += (int)dt;
+			if ( m_cancelHoldTimer >= 2000 )
+			{
+				*m_items[m_selectedItem].value = m_items[m_selectedItem].savedValue;
+				m_isEditingItem   = false;
+				m_cancelHoldTimer = 0;
+				m_holdDir = 0; m_holdTime = 0; m_repeatTimer = 0;
+				em.playSample(SFX_COURSE_APPEAR);
+			}
+			return;
+		}
+		m_cancelHoldTimer = 0;
 
 		if ( startDown )
 		{
@@ -876,27 +971,12 @@ void SettingsMenu::render(UTIME dt)
 				int phase     = (int)(m_bobTimer % 600);
 				int bobOffset = (phase < 300) ? (phase * 3 / 300) : ((600 - phase) * 3 / 300);
 				int triCy     = optRowY + 7;
+				int blue      = makecol(0, 180, 255);
 
 				if ( idx > 0 )
-				{
-					int tx = panelLeft + 5 - bobOffset;
-					triangle(rm.m_backbuf, tx - 1, triCy, tx + 7, triCy - 6, tx + 7, triCy + 6, makecol(0, 0, 0));
-				}
+					drawNavArrow(panelLeft + 5 - bobOffset, triCy, 0, 5, 6, blue);
 				if ( idx < m_items[i].optionCount - 1 )
-				{
-					int tx = panelRight - 5 + bobOffset;
-					triangle(rm.m_backbuf, tx + 1, triCy, tx - 7, triCy - 6, tx - 7, triCy + 6, makecol(0, 0, 0));
-				}
-				if ( idx > 0 )
-				{
-					int tx = panelLeft + 5 - bobOffset;
-					triangle(rm.m_backbuf, tx, triCy, tx + 6, triCy - 5, tx + 6, triCy + 5, makecol(0, 180, 255));
-				}
-				if ( idx < m_items[i].optionCount - 1 )
-				{
-					int tx = panelRight - 5 + bobOffset;
-					triangle(rm.m_backbuf, tx, triCy, tx - 6, triCy - 5, tx - 6, triCy + 5, makecol(0, 180, 255));
-				}
+					drawNavArrow(panelRight - 5 + bobOffset, triCy, 1, 5, 6, blue);
 			}
 		}
 		else // SETTINGS_RANGE
@@ -964,44 +1044,41 @@ void SettingsMenu::render(UTIME dt)
 				int phase     = (int)(m_bobTimer % 600);
 				int bobOffset = (phase < 300) ? (phase * 3 / 300) : ((600 - phase) * 3 / 300);
 				int triCy     = optRowY + 7;
+				int blue      = makecol(0, 180, 255);
 
 				if ( dispVal > m_items[i].minVal )
-				{
-					int tx = panelLeft + 5 - bobOffset;
-					triangle(rm.m_backbuf, tx - 1, triCy, tx + 7, triCy - 6, tx + 7, triCy + 6, makecol(0, 0, 0));
-				}
+					drawNavArrow(panelLeft + 5 - bobOffset, triCy, 0, 5, 6, blue);
 				if ( dispVal < m_items[i].maxVal )
-				{
-					int tx = panelRight - 5 + bobOffset;
-					triangle(rm.m_backbuf, tx + 1, triCy, tx - 7, triCy - 6, tx - 7, triCy + 6, makecol(0, 0, 0));
-				}
-				if ( dispVal > m_items[i].minVal )
-				{
-					int tx = panelLeft + 5 - bobOffset;
-					triangle(rm.m_backbuf, tx, triCy, tx + 6, triCy - 5, tx + 6, triCy + 5, makecol(0, 180, 255));
-				}
-				if ( dispVal < m_items[i].maxVal )
-				{
-					int tx = panelRight - 5 + bobOffset;
-					triangle(rm.m_backbuf, tx, triCy, tx - 6, triCy - 5, tx - 6, triCy + 5, makecol(0, 180, 255));
-				}
+					drawNavArrow(panelRight - 5 + bobOffset, triCy, 1, 5, 6, blue);
 			}
 		}
 
-		// bobbing triangle: visible when editing this item, disappears on confirm
+		// bobbing confirm triangle (gold, pointing up, below option row) — disappears on confirm
 		if ( isSelected && m_isEditingItem )
 		{
 			int phase     = (int)(m_bobTimer % 600);
 			int bobOffset = (phase < 300) ? (phase * 3 / 300) : ((600 - phase) * 3 / 300);
-			int triTipY   = optRowY + 12 + bobOffset;
-			int triBaseY  = triTipY + 5;
-			int triCx     = panelCenterX;
-
-			triangle(rm.m_backbuf, triCx, triTipY - 1, triCx - 6, triBaseY + 1, triCx + 6, triBaseY + 1, makecol(0, 0, 0));
-			triangle(rm.m_backbuf, triCx, triTipY, triCx - 5, triBaseY, triCx + 5, triBaseY, makecol(255, 215, 0));
+			drawNavArrow(panelCenterX, optRowY + 12 + bobOffset, 2, 5, 5, makecol(255, 215, 0));
 		}
 	}
 	} // end rep loop
+
+	// expert mode: yellow scroll indicators at top and bottom of panel (hidden while editing a value)
+	if ( m_isAdvanced && !m_isEditingItem )
+	{
+		int bpmPeriod = 600;
+		int songIdx   = songID_to_listID(gs.currentSong);
+		if ( songIdx >= 0 && songs != NULL && songs[songIdx].minBPM > 0 )
+			bpmPeriod = 60000 / songs[songIdx].minBPM;
+
+		int phase     = (int)(m_bobTimer % (UTIME)bpmPeriod);
+		int half      = bpmPeriod / 2;
+		int bobOffset = (half > 0) ? ((phase < half) ? (phase * 4 / half) : ((bpmPeriod - phase) * 4 / half)) : 0;
+		int yellow    = makecol(255, 220, 0);
+
+		drawNavArrow(panelCenterX, 8 - bobOffset,                  2, 8, 10, yellow); // up at top
+		drawNavArrow(panelCenterX, SCREEN_HEIGHT - 8 + bobOffset,  3, 8, 10, yellow); // down at bottom
+	}
 
 	// restore clip rect and alpha blending mode
 	set_clip_rect(rm.m_backbuf, savedCX1, savedCY1, savedCX2, savedCY2);
