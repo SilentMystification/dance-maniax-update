@@ -262,7 +262,8 @@ void mainGameplayLoop(UTIME dt)
 	renderGameplay();
 
 	// Re-anchor to FMOD's decoded position each update; interpolate with wall clock between
-	// anchors. Eliminates startup gap and CPU/audio clock drift. bgmGap offsets output latency.
+	// anchors. FMOD_BUFFER_COMP_MS removes the constant ring buffer write-ahead.
+	// bgmGap is the remaining hardware output latency (ASIO buffer or DirectSound/WAE period).
 	UTIME now = timeGetTime();
 	if (gs.currentSongChannel != -1)
 	{
@@ -282,10 +283,11 @@ void mainGameplayLoop(UTIME dt)
 
 	if (gs.bgmSyncAnchored)
 	{
-		long syncedTime = (long)(now - gs.bgmAnchorWall) + gs.bgmAnchorFmodMs + gs.bgmGap;
-		if (syncedTime < 0) syncedTime = 0;
-		gs.player[0].timeElapsed = (UTIME)syncedTime;
-		gs.player[1].timeElapsed = (UTIME)syncedTime;
+		long syncedBase = (long)(now - gs.bgmAnchorWall) + gs.bgmAnchorFmodMs + FMOD_BUFFER_COMP_MS;
+		int gap0 = sm.player[0].hasCustomAudioOffset ? sm.player[0].audioOffset : gs.bgmGap;
+		int gap1 = sm.player[1].hasCustomAudioOffset ? sm.player[1].audioOffset : gs.bgmGap;
+		gs.player[0].timeElapsed = (UTIME)MAX(0, syncedBase + gap0);
+		gs.player[1].timeElapsed = (UTIME)MAX(0, syncedBase + gap1);
 	}
 	else
 	{

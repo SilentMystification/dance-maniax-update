@@ -150,7 +150,7 @@ void SettingsMenu::buildItemList(int player)
 	m_items[m_itemCount].flagToSetOnChange= NULL;
 	m_itemCount++;
 
-	// 8. Audio Offset (wiring deferred; hasCustomAudioOffset flag set on change)
+	// 8. Audio Offset (replaces bgmGap per-player when hasCustomAudioOffset is true)
 	m_items[m_itemCount].name             = "Audio Offset";
 	m_items[m_itemCount].type             = SETTINGS_RANGE;
 	m_items[m_itemCount].dependency       = DEP_NONE;

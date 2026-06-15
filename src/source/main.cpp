@@ -246,6 +246,7 @@ int main()
 #endif
 		FSOUND_SetMixer(FSOUND_MIXER_QUALITY_FPU);
 	}
+	FSOUND_SetBufferSize(FMOD_BUFFER_SIZE_MS);
     if (!FSOUND_Init(44100, 64, 0))
     {
 		allegro_message("FMOD failed to initialize: %d", FSOUND_GetError());
