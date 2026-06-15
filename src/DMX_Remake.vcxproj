@@ -502,6 +502,9 @@ copy /Y "..\deploy\DMX_Debug.exe" "V:\DMX_DEV\DMX_dev.exe"</Command>
     <ClCompile Include="source\xsq_read.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ResourceCompile Include="dmx.rc" />
+  </ItemGroup>
+  <ItemGroup>
     <None Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\inline\3dmaths.inl" />
     <None Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\inline\asm.inl" />
     <None Include="lib\allegro-4.4.2-msvc-10.0\include\allegro\inline\color.inl" />
