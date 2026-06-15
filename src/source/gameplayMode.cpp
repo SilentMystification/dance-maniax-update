@@ -261,8 +261,39 @@ void mainGameplayLoop(UTIME dt)
 	updateParticles(dt);
 	renderGameplay();
 
-	gs.player[0].timeElapsed += dt;
-	gs.player[1].timeElapsed += dt;
+	// Re-anchor to FMOD's decoded position each update; interpolate with wall clock between
+	// anchors. FMOD_BUFFER_COMP_MS removes the constant ring buffer write-ahead.
+	// bgmGap is the remaining hardware output latency (ASIO buffer or DirectSound/WAE period).
+	UTIME now = timeGetTime();
+	if (gs.currentSongChannel != -1)
+	{
+		unsigned int fmodPos = FSOUND_GetCurrentPosition(gs.currentSongChannel);
+		if (fmodPos > 0 && fmodPos != gs.bgmLastFmodPos)
+		{
+			int freq = FSOUND_GetFrequency(gs.currentSongChannel);
+			if (freq > 0)
+			{
+				gs.bgmAnchorFmodMs  = fmodPos / freq * 1000 + fmodPos % freq * 1000 / freq;
+				gs.bgmAnchorWall    = now;
+				gs.bgmLastFmodPos   = fmodPos;
+				gs.bgmSyncAnchored  = true;
+			}
+		}
+	}
+
+	if (gs.bgmSyncAnchored)
+	{
+		long syncedBase = (long)(now - gs.bgmAnchorWall) + gs.bgmAnchorFmodMs + FMOD_BUFFER_COMP_MS;
+		int gap0 = sm.player[0].hasCustomAudioOffset ? sm.player[0].audioOffset : gs.bgmGap;
+		int gap1 = sm.player[1].hasCustomAudioOffset ? sm.player[1].audioOffset : gs.bgmGap;
+		gs.player[0].timeElapsed = (UTIME)MAX(0, syncedBase + gap0);
+		gs.player[1].timeElapsed = (UTIME)MAX(0, syncedBase + gap1);
+	}
+	else
+	{
+		gs.player[0].timeElapsed += dt;
+		gs.player[1].timeElapsed += dt;
+	}
 	gs.player[0].judgementTime += dt;
 	gs.player[1].judgementTime += dt;
 
@@ -1254,6 +1285,10 @@ void loadNextSong()
 	gs.loadSong(gs.player[0].stagesPlayed[gs.currentStage], false, useAlternateMusic);
 	vm.loadScript(movieScripts[songID_to_listID(gs.player[0].stagesPlayed[gs.currentStage])].c_str()); // I love the "])]" on this line!!!
 	gs.playSong();
+	gs.bgmSyncAnchored = false;
+	gs.bgmAnchorWall    = 0;
+	gs.bgmAnchorFmodMs  = 0;
+	gs.bgmLastFmodPos   = 0;
 	vm.play();
 	isMidTransition = true;
 	songTransitionTime = BANNER_ANIM_LENGTH;

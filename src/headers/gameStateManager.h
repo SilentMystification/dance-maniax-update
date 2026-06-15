@@ -40,7 +40,11 @@ public:
 	int     currentSong;
 	int     currentSongLength;
 	int     currentSongChannel; // used by FMOD hardware functions
-	int     bgmGap;             // how many ms early or late to start the bgm
+	int     bgmGap;             // hardware audio output latency in ms: ASIO output buffer OR DirectSound/Windows Audio Engine period
+	bool         bgmSyncAnchored;   // true once FMOD has produced at least one position
+	UTIME        bgmAnchorWall;     // timeGetTime() at last re-anchor
+	int          bgmAnchorFmodMs;   // FMOD position in ms at last re-anchor
+	unsigned int bgmLastFmodPos;    // raw FMOD sample position at last re-anchor (change detection)
 	bool	currentSongIsPreview;
 
 	// non-player game state data
@@ -286,6 +290,11 @@ public:
 		currentSongSample = NULL;
 		currentSongLength = -1;
 		currentSongChannel = -1;
+		bgmGap = 0;
+		bgmSyncAnchored = false;
+		bgmAnchorWall = 0;
+		bgmAnchorFmodMs = 0;
+		bgmLastFmodPos = 0;
 		currentSongIsPreview = false;
 		bgmGap = 0;
 
