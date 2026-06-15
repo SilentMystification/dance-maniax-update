@@ -284,8 +284,10 @@ void mainGameplayLoop(UTIME dt)
 	if (gs.bgmSyncAnchored)
 	{
 		long syncedBase = (long)(now - gs.bgmAnchorWall) + gs.bgmAnchorFmodMs + FMOD_BUFFER_COMP_MS;
-		int gap0 = sm.player[0].hasCustomAudioOffset ? sm.player[0].audioOffset : gs.bgmGap;
-		int gap1 = sm.player[1].hasCustomAudioOffset ? sm.player[1].audioOffset : gs.bgmGap;
+		bool useCustom0 = (sm.player[0].useSimpleMenu == 1) && sm.player[0].hasCustomAudioOffset;
+		bool useCustom1 = (sm.player[1].useSimpleMenu == 1) && sm.player[1].hasCustomAudioOffset;
+		int gap0 = useCustom0 ? sm.player[0].audioOffset : gs.bgmGap;
+		int gap1 = useCustom1 ? sm.player[1].audioOffset : gs.bgmGap;
 		gs.player[0].timeElapsed = (UTIME)MAX(0, syncedBase + gap0);
 		gs.player[1].timeElapsed = (UTIME)MAX(0, syncedBase + gap1);
 	}

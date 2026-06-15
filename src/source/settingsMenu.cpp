@@ -43,8 +43,8 @@ static const int   s_scoreModeValues[]     = { 0, 1 };
 static const char* s_scrollModeOptions[]   = { "Classic", "Fixed" };
 static const int   s_scrollModeValues[]    = { 0, 1 };
 
-static const char* s_classicSpeedOptions[] = { "1x","1.5x","2x","2.5x","3x","3.5x","4x","5x","6x","7x","8x" };
-static const int   s_classicSpeedValues[]  = { 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80 };
+static const char* s_classicSpeedOptions[] = { "1.0x","1.5x","2.0x","2.5x","3.0x","5.0x","8.0x" };
+static const int   s_classicSpeedValues[]  = { 10, 15, 20, 25, 30, 50, 80 };
 
 static const char* s_judgPosOptions[]      = { "Off","Bottom","Lower","Upper","Top" };
 static const int   s_judgPosValues[]       = { 0, 1, 2, 3, 4 };
@@ -68,142 +68,247 @@ static const int   s_positionValues[]      = { 1, 0, 2 };
 // SettingsMenu implementation
 //////////////////////////////////////////////////////////////////////////////
 
+static void fillToggleItem(SettingsItem& item, PLAYER_DATA& p)
+{
+	static const char* s_menuModeOptions[] = { "Simple", "Expert" };
+	static const int   s_menuModeValues[]  = { 0, 1 };
+	item.name             = "Menu Mode";
+	item.type             = SETTINGS_LIST;
+	item.dependency       = DEP_NONE;
+	item.options          = s_menuModeOptions;
+	item.optionValues     = s_menuModeValues;
+	item.optionCount      = 2;
+	item.value            = &p.useSimpleMenu;
+	item.flagToSetOnChange= NULL;
+}
+
+void SettingsMenu::resetSettings(int playerData)
+{
+	m_selectedItem = 0;
+
+	if ( sm.player[playerData].useSimpleMenu == 0 )
+	{
+		// simple mode: apply forced defaults to runtime state
+		gs.player[playerData].scrollMode             = 0;
+		gs.player[playerData].speedMod               = sm.player[playerData].speedMod;
+		gs.player[playerData].fixedScrollPPS         = sm.player[playerData].fixedScrollPPS;
+		gs.player[playerData].visualOffset           = 0;
+		gs.player[playerData].judgementPositionMode  = 0;
+		gs.player[playerData].judgementMsDisplayMode = 4;
+		gs.player[playerData].judgementEarlyLateMode = 0;
+	}
+	else
+	{
+		// expert mode: apply all saved profile values
+		gs.player[playerData].scrollMode             = sm.player[playerData].scrollMode;
+		gs.player[playerData].speedMod               = sm.player[playerData].speedMod;
+		gs.player[playerData].fixedScrollPPS         = sm.player[playerData].fixedScrollPPS;
+		gs.player[playerData].visualOffset           = sm.player[playerData].visualOffset;
+		gs.player[playerData].judgementPositionMode  = sm.player[playerData].judgementPositionMode;
+		gs.player[playerData].judgementMsDisplayMode = sm.player[playerData].judgementMsDisplayMode;
+		gs.player[playerData].judgementEarlyLateMode = sm.player[playerData].judgementEarlyLateMode;
+	}
+	{ int rm = sm.player[playerData].reverseMode;
+	  gs.player[playerData].reverseModifier = (rm == 2) ? (unsigned char)0x99 : (rm != 0 ? (unsigned char)0xFF : (unsigned char)0x00); }
+	gs.player[playerData].arrangeModifier = (char)sm.player[playerData].mirrorMode;
+	if ( !gs.isDoubles && !gs.isVersus )
+	{
+		gs.player[playerData].centerLeft  = (sm.player[playerData].playPosition == 1);
+		gs.player[playerData].centerRight = (sm.player[playerData].playPosition == 2);
+	}
+}
+
 void SettingsMenu::buildItemList(int player)
 {
-	m_itemCount = 0;
-	struct PLAYER_DATA& p = sm.player[player];
+	m_itemCount  = 0;
+	m_isAdvanced = (sm.player[player].useSimpleMenu == 1);
+	PLAYER_DATA& p = sm.player[player];
 
-	// 1. Score Mode
-	m_items[m_itemCount].name             = "Score Mode";
-	m_items[m_itemCount].type             = SETTINGS_LIST;
-	m_items[m_itemCount].dependency       = DEP_NONE;
-	m_items[m_itemCount].options          = s_scoreModeOptions;
-	m_items[m_itemCount].optionValues     = s_scoreModeValues;
-	m_items[m_itemCount].optionCount      = 2;
-	m_items[m_itemCount].value            = &p.scoreMode;
-	m_items[m_itemCount].flagToSetOnChange= NULL;
-	m_itemCount++;
+	if ( !m_isAdvanced )
+	{
+		// Simple menu: Speed, Reverse, Mirror, Play Position, toggle
+		m_items[m_itemCount].name             = "Lane Speed";
+		m_items[m_itemCount].type             = SETTINGS_LIST;
+		m_items[m_itemCount].dependency       = DEP_NONE; // scroll mode forced Classic; always visible
+		m_items[m_itemCount].options          = s_classicSpeedOptions;
+		m_items[m_itemCount].optionValues     = s_classicSpeedValues;
+		m_items[m_itemCount].optionCount      = 7;
+		m_items[m_itemCount].value            = &p.speedMod;
+		m_items[m_itemCount].flagToSetOnChange= NULL;
+		m_itemCount++;
 
-	// 2. Scroll Mode
-	m_items[m_itemCount].name             = "Scroll Mode";
-	m_items[m_itemCount].type             = SETTINGS_LIST;
-	m_items[m_itemCount].dependency       = DEP_NONE;
-	m_items[m_itemCount].options          = s_scrollModeOptions;
-	m_items[m_itemCount].optionValues     = s_scrollModeValues;
-	m_items[m_itemCount].optionCount      = 2;
-	m_items[m_itemCount].value            = &p.scrollMode;
-	m_items[m_itemCount].flagToSetOnChange= NULL;
-	m_itemCount++;
+		m_items[m_itemCount].name             = "Reverse";
+		m_items[m_itemCount].type             = SETTINGS_LIST;
+		m_items[m_itemCount].dependency       = DEP_NONE;
+		m_items[m_itemCount].options          = s_reverseOptions;
+		m_items[m_itemCount].optionValues     = s_reverseValues;
+		m_items[m_itemCount].optionCount      = 4;
+		m_items[m_itemCount].value            = &p.reverseMode;
+		m_items[m_itemCount].flagToSetOnChange= NULL;
+		m_itemCount++;
 
-	// 3. Lane Speed (visible when Classic scroll mode)
-	m_items[m_itemCount].name             = "Lane Speed";
-	m_items[m_itemCount].type             = SETTINGS_LIST;
-	m_items[m_itemCount].dependency       = DEP_SCROLL_CLASSIC;
-	m_items[m_itemCount].options          = s_classicSpeedOptions;
-	m_items[m_itemCount].optionValues     = s_classicSpeedValues;
-	m_items[m_itemCount].optionCount      = 11;
-	m_items[m_itemCount].value            = &p.speedMod;
-	m_items[m_itemCount].flagToSetOnChange= NULL;
-	m_itemCount++;
+		m_items[m_itemCount].name             = "Mirror";
+		m_items[m_itemCount].type             = SETTINGS_LIST;
+		m_items[m_itemCount].dependency       = DEP_NONE;
+		m_items[m_itemCount].options          = s_mirrorOptions;
+		m_items[m_itemCount].optionValues     = s_mirrorValues;
+		m_items[m_itemCount].optionCount      = 3;
+		m_items[m_itemCount].value            = &p.mirrorMode;
+		m_items[m_itemCount].flagToSetOnChange= NULL;
+		m_itemCount++;
 
-	// 4. Lane Speed (visible when Fixed scroll mode)
-	m_items[m_itemCount].name             = "Lane Speed";
-	m_items[m_itemCount].type             = SETTINGS_RANGE;
-	m_items[m_itemCount].dependency       = DEP_SCROLL_FIXED;
-	m_items[m_itemCount].minVal           = 25;
-	m_items[m_itemCount].maxVal           = 700;
-	m_items[m_itemCount].step             = 5;
-	m_items[m_itemCount].value            = &p.fixedScrollPPS;
-	m_items[m_itemCount].flagToSetOnChange= NULL;
-	m_itemCount++;
+		m_items[m_itemCount].name             = "Play Position";
+		m_items[m_itemCount].type             = SETTINGS_LIST;
+		m_items[m_itemCount].dependency       = DEP_PLAY_POSITION;
+		m_items[m_itemCount].options          = s_positionOptions;
+		m_items[m_itemCount].optionValues     = s_positionValues;
+		m_items[m_itemCount].optionCount      = 3;
+		m_items[m_itemCount].value            = &p.playPosition;
+		m_items[m_itemCount].flagToSetOnChange= NULL;
+		m_itemCount++;
 
-	// 5. Reverse
-	m_items[m_itemCount].name             = "Reverse";
-	m_items[m_itemCount].type             = SETTINGS_LIST;
-	m_items[m_itemCount].dependency       = DEP_NONE;
-	m_items[m_itemCount].options          = s_reverseOptions;
-	m_items[m_itemCount].optionValues     = s_reverseValues;
-	m_items[m_itemCount].optionCount      = 4;
-	m_items[m_itemCount].value            = &p.reverseMode;
-	m_items[m_itemCount].flagToSetOnChange= NULL;
-	m_itemCount++;
+		fillToggleItem(m_items[m_itemCount], p);
+		m_itemCount++;
+	}
+	else
+	{
+		// Advanced menu: 13 items, toggle at index 8
+		// 0. Lane Speed (Classic)
+		m_items[m_itemCount].name             = "Lane Speed";
+		m_items[m_itemCount].type             = SETTINGS_LIST;
+		m_items[m_itemCount].dependency       = DEP_SCROLL_CLASSIC;
+		m_items[m_itemCount].options          = s_classicSpeedOptions;
+		m_items[m_itemCount].optionValues     = s_classicSpeedValues;
+		m_items[m_itemCount].optionCount      = 7;
+		m_items[m_itemCount].value            = &p.speedMod;
+		m_items[m_itemCount].flagToSetOnChange= NULL;
+		m_itemCount++;
 
-	// 6. Mirror
-	m_items[m_itemCount].name             = "Mirror";
-	m_items[m_itemCount].type             = SETTINGS_LIST;
-	m_items[m_itemCount].dependency       = DEP_NONE;
-	m_items[m_itemCount].options          = s_mirrorOptions;
-	m_items[m_itemCount].optionValues     = s_mirrorValues;
-	m_items[m_itemCount].optionCount      = 3;
-	m_items[m_itemCount].value            = &p.mirrorMode;
-	m_items[m_itemCount].flagToSetOnChange= NULL;
-	m_itemCount++;
+		// 1. Lane Speed (Fixed)
+		m_items[m_itemCount].name             = "Lane Speed";
+		m_items[m_itemCount].type             = SETTINGS_RANGE;
+		m_items[m_itemCount].dependency       = DEP_SCROLL_FIXED;
+		m_items[m_itemCount].minVal           = 25;
+		m_items[m_itemCount].maxVal           = 700;
+		m_items[m_itemCount].step             = 5;
+		m_items[m_itemCount].value            = &p.fixedScrollPPS;
+		m_items[m_itemCount].flagToSetOnChange= NULL;
+		m_itemCount++;
 
-	// 7. Play Position (singles / freestyle only)
-	m_items[m_itemCount].name             = "Play Position";
-	m_items[m_itemCount].type             = SETTINGS_LIST;
-	m_items[m_itemCount].dependency       = DEP_PLAY_POSITION;
-	m_items[m_itemCount].options          = s_positionOptions;
-	m_items[m_itemCount].optionValues     = s_positionValues;
-	m_items[m_itemCount].optionCount      = 3;
-	m_items[m_itemCount].value            = &p.playPosition;
-	m_items[m_itemCount].flagToSetOnChange= NULL;
-	m_itemCount++;
+		// 2. Reverse
+		m_items[m_itemCount].name             = "Reverse";
+		m_items[m_itemCount].type             = SETTINGS_LIST;
+		m_items[m_itemCount].dependency       = DEP_NONE;
+		m_items[m_itemCount].options          = s_reverseOptions;
+		m_items[m_itemCount].optionValues     = s_reverseValues;
+		m_items[m_itemCount].optionCount      = 4;
+		m_items[m_itemCount].value            = &p.reverseMode;
+		m_items[m_itemCount].flagToSetOnChange= NULL;
+		m_itemCount++;
 
-	// 8. Audio Offset (replaces bgmGap per-player when hasCustomAudioOffset is true)
-	m_items[m_itemCount].name             = "Audio Offset";
-	m_items[m_itemCount].type             = SETTINGS_RANGE;
-	m_items[m_itemCount].dependency       = DEP_NONE;
-	m_items[m_itemCount].minVal           = -500;
-	m_items[m_itemCount].maxVal           = 500;
-	m_items[m_itemCount].step             = 1;
-	m_items[m_itemCount].value            = &p.audioOffset;
-	m_items[m_itemCount].flagToSetOnChange= &p.hasCustomAudioOffset;
-	m_itemCount++;
+		// 3. Mirror
+		m_items[m_itemCount].name             = "Mirror";
+		m_items[m_itemCount].type             = SETTINGS_LIST;
+		m_items[m_itemCount].dependency       = DEP_NONE;
+		m_items[m_itemCount].options          = s_mirrorOptions;
+		m_items[m_itemCount].optionValues     = s_mirrorValues;
+		m_items[m_itemCount].optionCount      = 3;
+		m_items[m_itemCount].value            = &p.mirrorMode;
+		m_items[m_itemCount].flagToSetOnChange= NULL;
+		m_itemCount++;
 
-	// 9. Visual Offset
-	m_items[m_itemCount].name             = "Visual Offset";
-	m_items[m_itemCount].type             = SETTINGS_RANGE;
-	m_items[m_itemCount].dependency       = DEP_NONE;
-	m_items[m_itemCount].minVal           = -100;
-	m_items[m_itemCount].maxVal           = 100;
-	m_items[m_itemCount].step             = 1;
-	m_items[m_itemCount].value            = &p.visualOffset;
-	m_items[m_itemCount].flagToSetOnChange= NULL;
-	m_itemCount++;
+		// 4. Play Position
+		m_items[m_itemCount].name             = "Play Position";
+		m_items[m_itemCount].type             = SETTINGS_LIST;
+		m_items[m_itemCount].dependency       = DEP_PLAY_POSITION;
+		m_items[m_itemCount].options          = s_positionOptions;
+		m_items[m_itemCount].optionValues     = s_positionValues;
+		m_items[m_itemCount].optionCount      = 3;
+		m_items[m_itemCount].value            = &p.playPosition;
+		m_items[m_itemCount].flagToSetOnChange= NULL;
+		m_itemCount++;
 
-	// 10. Judgment Display Position
-	m_items[m_itemCount].name             = "Judgment Position";
-	m_items[m_itemCount].type             = SETTINGS_LIST;
-	m_items[m_itemCount].dependency       = DEP_NONE;
-	m_items[m_itemCount].options          = s_judgPosOptions;
-	m_items[m_itemCount].optionValues     = s_judgPosValues;
-	m_items[m_itemCount].optionCount      = 5;
-	m_items[m_itemCount].value            = &p.judgementPositionMode;
-	m_items[m_itemCount].flagToSetOnChange= NULL;
-	m_itemCount++;
+		// 5. Menu Mode toggle (between Play Position and Judgment Position)
+		fillToggleItem(m_items[m_itemCount], p);
+		m_itemCount++;
 
-	// 11. Judgment Display Text (visible when Position != Off)
-	m_items[m_itemCount].name             = "Early / Late Display";
-	m_items[m_itemCount].type             = SETTINGS_LIST;
-	m_items[m_itemCount].dependency       = DEP_JUDGMENT_ON;
-	m_items[m_itemCount].options          = s_judgTextOptions;
-	m_items[m_itemCount].optionValues     = s_judgTextValues;
-	m_items[m_itemCount].optionCount      = 4;
-	m_items[m_itemCount].value            = &p.judgementEarlyLateMode;
-	m_items[m_itemCount].flagToSetOnChange= NULL;
-	m_itemCount++;
+		// 7. Judgment Position
+		m_items[m_itemCount].name             = "Judgment Position";
+		m_items[m_itemCount].type             = SETTINGS_LIST;
+		m_items[m_itemCount].dependency       = DEP_NONE;
+		m_items[m_itemCount].options          = s_judgPosOptions;
+		m_items[m_itemCount].optionValues     = s_judgPosValues;
+		m_items[m_itemCount].optionCount      = 5;
+		m_items[m_itemCount].value            = &p.judgementPositionMode;
+		m_items[m_itemCount].flagToSetOnChange= NULL;
+		m_itemCount++;
 
-	// 12. Judgment Display MS (visible when Position != Off)
-	m_items[m_itemCount].name             = "+- MS Display";
-	m_items[m_itemCount].type             = SETTINGS_LIST;
-	m_items[m_itemCount].dependency       = DEP_JUDGMENT_ON;
-	m_items[m_itemCount].options          = s_judgMsOptions;
-	m_items[m_itemCount].optionValues     = s_judgMsValues;
-	m_items[m_itemCount].optionCount      = 5;
-	m_items[m_itemCount].value            = &p.judgementMsDisplayMode;
-	m_items[m_itemCount].flagToSetOnChange= NULL;
-	m_itemCount++;
+		// 8. Early / Late Display
+		m_items[m_itemCount].name             = "Early / Late Display";
+		m_items[m_itemCount].type             = SETTINGS_LIST;
+		m_items[m_itemCount].dependency       = DEP_JUDGMENT_ON;
+		m_items[m_itemCount].options          = s_judgTextOptions;
+		m_items[m_itemCount].optionValues     = s_judgTextValues;
+		m_items[m_itemCount].optionCount      = 4;
+		m_items[m_itemCount].value            = &p.judgementEarlyLateMode;
+		m_items[m_itemCount].flagToSetOnChange= NULL;
+		m_itemCount++;
+
+		// 9. +- MS Display
+		m_items[m_itemCount].name             = "+- MS Display";
+		m_items[m_itemCount].type             = SETTINGS_LIST;
+		m_items[m_itemCount].dependency       = DEP_JUDGMENT_ON;
+		m_items[m_itemCount].options          = s_judgMsOptions;
+		m_items[m_itemCount].optionValues     = s_judgMsValues;
+		m_items[m_itemCount].optionCount      = 5;
+		m_items[m_itemCount].value            = &p.judgementMsDisplayMode;
+		m_items[m_itemCount].flagToSetOnChange= NULL;
+		m_itemCount++;
+
+		// 9. Visual Offset
+		m_items[m_itemCount].name             = "Visual Offset";
+		m_items[m_itemCount].type             = SETTINGS_RANGE;
+		m_items[m_itemCount].dependency       = DEP_NONE;
+		m_items[m_itemCount].minVal           = -100;
+		m_items[m_itemCount].maxVal           = 100;
+		m_items[m_itemCount].step             = 1;
+		m_items[m_itemCount].value            = &p.visualOffset;
+		m_items[m_itemCount].flagToSetOnChange= NULL;
+		m_itemCount++;
+
+		// 10. Audio Offset
+		m_items[m_itemCount].name             = "Audio Offset";
+		m_items[m_itemCount].type             = SETTINGS_RANGE;
+		m_items[m_itemCount].dependency       = DEP_NONE;
+		m_items[m_itemCount].minVal           = -500;
+		m_items[m_itemCount].maxVal           = 500;
+		m_items[m_itemCount].step             = 1;
+		m_items[m_itemCount].value            = &p.audioOffset;
+		m_items[m_itemCount].flagToSetOnChange= &p.hasCustomAudioOffset;
+		m_itemCount++;
+
+		// 11. Score Mode
+		m_items[m_itemCount].name             = "Score Mode";
+		m_items[m_itemCount].type             = SETTINGS_LIST;
+		m_items[m_itemCount].dependency       = DEP_NONE;
+		m_items[m_itemCount].options          = s_scoreModeOptions;
+		m_items[m_itemCount].optionValues     = s_scoreModeValues;
+		m_items[m_itemCount].optionCount      = 2;
+		m_items[m_itemCount].value            = &p.scoreMode;
+		m_items[m_itemCount].flagToSetOnChange= NULL;
+		m_itemCount++;
+
+		// 12. Scroll Mode
+		m_items[m_itemCount].name             = "Scroll Mode";
+		m_items[m_itemCount].type             = SETTINGS_LIST;
+		m_items[m_itemCount].dependency       = DEP_NONE;
+		m_items[m_itemCount].options          = s_scrollModeOptions;
+		m_items[m_itemCount].optionValues     = s_scrollModeValues;
+		m_items[m_itemCount].optionCount      = 2;
+		m_items[m_itemCount].value            = &p.scrollMode;
+		m_items[m_itemCount].flagToSetOnChange= NULL;
+		m_itemCount++;
+	}
 }
 
 bool SettingsMenu::isItemVisible(int index) const
@@ -248,7 +353,6 @@ void SettingsMenu::open(int playerData, int side)
 	m_isClosing    = false;
 	m_slideTimer   = 0;
 	m_slideOffsetX = (m_player == 0) ? -SETTINGS_PANEL_WIDTH : SCREEN_WIDTH;
-	m_selectedItem = 0;
 	m_isEditingItem= false;
 	m_optionSlideOffset = 0;
 	m_optionSlideTimer  = 0;
@@ -297,6 +401,17 @@ void SettingsMenu::open(int playerData, int side)
 	}
 
 	advanceSelectionIfHidden();
+
+	// advanced mode: snap scroll immediately so there's no animation on open
+	if ( m_isAdvanced )
+	{
+		int selCenter = SCREEN_HEIGHT / 2 - SETTINGS_ITEM_HEIGHT / 2;
+		int selVisIdx = 0;
+		for ( int i = 0; i < m_selectedItem; i++ )
+			if ( isItemVisible(i) ) selVisIdx++;
+		m_scrollY       = SETTINGS_START_Y - selCenter + selVisIdx * SETTINGS_ITEM_HEIGHT;
+		m_targetScrollY = m_scrollY;
+	}
 }
 
 void SettingsMenu::close()
@@ -357,10 +472,11 @@ void SettingsMenu::handleInput(UTIME dt)
 		int prevSelected = m_selectedItem;
 		if ( leftDown )
 		{
-			// move up
+			// move up — advanced mode wraps infinitely; simple mode stops at top
 			for ( int i = 1; i <= m_itemCount; i++ )
 			{
 				int candidate = (m_selectedItem - i + m_itemCount) % m_itemCount;
+				if ( !m_isAdvanced && candidate > m_selectedItem ) break; // no wrap in simple
 				if ( isItemVisible(candidate) )
 				{
 					m_selectedItem = candidate;
@@ -370,10 +486,11 @@ void SettingsMenu::handleInput(UTIME dt)
 		}
 		else if ( rightDown )
 		{
-			// move down
+			// move down — advanced mode wraps infinitely; simple mode stops at bottom
 			for ( int i = 1; i <= m_itemCount; i++ )
 			{
 				int candidate = (m_selectedItem + i) % m_itemCount;
+				if ( !m_isAdvanced && candidate < m_selectedItem ) break; // no wrap in simple
 				if ( isItemVisible(candidate) )
 				{
 					m_selectedItem = candidate;
@@ -385,7 +502,23 @@ void SettingsMenu::handleInput(UTIME dt)
 		{
 			bool wrapped = (leftDown  && m_selectedItem > prevSelected) ||
 			               (rightDown && m_selectedItem < prevSelected);
-			if ( wrapped ) m_snapSelector = true;
+			if ( wrapped )
+			{
+				if ( m_isAdvanced )
+				{
+					// offset m_scrollY so the animation continues one step in the same direction
+					int totalVisible = 0;
+					for ( int i = 0; i < m_itemCount; i++ )
+						if ( isItemVisible(i) ) totalVisible++;
+					int totalListH = totalVisible * SETTINGS_ITEM_HEIGHT;
+					if ( rightDown ) m_scrollY -= totalListH; // last→first: keep scrolling up
+					else             m_scrollY += totalListH; // first→last: keep scrolling down
+				}
+				else
+				{
+					m_snapSelector = true; // simple mode (no wrap, safety only)
+				}
+			}
 			em.playSample(SFX_SONGWHEEL_MOVE);
 		}
 		if ( startDown )
@@ -403,10 +536,61 @@ void SettingsMenu::handleInput(UTIME dt)
 		if ( startDown )
 		{
 			em.playSample(SFX_SONGWHEEL_APPEAR);
-			// commit: record the newly confirmed value so it renders green
+			int prevSaved = m_items[m_selectedItem].savedValue; // capture before overwrite
 			m_items[m_selectedItem].savedValue = *m_items[m_selectedItem].value;
 			m_isEditingItem = false;
 			m_holdDir = 0; m_holdTime = 0; m_repeatTimer = 0;
+
+			// check if the committed item is the menu mode toggle
+			if ( m_items[m_selectedItem].value == &sm.player[m_playerData].useSimpleMenu )
+			{
+				int newMode = sm.player[m_playerData].useSimpleMenu;
+				if ( newMode == prevSaved )
+				{
+					// no change — exit edit mode silently
+					return;
+				}
+				if ( newMode == 1 )
+					em.announcerQuip(82); // switching to Advanced: GAME_0082.wav
+				else
+					em.announcerQuip(79); // switching to Simple: GAME_0079.wav
+
+				buildItemList(m_playerData);
+
+				// find the toggle item in the new list and land on it
+				m_selectedItem = 0;
+				for ( int i = 0; i < m_itemCount; i++ )
+				{
+					if ( m_items[i].value == &sm.player[m_playerData].useSimpleMenu )
+					{
+						m_selectedItem = i;
+						break;
+					}
+				}
+				// snapshot savedValues for the rebuilt list
+				for ( int i = 0; i < m_itemCount; i++ )
+					m_items[i].savedValue = *m_items[i].value;
+				// audio offset special case: seed display from bgmGap if not custom
+				for ( int i = 0; i < m_itemCount; i++ )
+				{
+					if ( m_items[i].flagToSetOnChange == &sm.player[m_playerData].hasCustomAudioOffset )
+					{
+						if ( !sm.player[m_playerData].hasCustomAudioOffset )
+						{
+							m_items[i].savedValue = gs.bgmGap;
+							*m_items[i].value     = gs.bgmGap;
+						}
+						break;
+					}
+				}
+				// reset scroll so the new list starts fresh
+				m_scrollY              = 0;
+				m_targetScrollY        = 0;
+				m_selectorPanelY       = -9999; // snap on next render
+				m_snapSelector         = false;
+				return;
+			}
+
 			advanceSelectionIfHidden(); // item may have become hidden (e.g. scroll mode change)
 			return;
 		}
@@ -531,7 +715,7 @@ void SettingsMenu::render(UTIME dt)
 	rect(rm.m_backbuf, panelLeft,     0, panelRight,     SCREEN_HEIGHT - 1, makecol(0, 0, 0));
 	rect(rm.m_backbuf, panelLeft + 1, 1, panelRight - 1, SCREEN_HEIGHT - 2, makecol(0, 0, 0));
 
-	// ---- compute scroll target to keep selected item fully in view ----
+	// count visible items and find selected item's visible index
 	int selectedVisibleIdx = 0;
 	int totalVisible       = 0;
 	for ( int i = 0; i < m_itemCount; i++ )
@@ -540,17 +724,39 @@ void SettingsMenu::render(UTIME dt)
 		if ( i < m_selectedItem ) selectedVisibleIdx++;
 		totalVisible++;
 	}
+	int totalListH = totalVisible * SETTINGS_ITEM_HEIGHT;
 
-	int visibleHeight = SCREEN_HEIGHT - SETTINGS_START_Y;
-	int selTop        = selectedVisibleIdx * SETTINGS_ITEM_HEIGHT;
-	int selBottom     = selTop + SETTINGS_ITEM_HEIGHT;
+	if ( !m_isAdvanced )
+	{
+		// Simple mode: center items vertically; selector slides to selected item
+		int startY = MAX(0, (SCREEN_HEIGHT - totalListH) / 2);
+		m_targetScrollY = SETTINGS_START_Y - startY; // negative = items pushed below SETTINGS_START_Y
 
-	if ( selBottom > m_targetScrollY + visibleHeight ) m_targetScrollY = selBottom - visibleHeight;
-	if ( selTop    < m_targetScrollY                 ) m_targetScrollY = selTop;
-
-	int maxScroll = MAX(0, totalVisible * SETTINGS_ITEM_HEIGHT - visibleHeight);
-	if ( m_targetScrollY < 0         ) m_targetScrollY = 0;
-	if ( m_targetScrollY > maxScroll ) m_targetScrollY = maxScroll;
+		m_targetSelectorPanelY = SETTINGS_START_Y + selectedVisibleIdx * SETTINGS_ITEM_HEIGHT;
+		if ( m_selectorPanelY == -9999 || m_snapSelector )
+		{
+			m_selectorPanelY = m_targetSelectorPanelY;
+			m_snapSelector   = false;
+		}
+		else if ( m_selectorPanelY != m_targetSelectorPanelY )
+		{
+			int sdiff    = m_targetSelectorPanelY - m_selectorPanelY;
+			int smaxStep = MAX(1, SETTINGS_SELECTOR_SPEED * (int)dt / 1000);
+			if ( sdiff < 0 ? -sdiff <= smaxStep : sdiff <= smaxStep )
+				m_selectorPanelY = m_targetSelectorPanelY;
+			else
+				m_selectorPanelY += (sdiff > 0) ? smaxStep : -smaxStep;
+		}
+	}
+	else
+	{
+		// Advanced mode: selector fixed at screen center; items scroll to it
+		int selCenter   = SCREEN_HEIGHT / 2 - SETTINGS_ITEM_HEIGHT / 2;
+		m_targetScrollY = SETTINGS_START_Y - selCenter + selectedVisibleIdx * SETTINGS_ITEM_HEIGHT;
+		// m_selectorPanelY tracks m_scrollY so (panelY - scrollY) == selCenter always
+		m_selectorPanelY = selCenter + m_scrollY;
+		m_snapSelector   = false;
+	}
 
 	// animate scroll toward target
 	if ( m_scrollY != m_targetScrollY )
@@ -563,38 +769,26 @@ void SettingsMenu::render(UTIME dt)
 			m_scrollY += (diff > 0) ? maxStep : -maxStep;
 	}
 
-	// animate selector toward target (panel-space Y, subtract m_scrollY for screen Y)
-	m_targetSelectorPanelY = SETTINGS_START_Y + selectedVisibleIdx * SETTINGS_ITEM_HEIGHT;
-	if ( m_selectorPanelY == -9999 || m_snapSelector )
-	{
-		m_selectorPanelY = m_targetSelectorPanelY; // snap on first frame or wrap-around
-		m_snapSelector   = false;
-	}
-	else if ( m_selectorPanelY != m_targetSelectorPanelY )
-	{
-		int sdiff    = m_targetSelectorPanelY - m_selectorPanelY;
-		int smaxStep = MAX(1, SETTINGS_SELECTOR_SPEED * (int)dt / 1000);
-		if ( sdiff < 0 ? -sdiff <= smaxStep : sdiff <= smaxStep )
-			m_selectorPanelY = m_targetSelectorPanelY;
-		else
-			m_selectorPanelY += (sdiff > 0) ? smaxStep : -smaxStep;
-	}
-
 	// clip to panel inner area — set before outlines and selector so nothing overdraws the border
 	int savedCX1, savedCY1, savedCX2, savedCY2;
 	get_clip_rect(rm.m_backbuf, &savedCX1, &savedCY1, &savedCX2, &savedCY2);
 	set_clip_rect(rm.m_backbuf, panelLeft + 2, 0, panelRight - 2, SCREEN_HEIGHT - 1);
 
-	// pre-pass: draw a darker purple outline around every item box
+	// pre-pass: draw item outlines; advanced mode draws 3 repetitions for infinite wrap
 	{
-		int preY = SETTINGS_START_Y - m_scrollY;
-		for ( int i = 0; i < m_itemCount; i++ )
+		int numReps = m_isAdvanced ? 3 : 1;
+		for ( int rep = 0; rep < numReps; rep++ )
 		{
-			if ( !isItemVisible(i) ) continue;
-			int iy = preY;
-			preY += SETTINGS_ITEM_HEIGHT;
-			if ( iy + SETTINGS_ITEM_HEIGHT <= 0 || iy >= SCREEN_HEIGHT ) continue;
-			rect(rm.m_backbuf, panelLeft + 2, iy, panelRight - 2, iy + SETTINGS_ITEM_HEIGHT - 2, SETTINGS_ITEM_OUTLINE_COLOR);
+			int repOffset = m_isAdvanced ? (rep - 1) * totalListH : 0;
+			int preY = SETTINGS_START_Y - m_scrollY + repOffset;
+			for ( int i = 0; i < m_itemCount; i++ )
+			{
+				if ( !isItemVisible(i) ) continue;
+				int iy = preY;
+				preY += SETTINGS_ITEM_HEIGHT;
+				if ( iy + SETTINGS_ITEM_HEIGHT <= 0 || iy >= SCREEN_HEIGHT ) continue;
+				rect(rm.m_backbuf, panelLeft + 2, iy, panelRight - 2, iy + SETTINGS_ITEM_HEIGHT - 2, SETTINGS_ITEM_OUTLINE_COLOR);
+			}
 		}
 	}
 
@@ -612,8 +806,13 @@ void SettingsMenu::render(UTIME dt)
 		rect(rm.m_backbuf, hx1 + 1, hy1 + 1, hx2 - 1, hy2 - 1, SETTINGS_HIGHLIGHT_COLOR);
 	}
 
-	// ---- draw items ----
-	int visItemY = SETTINGS_START_Y - m_scrollY;
+	// ---- draw items (advanced mode loops 3 times for infinite wrap) ----
+	int numReps = m_isAdvanced ? 3 : 1;
+	for ( int rep = 0; rep < numReps; rep++ )
+	{
+	bool isMainRep = (!m_isAdvanced || rep == 1); // edit-mode decorations only on the center pass
+	int repOffset  = m_isAdvanced ? (rep - 1) * totalListH : 0;
+	int visItemY   = SETTINGS_START_Y - m_scrollY + repOffset;
 	for ( int i = 0; i < m_itemCount; i++ )
 	{
 		if ( !isItemVisible(i) ) continue;
@@ -624,7 +823,7 @@ void SettingsMenu::render(UTIME dt)
 		// skip items fully off-screen
 		if ( itemY + SETTINGS_ITEM_HEIGHT <= 0 || itemY >= SCREEN_HEIGHT ) continue;
 
-		bool isSelected = (i == m_selectedItem);
+		bool isSelected = isMainRep && (i == m_selectedItem);
 
 		int nameW  = getBoldStringWidth(m_items[i].name);
 		int titleX = MAX(panelLeft + 4, panelLeft + SETTINGS_PANEL_WIDTH / 2 - nameW / 2);
@@ -802,6 +1001,7 @@ void SettingsMenu::render(UTIME dt)
 			triangle(rm.m_backbuf, triCx, triTipY, triCx - 5, triBaseY, triCx + 5, triBaseY, makecol(255, 215, 0));
 		}
 	}
+	} // end rep loop
 
 	// restore clip rect and alpha blending mode
 	set_clip_rect(rm.m_backbuf, savedCX1, savedCY1, savedCX2, savedCY2);

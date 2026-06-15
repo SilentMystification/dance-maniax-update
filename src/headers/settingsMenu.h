@@ -44,6 +44,7 @@ public:
 	void open(int playerData, int side);
 	void close();
 	void forceClose();
+	void resetSettings(int playerData); // call at credit start: resets cursor and applies mode defaults to gs.player
 	bool isOpen() const;
 	bool isFullyClosed() const;
 	bool isEditing() const;
@@ -57,8 +58,9 @@ private:
 
 	int          m_player;     // visual/input side: 0=left panel+1P buttons, 1=right panel+2P buttons
 	int          m_playerData; // which sm.player[] slot holds the settings (may differ from m_player in doubles)
-	SettingsItem m_items[16];
+	SettingsItem m_items[20];
 	int          m_itemCount;
+	bool         m_isAdvanced;
 	int          m_selectedItem;
 	bool         m_isEditingItem;
 	int          m_slideOffsetX;

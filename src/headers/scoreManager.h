@@ -186,6 +186,7 @@ struct PLAYER_DATA
 	int reverseMode;            // 0=Off, 1=Reverse, 2=Cross, 3=Inverted (stub=Reverse)
 	int mirrorMode;             // 0=Off, 1=Mirror, 2=Upside-Down
 	int playPosition;           // -1=Unset(login side), 0=Center, 1=Left, 2=Right
+	int useSimpleMenu;          // 0=Simple (default), 1=Advanced
 	int lastSinglesSongID;      // songID of last manually selected singles song; 0 if none
 	int lastDoublesSongID;      // songID of last manually selected doubles song; 0 if none
 
@@ -241,6 +242,7 @@ struct PLAYER_DATA
 		reverseMode            = 0;
 		mirrorMode             = 0;
 		playPosition           = -1;
+		useSimpleMenu          = 0;
 		lastSinglesSongID      = 0;
 		lastDoublesSongID      = 0;
 	}
