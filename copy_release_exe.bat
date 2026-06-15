@@ -1,1 +1,0 @@
-copy src\DMX_Remake\Release\DMX.exe deploy\DMX.exe

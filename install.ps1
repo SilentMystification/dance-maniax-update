@@ -1,3 +1,8 @@
+# TODO: Remove this hack once the newest DMX.exe is included in the CDN zip files.
+# The CDN zips contain an older DMX.exe that would overwrite the newer build in deploy/.
+New-Item -ItemType Directory -Force -Path 'deploy\tmp' | Out-Null
+Move-Item -Path 'deploy\DMX.exe' -Destination 'deploy\tmp\DMX.exe' -Force
+
 Write-Output "Now downloading 7 zip files, 775MB in total..."
 
 #download 7 zip files
@@ -25,6 +30,11 @@ Remove-Item -LiteralPath 'DMX_2nd.zip' -Force
 Remove-Item -LiteralPath 'DMX_Update.zip' -Force
 Remove-Item -LiteralPath 'DMX_2015120100_DMX_2016051800.zip' -Force
 Remove-Item -LiteralPath 'DMX_2016_2019.zip' -Force
+
+# TODO: Remove this hack once the newest DMX.exe is included in the CDN zip files.
+Remove-Item -LiteralPath 'deploy\DMX.exe' -Force
+Move-Item -Path 'deploy\tmp\DMX.exe' -Destination 'deploy\DMX.exe' -Force
+Remove-Item -LiteralPath 'deploy\tmp' -Force
 
 #links directly to the 7 zip files
 #https://dmx.bossru.sh/update/DMX_initial_data.zip
