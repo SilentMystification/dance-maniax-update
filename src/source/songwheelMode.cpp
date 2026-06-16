@@ -316,13 +316,6 @@ void firstSongwheelLoop()
 	settingsWaitForRelease[0] = settingsWaitForRelease[1] = false;
 	settingsPlayerSlot[0] = 0; settingsPlayerSlot[1] = 1;
 
-	// apply mode defaults and reset menu cursor for each logged-in player
-	for ( int p = 0; p < 2; p++ )
-	{
-		if ( sm.player[p].isLoggedIn )
-			playerSettingsMenu[p].resetSettings(p);
-	}
-
 	// figure out how many songs are visible on the songwheel
 	maxSongwheelIndex = 0;
 	for ( int i = 0; i < NUM_SONGS; i++ )
@@ -464,6 +457,15 @@ void firstSongwheelLoop()
 		gs.currentStage = 0;
 		gs.isVersus = false;
 		gs.isDoubles = false;
+	}
+
+	// apply mode defaults and reset menu cursor after freestyle resetAll wipes gs.player
+	for ( int p = 0; p < 2; p++ )
+	{
+		if ( gs.isFreestyleMode && p == 0 )
+			playerSettingsMenu[p].resetSettings(p);
+		else if ( !gs.isFreestyleMode && sm.player[p].isLoggedIn )
+			playerSettingsMenu[p].resetSettings(p);
 	}
 
 	// apply play position (singles only)

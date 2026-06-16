@@ -69,6 +69,7 @@ public:
 	bool isEventMode;
 	bool isFreestyleMode;
 	bool returningToSongwheel;  // true mid-credit when returning from per-song results to songwheel
+	bool skipFreestyleMods; // freestyle expert: skip MAINMENU modifier rows
 	bool creditComplete;        // true when all songs (including bonus) are done; triggers full results after per-song results
 
 	class PLAYER
@@ -326,6 +327,7 @@ public:
 		isEventMode = false;
 		isFreestyleMode = false;
 		returningToSongwheel = false;
+		skipFreestyleMods = false;
 		creditComplete = false;
 	}
 

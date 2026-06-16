@@ -95,31 +95,11 @@ void renderMods(int x, int y, int which, int selection, int currentRow);
 void endMenuMode();
 // postcondition: calls for bookkeeping updates and sets up the next game mode
 
+void loadMenuAssets();
+
 void firstMenuLoop()
 {
-	// load assets
-	if ( m_menuBG == NULL )
-	{
-		m_menuBG = loadImage("DATA/menus/bg_mode.tga");
-		m_displayMachine[0] = loadImage("DATA/menus/disp_singles.tga");
-		m_displayMachine[1] = loadImage("DATA/menus/disp_doubles.tga");
-		m_displayMachine[2] = loadImage("DATA/menus/disp_versus.tga");
-		m_modeSelect = loadImage("DATA/menus/main_mode_select.tga");
-		m_mainModes = loadImage("DATA/menus/main_modes.tga");
-		m_mainPlayers = loadImage("DATA/menus/main_players.tga");
-		m_modRect = loadImage("DATA/menus/main_rect.tga");
-		m_modHeadings = loadImage("DATA/menus/mods_types.tga");
-		m_mods[0] = loadImage("DATA/menus/mods_speed.tga");
-		m_mods[1] = loadImage("DATA/menus/mods_reverse.tga");
-		m_mods[2] = loadImage("DATA/menus/mods_mirror.tga");
-		m_mods[3] = loadImage("DATA/menus/mods_appear.tga");
-		m_hazard = loadImage("DATA/menus/hazard_flash.png");
-	}
-	if ( m_startButton == NULL )
-	{
-		m_startButton = loadImage("DATA/menus/start.tga");
-		m_triangles = loadImage("DATA/menus/triangles.tga");
-	}
+	loadMenuAssets();
 
 	if ( gs.g_currentGameMode == PLAYERSELECT )
 	{
@@ -169,7 +149,8 @@ void firstMenuLoop()
 	modeChoice = 1;
 	if ( gs.isFreestyleMode )
 	{
-		modeChoice = 0; // force nonstop in endless play
+		modeChoice         = 1;
+		gs.currentGameType = MODE_FREE;
 	}
 	p1row = 0;
 	p2row = 0;
@@ -201,6 +182,32 @@ void firstMenuLoop()
 	hazardCount[0] = hazardCount[1] = 0;
 
 	im.setCooldownTime(0);
+}
+
+void loadMenuAssets()
+{
+	if ( m_menuBG == NULL )
+	{
+		m_menuBG = loadImage("DATA/menus/bg_mode.tga");
+		m_displayMachine[0] = loadImage("DATA/menus/disp_singles.tga");
+		m_displayMachine[1] = loadImage("DATA/menus/disp_doubles.tga");
+		m_displayMachine[2] = loadImage("DATA/menus/disp_versus.tga");
+		m_modeSelect = loadImage("DATA/menus/main_mode_select.tga");
+		m_mainModes = loadImage("DATA/menus/main_modes.tga");
+		m_mainPlayers = loadImage("DATA/menus/main_players.tga");
+		m_modRect = loadImage("DATA/menus/main_rect.tga");
+		m_modHeadings = loadImage("DATA/menus/mods_types.tga");
+		m_mods[0] = loadImage("DATA/menus/mods_speed.tga");
+		m_mods[1] = loadImage("DATA/menus/mods_reverse.tga");
+		m_mods[2] = loadImage("DATA/menus/mods_mirror.tga");
+		m_mods[3] = loadImage("DATA/menus/mods_appear.tga");
+		m_hazard = loadImage("DATA/menus/hazard_flash.png");
+	}
+	if ( m_startButton == NULL )
+	{
+		m_startButton = loadImage("DATA/menus/start.tga");
+		m_triangles = loadImage("DATA/menus/triangles.tga");
+	}
 }
 
 void mainMenuLoop(UTIME dt)
@@ -364,6 +371,26 @@ void mainMenuLoop(UTIME dt)
 
 		if ( im.getKeyState(MENU_START_1P) == JUST_DOWN || im.getKeyState(MENU_START_2P) == JUST_DOWN )
 		{
+			if ( gs.isFreestyleMode && gs.skipFreestyleMods )
+			{
+				gs.currentGameType = modeChoice;
+				for ( int side = 0; side < (gs.isVersus ? 2 : 1); side++ )
+				{
+					int rm = sm.player[side].reverseMode;
+					gs.player[side].reverseModifier = (rm == 2) ? (unsigned char)0x99 : (rm != 0 ? (unsigned char)0xFF : (unsigned char)0x00);
+					gs.player[side].arrangeModifier = (char)sm.player[side].mirrorMode;
+				}
+				if ( gs.isSingles() )
+				{
+					int p = (gs.rightPlayerPresent && !gs.leftPlayerPresent) ? 1 : 0;
+					gs.player[p].centerLeft  = (sm.player[p].playPosition == 1);
+					gs.player[p].centerRight = (sm.player[p].playPosition == 2);
+				}
+				em.playSample(SFX_START_BUTTON);
+				endMenuMode();
+				return;
+			}
+
 			// now that Mode Select is separate from Player Select (and with Login Mode in between) do not allow reversal back to Player Select
 			//if ( im.isKeyDown(MENU_LEFT_1P) && im.isKeyDown(MENU_RIGHT_1P) && im.isKeyDown(MENU_START_1P) )
 			//{

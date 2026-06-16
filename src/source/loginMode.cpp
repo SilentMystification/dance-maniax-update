@@ -23,7 +23,9 @@ extern unsigned long int totalGameTime;
 extern UTIME timeRemaining;
 extern void renderTimeRemaining(int xc, int yc);
 extern void playTimeLowSFX(UTIME dt);
-extern void firstMenuLoop();
+extern void loadMenuAssets();
+extern int NUM_COURSES;
+extern int NUM_PLAYABLE_SONGS;
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -206,17 +208,22 @@ void firstLoginLoop()
 	{
 		if ( m_menuBG == NULL )
 		{
-			firstMenuLoop(); // loads menu assets used by renderLoginLoop; side effects corrected below
+			loadMenuAssets();
 			timeRemaining = 10999;
 			lm.loadLampProgram("menu_0.txt");
 		}
+		gs.loadSong(BGM_MODE);
+		gs.playSong();
+		if ( !gs.leftPlayerPresent && !gs.rightPlayerPresent )
+		{
+			gs.leftPlayerPresent = true;
+		}
+		gs.currentGameType = MODE_FREE;
 		gs.player[0].resetAll();
 		gs.player[1].resetAll();
 		gs.isDoubles = false;
 		gs.isVersus = false;
 		gs.returningToSongwheel = false;
-		gs.loadSong(BGM_MODE);
-		gs.playSong();
 	}
 }
 
@@ -713,23 +720,24 @@ void renderLoginLoop()
 	}
 	else
 	{
-		char numStagesDesc[] = "3 stages + ext";
-		numStagesDesc[0] = gs.numSongsPerSet + '0';
-		sx = 420;
-		//if ( gs.currentGameType == 0 ) // login BEFORE mode selection now
-		//{
-			sx = 210;
-		//}
-		masked_blit(m_mainModes, rm.m_backbuf, sx, 0*32,  40, UNFOLDED_Y-1, 210, 32);
-		renderArtistString(numStagesDesc, 74, UNFOLDED_Y+25, 200, 32);
+		char numSongsDesc[16] = "";
+		char numCoursesDesc[16] = "";
+		sprintf_s(numSongsDesc, "%d songs", NUM_PLAYABLE_SONGS);
+		sprintf_s(numCoursesDesc, "%d courses", NUM_COURSES);
 
-		sx = 420;
-		//if ( gs.currentGameType == 1 ) // login BEFORE mode selection now
-		//{
+		if ( gs.currentGameType == 0 )
 			sx = 210;
-		//}
+		else
+			sx = 420;
+		masked_blit(m_mainModes, rm.m_backbuf, sx, 0*32,  40, UNFOLDED_Y-1, 210, 32);
+		renderArtistString(numCoursesDesc, 74+24, UNFOLDED_Y+25, 200, 32);
+
+		if ( gs.currentGameType == 1 )
+			sx = 210;
+		else
+			sx = 420;
 		masked_blit(m_mainModes, rm.m_backbuf, sx, 1*32, 390, UNFOLDED_Y-1, 210, 32);
-		renderArtistString(numStagesDesc, 424, UNFOLDED_Y+25, 200, 32);
+		renderArtistString(numSongsDesc, 424+24, UNFOLDED_Y+25, 200, 32);
 	}
 
 	// RENDER LOWER LOGIN AREA
@@ -877,18 +885,13 @@ void endLoginMode()
 	}
 	saveRecentNames();
 
-	if ( gs.isFreestyleMode && sm.player[0].isLoggedIn && sm.player[0].useSimpleMenu == 1 )
+	if ( gs.isFreestyleMode )
 	{
-		gs.currentGameType = MODE_NONSTOP;
-		bm.logLogin(sm.player[0].isLoggedIn);
-		bm.logMode(SINGLES_PLAY);
-		sm.player[0].numPlaysSP++;
-		gs.g_currentGameMode = NONSTOP;
+		gs.currentGameType = MODE_FREE;
+		gs.skipFreestyleMods = ( sm.player[0].isLoggedIn && sm.player[0].useSimpleMenu == 1 );
 	}
-	else
-	{
-		gs.g_currentGameMode = MAINMENU;
-	}
+
+	gs.g_currentGameMode = MAINMENU;
 	gs.g_gameModeTransition = 1;
 }
 
