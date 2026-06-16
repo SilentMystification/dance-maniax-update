@@ -167,6 +167,10 @@ void firstMenuLoop()
 	}
 
 	modeChoice = 1;
+	if ( gs.isFreestyleMode )
+	{
+		modeChoice = 0; // force nonstop in endless play
+	}
 	p1row = 0;
 	p2row = 0;
 	mods[0][0] = mods[0][1] = mods[0][2] = mods[0][3] = 0;

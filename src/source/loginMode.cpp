@@ -23,6 +23,7 @@ extern unsigned long int totalGameTime;
 extern UTIME timeRemaining;
 extern void renderTimeRemaining(int xc, int yc);
 extern void playTimeLowSFX(UTIME dt);
+extern void firstMenuLoop();
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -200,6 +201,23 @@ void firstLoginLoop()
 
 	lm.loadLampProgram("menu_0.txt");
 	loadRecentNames();
+
+	if ( gs.isFreestyleMode )
+	{
+		if ( m_menuBG == NULL )
+		{
+			firstMenuLoop(); // loads menu assets used by renderLoginLoop; side effects corrected below
+			timeRemaining = 10999;
+			lm.loadLampProgram("menu_0.txt");
+		}
+		gs.player[0].resetAll();
+		gs.player[1].resetAll();
+		gs.isDoubles = false;
+		gs.isVersus = false;
+		gs.returningToSongwheel = false;
+		gs.loadSong(BGM_MODE);
+		gs.playSong();
+	}
 }
 
 void mainLoginLoop(UTIME dt)
@@ -824,9 +842,6 @@ void renderLoginLoop()
 
 void endLoginMode()
 {
-	gs.g_currentGameMode = MAINMENU;
-	gs.g_gameModeTransition = 1;
-
 	// count the number of credits played by either player
 	for ( int side = 0; side < 2; side++ )
 	{
@@ -861,6 +876,20 @@ void endLoginMode()
 		}
 	}
 	saveRecentNames();
+
+	if ( gs.isFreestyleMode && sm.player[0].isLoggedIn && sm.player[0].useSimpleMenu == 1 )
+	{
+		gs.currentGameType = MODE_NONSTOP;
+		bm.logLogin(sm.player[0].isLoggedIn);
+		bm.logMode(SINGLES_PLAY);
+		sm.player[0].numPlaysSP++;
+		gs.g_currentGameMode = NONSTOP;
+	}
+	else
+	{
+		gs.g_currentGameMode = MAINMENU;
+	}
+	gs.g_gameModeTransition = 1;
 }
 
 void renderPrompt(int x, bool isUse, bool isPass)

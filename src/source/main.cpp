@@ -830,7 +830,7 @@ void renderCreditsDisplay()
 
 	if ( gs.isFreestyleMode )
 	{
-		renderWhiteString(" ENDLESS PLAY MODE ", (SCREEN_WIDTH - 220) / 2, y);
+		renderWhiteString(" ENDLESS PLAY MODE ", (SCREEN_WIDTH - 190) / 2, y);
 	} 
 	else if ( gs.isFreeplay )
 	{
@@ -1378,7 +1378,7 @@ void mainCautionLoop(UTIME dt)
 	if ( cautionTimer >= 3000 )
 	{
 		gs.g_gameModeTransition = 1;
-		gs.g_currentGameMode = PLAYERSELECT;
+		gs.g_currentGameMode = gs.isFreestyleMode ? LOGIN : PLAYERSELECT;
 	}
 
 	// allow a second player to add in?
