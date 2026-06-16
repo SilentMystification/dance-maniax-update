@@ -17,7 +17,6 @@ extern SongEntry*       songs;
 //////////////////////////////////////////////////////////////////////////////
 // Visual constants — tweak these without touching logic
 //////////////////////////////////////////////////////////////////////////////
-#define SETTINGS_BG_COLOR        makecol(70, 8, 128)
 #define SETTINGS_HIGHLIGHT_COLOR makeacol(255, 170, 0, 255) // goldish-orange selection border
 #define SETTINGS_PANEL_WIDTH     256
 #define SETTINGS_SLIDE_MS        200
@@ -136,39 +135,7 @@ void SettingsMenu::resetSettings(int playerData)
 {
 	m_selectedItem = 0;
 	gs.player[playerData].chartMod = 0;
-
-	if ( sm.player[playerData].useSimpleMenu == 0 )
-	{
-		// simple mode: apply forced defaults to runtime state
-		gs.player[playerData].scrollMode             = 0;
-		gs.player[playerData].speedMod               = sm.player[playerData].speedMod;
-		gs.player[playerData].fixedScrollPPS         = sm.player[playerData].fixedScrollPPS;
-		gs.player[playerData].visualOffset           = 0;
-		gs.player[playerData].judgementPositionMode  = 0;
-		gs.player[playerData].judgementMsDisplayMode = 4;
-		gs.player[playerData].judgementEarlyLateMode = 0;
-		gs.player[playerData].invertNoteColors       = false;
-	}
-	else
-	{
-		// expert mode: apply all saved profile values
-		gs.player[playerData].scrollMode             = sm.player[playerData].scrollMode;
-		gs.player[playerData].speedMod               = sm.player[playerData].speedMod;
-		gs.player[playerData].fixedScrollPPS         = sm.player[playerData].fixedScrollPPS;
-		gs.player[playerData].visualOffset           = sm.player[playerData].visualOffset;
-		gs.player[playerData].judgementPositionMode  = sm.player[playerData].judgementPositionMode;
-		gs.player[playerData].judgementMsDisplayMode = sm.player[playerData].judgementMsDisplayMode;
-		gs.player[playerData].judgementEarlyLateMode = sm.player[playerData].judgementEarlyLateMode;
-		gs.player[playerData].invertNoteColors       = sm.player[playerData].invertNoteColors != 0;
-	}
-	{ int rm = sm.player[playerData].reverseMode;
-	  gs.player[playerData].reverseModifier = (rm == 2) ? (unsigned char)0x99 : (rm != 0 ? (unsigned char)0xFF : (unsigned char)0x00); }
-	gs.player[playerData].arrangeModifier = (char)sm.player[playerData].mirrorMode;
-	if ( !gs.isDoubles && !gs.isVersus )
-	{
-		gs.player[playerData].centerLeft  = (sm.player[playerData].playPosition == 1);
-		gs.player[playerData].centerRight = (sm.player[playerData].playPosition == 2);
-	}
+	sm.applyProfileToCredit(playerData);
 }
 
 void SettingsMenu::buildItemList(int player)
@@ -528,11 +495,6 @@ void SettingsMenu::forceClose()
 	m_isOpen    = false;
 	m_isClosing = false;
 	m_waitForRelease = false;
-}
-
-bool SettingsMenu::isOpen() const
-{
-	return m_isOpen && !m_isClosing;
 }
 
 bool SettingsMenu::isFullyClosed() const

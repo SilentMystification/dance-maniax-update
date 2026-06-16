@@ -46,7 +46,6 @@ public:
 	void close();
 	void forceClose();
 	void resetSettings(int playerData); // call at credit start: resets cursor and applies mode defaults to gs.player
-	bool isOpen() const;
 	bool isFullyClosed() const;
 	bool isEditing() const;
 	bool needsReleaseBeforeClose() const;

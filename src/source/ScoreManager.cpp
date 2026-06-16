@@ -21,6 +21,42 @@ void ScoreManager::resetData()
 	player[1].resetData();
 }
 
+void ScoreManager::applyProfileToCredit(int p)
+{
+	if ( player[p].useSimpleMenu == 0 )
+	{
+		// simple mode: apply forced defaults to runtime state; sm.player[p] is never modified
+		gs.player[p].scrollMode             = 0;
+		gs.player[p].speedMod               = player[p].speedMod;
+		gs.player[p].fixedScrollPPS         = player[p].fixedScrollPPS;
+		gs.player[p].visualOffset           = 0;
+		gs.player[p].judgementPositionMode  = 0;
+		gs.player[p].judgementMsDisplayMode = 4;
+		gs.player[p].judgementEarlyLateMode = 0;
+		gs.player[p].invertNoteColors       = false;
+	}
+	else
+	{
+		// expert mode: copy all profile values
+		gs.player[p].judgementPositionMode  = player[p].judgementPositionMode;
+		gs.player[p].judgementMsDisplayMode = player[p].judgementMsDisplayMode;
+		gs.player[p].judgementEarlyLateMode = player[p].judgementEarlyLateMode;
+		gs.player[p].speedMod               = player[p].speedMod;
+		gs.player[p].scrollMode             = player[p].scrollMode;
+		gs.player[p].fixedScrollPPS         = player[p].fixedScrollPPS;
+		gs.player[p].visualOffset           = player[p].visualOffset;
+		gs.player[p].invertNoteColors       = player[p].invertNoteColors != 0;
+	}
+	{ int rm = player[p].reverseMode;
+	  gs.player[p].reverseModifier = (rm == 2) ? (unsigned char)0x99 : (rm != 0 ? (unsigned char)0xFF : (unsigned char)0x00); }
+	gs.player[p].arrangeModifier = (char)player[p].mirrorMode;
+	if ( !gs.isDoubles && !gs.isVersus )
+	{
+		gs.player[p].centerLeft  = (player[p].playPosition == 1);
+		gs.player[p].centerRight = (player[p].playPosition == 2);
+	}
+}
+
 bool ScoreManager::loadPlayerFromDisk(char* name, char side)
 {
 	FILE* fp = NULL;
