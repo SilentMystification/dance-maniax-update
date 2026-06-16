@@ -42,6 +42,7 @@ jobs:
           New-Item -ItemType Directory -Path "$staging/deploy" | Out-Null
           robocopy deploy "$staging/deploy" /E /XD DATA /NFL /NDL /NJH /NJS /nc /ns /np
           if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE }
+          $global:LASTEXITCODE = 0
 
           Copy-Item -Path firmware -Destination "$staging/firmware" -Recurse
           Copy-Item -Path README.md, changelog.md, install.ps1, run_once_win_xp.bat -Destination $staging
