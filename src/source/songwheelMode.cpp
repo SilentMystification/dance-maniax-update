@@ -538,7 +538,8 @@ void mainSongwheelLoop(UTIME dt)
 		else
 		{
 			// LEFT+RIGHT closes the settings menu (only when not editing a value)
-			if ( leftHeld && rightHeld && !playerSettingsMenu[side].isEditing() )
+			if ( leftHeld && rightHeld && !playerSettingsMenu[side].isEditing() &&
+				!playerSettingsMenu[side].needsReleaseBeforeClose() )
 			{
 				playerSettingsMenu[side].close();
 			}
@@ -602,7 +603,7 @@ void mainSongwheelLoop(UTIME dt)
 		if ( gs.isVersus )
 		{
 			// versus: each player manages their own panel independently
-			if ( gs.leftPlayerPresent && !isInSettings[0] &&
+			if ( !isInSettings[0] &&
 				im.isKeyDown(MENU_LEFT_1P) && im.isKeyDown(MENU_RIGHT_1P) && im.getKeyState(MENU_START_1P) == JUST_DOWN )
 			{
 				isInSettings[0] = true;
@@ -610,7 +611,7 @@ void mainSongwheelLoop(UTIME dt)
 				settingsPlayerSlot[0] = 0;
 				playerSettingsMenu[0].open(0, 0);
 			}
-			if ( gs.rightPlayerPresent && !isInSettings[1] &&
+			if ( !isInSettings[1] &&
 				im.isKeyDown(MENU_LEFT_2P) && im.isKeyDown(MENU_RIGHT_2P) && im.getKeyState(MENU_START_2P) == JUST_DOWN )
 			{
 				isInSettings[1] = true;
