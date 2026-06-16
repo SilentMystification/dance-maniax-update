@@ -17,7 +17,6 @@ extern SongEntry*       songs;
 //////////////////////////////////////////////////////////////////////////////
 // Visual constants — tweak these without touching logic
 //////////////////////////////////////////////////////////////////////////////
-#define SETTINGS_BG_COLOR        makecol(70, 8, 128)
 #define SETTINGS_HIGHLIGHT_COLOR makeacol(255, 170, 0, 255) // goldish-orange selection border
 #define SETTINGS_PANEL_WIDTH     256
 #define SETTINGS_SLIDE_MS        200
@@ -84,39 +83,38 @@ static void drawNavArrow(int tipX, int tipY, int dir, int halfBase, int depth, i
 	const int B = 3;
 	int bx1, by1, bx2, by2;
 	int sbx1, sby1, sbx2, sby2, stX, stY;
+	int fx, fy;
+	int px, py; // unit step the tip points: left (-1,0), right (1,0), up (0,-1), down (0,1)
+
 	switch ( dir )
 	{
-	case 0: // left — tip on left, base on right
-		bx1 = tipX + depth;     by1 = tipY - halfBase;
-		bx2 = tipX + depth;     by2 = tipY + halfBase;
-		stX = tipX - B;   stY = tipY;
-		sbx1 = bx1 + B;  sby1 = by1 - B;
-		sbx2 = bx2 + B;  sby2 = by2 + B;
-		break;
-	case 1: // right — tip on right, base on left
-		bx1 = tipX - depth;     by1 = tipY - halfBase;
-		bx2 = tipX - depth;     by2 = tipY + halfBase;
-		stX = tipX + B;   stY = tipY;
-		sbx1 = bx1 - B;  sby1 = by1 - B;
-		sbx2 = bx2 - B;  sby2 = by2 + B;
-		break;
-	case 2: // up — tip on top, base on bottom
-		bx1 = tipX - halfBase;  by1 = tipY + depth;
-		bx2 = tipX + halfBase;  by2 = tipY + depth;
-		stX = tipX;       stY = tipY - B;
-		sbx1 = bx1 - B;  sby1 = by1 + B;
-		sbx2 = bx2 + B;  sby2 = by2 + B;
-		break;
-	default: // down — tip on bottom, base on top
-		bx1 = tipX - halfBase;  by1 = tipY - depth;
-		bx2 = tipX + halfBase;  by2 = tipY - depth;
-		stX = tipX;       stY = tipY + B;
-		sbx1 = bx1 - B;  sby1 = by1 - B;
-		sbx2 = bx2 + B;  sby2 = by2 - B;
-		break;
+	case 0: px = -1; py = 0; break;
+	case 1: px =  1; py = 0; break;
+	case 2: px =  0; py = -1; break;
+	default: px = 0; py = 1; break;
 	}
+
+	if ( py == 0 ) // horizontal — base is a vertical edge
+	{
+		bx1 = tipX - px * depth; by1 = tipY - halfBase;
+		bx2 = tipX - px * depth; by2 = tipY + halfBase;
+		stX = tipX + px * B;     stY = tipY;
+		sbx1 = bx1 - px * B;     sby1 = by1 - B;
+		sbx2 = bx2 - px * B;     sby2 = by2 + B;
+		fx = -px; fy = 0;
+	}
+	else // vertical — base is a horizontal edge
+	{
+		bx1 = tipX - halfBase; by1 = tipY - py * depth;
+		bx2 = tipX + halfBase; by2 = tipY - py * depth;
+		stX = tipX;            stY = tipY + py * B;
+		sbx1 = bx1 - B;        sby1 = by1 - py * B;
+		sbx2 = bx2 + B;        sby2 = by2 - py * B;
+		fx = 0; fy = -py;
+	}
+
 	triangle(rm.m_backbuf, stX, stY, sbx1, sby1, sbx2, sby2, makecol(0, 0, 0));
-	triangle(rm.m_backbuf, tipX, tipY + 1, bx1, by1 + 1, bx2, by2 + 1, rgb);
+	triangle(rm.m_backbuf, tipX + fx, tipY + fy, bx1 + fx, by1 + fy, bx2 + fx, by2 + fy, rgb);
 }
 
 static void fillToggleItem(SettingsItem& item, PLAYER_DATA& p)
@@ -137,39 +135,7 @@ void SettingsMenu::resetSettings(int playerData)
 {
 	m_selectedItem = 0;
 	gs.player[playerData].chartMod = 0;
-
-	if ( sm.player[playerData].useSimpleMenu == 0 )
-	{
-		// simple mode: apply forced defaults to runtime state
-		gs.player[playerData].scrollMode             = 0;
-		gs.player[playerData].speedMod               = sm.player[playerData].speedMod;
-		gs.player[playerData].fixedScrollPPS         = sm.player[playerData].fixedScrollPPS;
-		gs.player[playerData].visualOffset           = 0;
-		gs.player[playerData].judgementPositionMode  = 0;
-		gs.player[playerData].judgementMsDisplayMode = 4;
-		gs.player[playerData].judgementEarlyLateMode = 0;
-		gs.player[playerData].invertNoteColors       = false;
-	}
-	else
-	{
-		// expert mode: apply all saved profile values
-		gs.player[playerData].scrollMode             = sm.player[playerData].scrollMode;
-		gs.player[playerData].speedMod               = sm.player[playerData].speedMod;
-		gs.player[playerData].fixedScrollPPS         = sm.player[playerData].fixedScrollPPS;
-		gs.player[playerData].visualOffset           = sm.player[playerData].visualOffset;
-		gs.player[playerData].judgementPositionMode  = sm.player[playerData].judgementPositionMode;
-		gs.player[playerData].judgementMsDisplayMode = sm.player[playerData].judgementMsDisplayMode;
-		gs.player[playerData].judgementEarlyLateMode = sm.player[playerData].judgementEarlyLateMode;
-		gs.player[playerData].invertNoteColors       = sm.player[playerData].invertNoteColors != 0;
-	}
-	{ int rm = sm.player[playerData].reverseMode;
-	  gs.player[playerData].reverseModifier = (rm == 2) ? (unsigned char)0x99 : (rm != 0 ? (unsigned char)0xFF : (unsigned char)0x00); }
-	gs.player[playerData].arrangeModifier = (char)sm.player[playerData].mirrorMode;
-	if ( !gs.isDoubles && !gs.isVersus )
-	{
-		gs.player[playerData].centerLeft  = (sm.player[playerData].playPosition == 1);
-		gs.player[playerData].centerRight = (sm.player[playerData].playPosition == 2);
-	}
+	sm.applyProfileToCredit(playerData);
 }
 
 void SettingsMenu::buildItemList(int player)
@@ -460,6 +426,7 @@ void SettingsMenu::open(int playerData, int side)
 	m_cancelHoldTimer      = 0;
 	m_lastNavTimer         = 9999; // large value so no chord suppression on first open
 	m_lastNavDir           = 0;
+	m_waitForRelease       = false;
 
 	// sync current modifier state from gs.player into sm.player backing fields
 	{
@@ -527,11 +494,7 @@ void SettingsMenu::forceClose()
 	}
 	m_isOpen    = false;
 	m_isClosing = false;
-}
-
-bool SettingsMenu::isOpen() const
-{
-	return m_isOpen && !m_isClosing;
+	m_waitForRelease = false;
 }
 
 bool SettingsMenu::isFullyClosed() const
@@ -542,6 +505,11 @@ bool SettingsMenu::isFullyClosed() const
 bool SettingsMenu::isEditing() const
 {
 	return m_isEditingItem;
+}
+
+bool SettingsMenu::needsReleaseBeforeClose() const
+{
+	return m_waitForRelease;
 }
 
 void SettingsMenu::handleInput(UTIME dt)
@@ -557,6 +525,9 @@ void SettingsMenu::handleInput(UTIME dt)
 
 	// always advance the nav-recency timer
 	m_lastNavTimer += (int)dt;
+
+	if ( m_waitForRelease && !bothDown )
+		m_waitForRelease = false;
 
 	if ( !m_isEditingItem )
 	{
@@ -660,16 +631,17 @@ void SettingsMenu::handleInput(UTIME dt)
 		// inner mode: adjust value with hold-to-repeat
 		SettingsItem& item = m_items[m_selectedItem];
 
-		// L+R held while editing: cancel after 2 seconds, reverting to saved value
+		// L+R held while editing: cancel after 1.5 seconds, reverting to saved value
 		if ( bothDown )
 		{
 			m_cancelHoldTimer += (int)dt;
-			if ( m_cancelHoldTimer >= 2000 )
+			if ( m_cancelHoldTimer >= 1500 )
 			{
 				*m_items[m_selectedItem].value = m_items[m_selectedItem].savedValue;
 				m_isEditingItem   = false;
 				m_cancelHoldTimer = 0;
 				m_holdDir = 0; m_holdTime = 0; m_repeatTimer = 0;
+				m_waitForRelease  = true;
 				em.playSample(SFX_COURSE_APPEAR);
 			}
 			return;

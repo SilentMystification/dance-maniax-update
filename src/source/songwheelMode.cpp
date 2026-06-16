@@ -540,7 +540,8 @@ void mainSongwheelLoop(UTIME dt)
 		else
 		{
 			// LEFT+RIGHT closes the settings menu (only when not editing a value)
-			if ( leftHeld && rightHeld && !playerSettingsMenu[side].isEditing() )
+			if ( leftHeld && rightHeld && !playerSettingsMenu[side].isEditing() &&
+				!playerSettingsMenu[side].needsReleaseBeforeClose() )
 			{
 				playerSettingsMenu[side].close();
 			}
@@ -557,39 +558,7 @@ void mainSongwheelLoop(UTIME dt)
 
 			// copy updated settings to gs.player so they take effect next song
 			int p = settingsPlayerSlot[side];
-			if ( sm.player[p].useSimpleMenu == 0 )
-			{
-				// simple mode: apply forced defaults to runtime state; sm.player[p] is never modified
-				gs.player[p].scrollMode             = 0;
-				gs.player[p].speedMod               = sm.player[p].speedMod;
-				gs.player[p].fixedScrollPPS         = sm.player[p].fixedScrollPPS;
-				gs.player[p].visualOffset           = 0;
-				gs.player[p].judgementPositionMode  = 0;
-				gs.player[p].judgementMsDisplayMode = 4;
-				gs.player[p].judgementEarlyLateMode = 0;
-				gs.player[p].invertNoteColors       = false;
-			}
-			else
-			{
-				// advanced mode: copy all profile values
-				gs.player[p].judgementPositionMode  = sm.player[p].judgementPositionMode;
-				gs.player[p].judgementMsDisplayMode = sm.player[p].judgementMsDisplayMode;
-				gs.player[p].judgementEarlyLateMode = sm.player[p].judgementEarlyLateMode;
-				gs.player[p].speedMod               = sm.player[p].speedMod;
-				gs.player[p].scrollMode             = sm.player[p].scrollMode;
-				gs.player[p].fixedScrollPPS         = sm.player[p].fixedScrollPPS;
-				gs.player[p].visualOffset           = sm.player[p].visualOffset;
-				gs.player[p].invertNoteColors       = sm.player[p].invertNoteColors != 0;
-			}
-			// reverse, mirror, play position apply in both modes
-			{ int rm = sm.player[p].reverseMode;
-			  gs.player[p].reverseModifier = (rm == 2) ? (unsigned char)0x99 : (rm != 0 ? (unsigned char)0xFF : (unsigned char)0x00); }
-			gs.player[p].arrangeModifier = (char)sm.player[p].mirrorMode;
-			if ( !gs.isDoubles && !gs.isVersus )
-			{
-				gs.player[p].centerLeft  = (sm.player[p].playPosition == 1);
-				gs.player[p].centerRight = (sm.player[p].playPosition == 2);
-			}
+			sm.applyProfileToCredit(p);
 
 			if ( sm.player[p].isLoggedIn )
 			{
@@ -604,7 +573,7 @@ void mainSongwheelLoop(UTIME dt)
 		if ( gs.isVersus )
 		{
 			// versus: each player manages their own panel independently
-			if ( gs.leftPlayerPresent && !isInSettings[0] &&
+			if ( !isInSettings[0] &&
 				im.isKeyDown(MENU_LEFT_1P) && im.isKeyDown(MENU_RIGHT_1P) && im.getKeyState(MENU_START_1P) == JUST_DOWN )
 			{
 				isInSettings[0] = true;
@@ -612,7 +581,7 @@ void mainSongwheelLoop(UTIME dt)
 				settingsPlayerSlot[0] = 0;
 				playerSettingsMenu[0].open(0, 0);
 			}
-			if ( gs.rightPlayerPresent && !isInSettings[1] &&
+			if ( !isInSettings[1] &&
 				im.isKeyDown(MENU_LEFT_2P) && im.isKeyDown(MENU_RIGHT_2P) && im.getKeyState(MENU_START_2P) == JUST_DOWN )
 			{
 				isInSettings[1] = true;
@@ -1039,36 +1008,7 @@ void mainSongwheelLoop(UTIME dt)
 			settingsWaitForRelease[side] = false;
 
 			int p = settingsPlayerSlot[side];
-			if ( sm.player[p].useSimpleMenu == 0 )
-			{
-				gs.player[p].scrollMode             = 0;
-				gs.player[p].speedMod               = sm.player[p].speedMod;
-				gs.player[p].fixedScrollPPS         = sm.player[p].fixedScrollPPS;
-				gs.player[p].visualOffset           = 0;
-				gs.player[p].judgementPositionMode  = 0;
-				gs.player[p].judgementMsDisplayMode = 4;
-				gs.player[p].judgementEarlyLateMode = 0;
-				gs.player[p].invertNoteColors       = false;
-			}
-			else
-			{
-				gs.player[p].judgementPositionMode  = sm.player[p].judgementPositionMode;
-				gs.player[p].judgementMsDisplayMode = sm.player[p].judgementMsDisplayMode;
-				gs.player[p].judgementEarlyLateMode = sm.player[p].judgementEarlyLateMode;
-				gs.player[p].speedMod               = sm.player[p].speedMod;
-				gs.player[p].scrollMode             = sm.player[p].scrollMode;
-				gs.player[p].fixedScrollPPS         = sm.player[p].fixedScrollPPS;
-				gs.player[p].visualOffset           = sm.player[p].visualOffset;
-				gs.player[p].invertNoteColors       = sm.player[p].invertNoteColors != 0;
-			}
-			{ int rm = sm.player[p].reverseMode;
-			  gs.player[p].reverseModifier = (rm == 2) ? (unsigned char)0x99 : (rm != 0 ? (unsigned char)0xFF : (unsigned char)0x00); }
-			gs.player[p].arrangeModifier = (char)sm.player[p].mirrorMode;
-			if ( !gs.isDoubles && !gs.isVersus )
-			{
-				gs.player[p].centerLeft  = (sm.player[p].playPosition == 1);
-				gs.player[p].centerRight = (sm.player[p].playPosition == 2);
-			}
+			sm.applyProfileToCredit(p);
 			if ( sm.player[p].isLoggedIn )
 				sm.savePlayersToDisk();
 		}

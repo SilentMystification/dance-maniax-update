@@ -324,6 +324,9 @@ public:
 	void savePlayersToDisk();
 	// postcondition: for each player, if isLoggedIn is true, creates a new file on disk
 
+	void applyProfileToCredit(int p);
+	// postcondition: copies sm.player[p] prefs into gs.player[p], with simple-menu forced defaults
+
 	bool doesPlayerNameExist(char* name);
 	// precondition: name is 8 or less in length and contains only symbols allowed in filenames
 	// postcondition: returns true if PLAYERS/name.prefs exists
