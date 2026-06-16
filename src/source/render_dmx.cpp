@@ -103,13 +103,14 @@ int getLeftmostColumnX_DMX(int player)
 	return getColumnOffsetX_DMX(0); // singles play, left side
 }
 
-int getColorOfColumn(int column)
+int getColorOfColumn(int column, int player)
 {
-	if ( column == 0 || column == 3 || column == 4 || column == 7 )
+	int color = ( column == 0 || column == 3 || column == 4 || column == 7 ) ? 1 : 0;
+	if ( gs.player[player].invertNoteColors )
 	{
-		return 1;
+		color = color == 0 ? 1 : 0;
 	}
-	return 0;
+	return color;
 }
 
 void renderDMXChart(int player)
@@ -276,7 +277,7 @@ void renderDMXArrow(int player, int column, int color, int judgement, int x, int
 	{
 		frame += 8;
 	}
-	int colColor = getColorOfColumn(column);
+	int colColor = getColorOfColumn(column, player);
 	if ( color == 2 )
 	{
 		colColor = 2; // make it gold, otherwise ignore this parameter
@@ -391,7 +392,7 @@ void renderDMXHoldNoteBody(int column, int x, int topy, int bot, int color, int 
 
 	if ( color == HOLD_UNTOUCHED )
 	{
-		color = column == 1 || column == 2 || column == 5 || column == 6 ? HOLD_DMX_RED : HOLD_DMX_BLUE;
+		color = getColorOfColumn(column, player);
 	}
 
 	for ( int chargex = 6; chargex < 34-6; chargex++ )
@@ -495,7 +496,7 @@ void renderStepZoneDMX(int player)
 			blink = 2; // currently holding a hold note in this column
 		}
 
-		int color = getColorOfColumn(i);
+		int color = getColorOfColumn(i, player);
 		if ( im.isKeyDown(i) )
 		{
 			hitcolor = color == 0 ? 0xEECC0000 : 0xEE0000CC;

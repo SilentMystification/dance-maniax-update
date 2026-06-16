@@ -183,8 +183,9 @@ struct PLAYER_DATA
 	int audioOffset;            // ms, overrides bgmGap when hasCustomAudioOffset is true
 	bool hasCustomAudioOffset;  // false=mirror operator bgmGap live; true=use audioOffset
 	int visualOffset;           // ms, shifts note Y only (not judgement windows)
-	int reverseMode;            // 0=Off, 1=Reverse, 2=Cross, 3=Inverted (stub=Reverse)
-	int mirrorMode;             // 0=Off, 1=Mirror, 2=Upside-Down
+	int reverseMode;            // 0=Off, 1=Reverse, 2=Cross
+	int mirrorMode;             // 0=Off, 1=Mirror, 2=V-Flip
+	int invertNoteColors;       // 0=Off, 1=On — swap red/blue lane colors (expert menu only)
 	int playPosition;           // -1=Unset(login side), 0=Center, 1=Left, 2=Right
 	int useSimpleMenu;          // 0=Simple (default), 1=Advanced
 	int lastSinglesSongID;      // songID of last manually selected singles song; 0 if none
@@ -241,6 +242,7 @@ struct PLAYER_DATA
 		visualOffset           = 0;
 		reverseMode            = 0;
 		mirrorMode             = 0;
+		invertNoteColors       = 0;
 		playPosition           = -1;
 		useSimpleMenu          = 0;
 		lastSinglesSongID      = 0;

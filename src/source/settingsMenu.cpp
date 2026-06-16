@@ -56,11 +56,14 @@ static const int   s_judgTextValues[]      = { 0, 1, 2, 3 };
 static const char* s_judgMsOptions[]       = { "All","Perfect-","Great-","Good-","Never" };
 static const int   s_judgMsValues[]        = { 0, 1, 2, 3, 4 };
 
-static const char* s_reverseOptions[]      = { "Off", "Reverse", "Cross", "Inverted" };
-static const int   s_reverseValues[]       = { 0, 1, 2, 3 };
+static const char* s_reverseOptions[]      = { "Off", "Reverse", "Cross" };
+static const int   s_reverseValues[]       = { 0, 1, 2 };
 
 static const char* s_mirrorOptions[]       = { "Off", "Mirror", "V-Flip" };
 static const int   s_mirrorValues[]        = { 0, 1, 2 };
+
+static const char* s_invertNoteColorsOptions[] = { "Off", "On" };
+static const int   s_invertNoteColorsValues[]  = { 0, 1 };
 
 static const char* s_positionOptions[]     = { "Left", "Center", "Right" };
 static const int   s_positionValues[]      = { 1, 0, 2 };
@@ -139,6 +142,7 @@ void SettingsMenu::resetSettings(int playerData)
 		gs.player[playerData].judgementPositionMode  = 0;
 		gs.player[playerData].judgementMsDisplayMode = 4;
 		gs.player[playerData].judgementEarlyLateMode = 0;
+		gs.player[playerData].invertNoteColors       = false;
 	}
 	else
 	{
@@ -150,6 +154,7 @@ void SettingsMenu::resetSettings(int playerData)
 		gs.player[playerData].judgementPositionMode  = sm.player[playerData].judgementPositionMode;
 		gs.player[playerData].judgementMsDisplayMode = sm.player[playerData].judgementMsDisplayMode;
 		gs.player[playerData].judgementEarlyLateMode = sm.player[playerData].judgementEarlyLateMode;
+		gs.player[playerData].invertNoteColors       = sm.player[playerData].invertNoteColors != 0;
 	}
 	{ int rm = sm.player[playerData].reverseMode;
 	  gs.player[playerData].reverseModifier = (rm == 2) ? (unsigned char)0x99 : (rm != 0 ? (unsigned char)0xFF : (unsigned char)0x00); }
@@ -185,7 +190,7 @@ void SettingsMenu::buildItemList(int player)
 		m_items[m_itemCount].dependency       = DEP_NONE;
 		m_items[m_itemCount].options          = s_reverseOptions;
 		m_items[m_itemCount].optionValues     = s_reverseValues;
-		m_items[m_itemCount].optionCount      = 4;
+		m_items[m_itemCount].optionCount      = 3;
 		m_items[m_itemCount].value            = &p.reverseMode;
 		m_items[m_itemCount].flagToSetOnChange= NULL;
 		m_itemCount++;
@@ -215,7 +220,7 @@ void SettingsMenu::buildItemList(int player)
 	}
 	else
 	{
-		// Advanced menu: 13 items, toggle at index 8
+		// Advanced menu: 14 items, toggle at index 5
 		// 0. Lane Speed (Classic)
 		m_items[m_itemCount].name             = "Lane Speed";
 		m_items[m_itemCount].type             = SETTINGS_LIST;
@@ -244,7 +249,7 @@ void SettingsMenu::buildItemList(int player)
 		m_items[m_itemCount].dependency       = DEP_NONE;
 		m_items[m_itemCount].options          = s_reverseOptions;
 		m_items[m_itemCount].optionValues     = s_reverseValues;
-		m_items[m_itemCount].optionCount      = 4;
+		m_items[m_itemCount].optionCount      = 3;
 		m_items[m_itemCount].value            = &p.reverseMode;
 		m_items[m_itemCount].flagToSetOnChange= NULL;
 		m_itemCount++;
@@ -349,6 +354,17 @@ void SettingsMenu::buildItemList(int player)
 		m_items[m_itemCount].optionValues     = s_scrollModeValues;
 		m_items[m_itemCount].optionCount      = 2;
 		m_items[m_itemCount].value            = &p.scrollMode;
+		m_items[m_itemCount].flagToSetOnChange= NULL;
+		m_itemCount++;
+
+		// 13. Invert Note Colors
+		m_items[m_itemCount].name             = "Invert Note Colors";
+		m_items[m_itemCount].type             = SETTINGS_LIST;
+		m_items[m_itemCount].dependency       = DEP_NONE;
+		m_items[m_itemCount].options          = s_invertNoteColorsOptions;
+		m_items[m_itemCount].optionValues     = s_invertNoteColorsValues;
+		m_items[m_itemCount].optionCount      = 2;
+		m_items[m_itemCount].value            = &p.invertNoteColors;
 		m_items[m_itemCount].flagToSetOnChange= NULL;
 		m_itemCount++;
 	}

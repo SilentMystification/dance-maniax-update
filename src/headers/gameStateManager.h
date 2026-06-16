@@ -138,7 +138,8 @@ public:
 		unsigned char suddenModifier;   // 8 bits for which columns are on sudden
 		unsigned char hiddenModifier;   // 8 bits for which columns are on hidden
 		bool stealthModifier;           // special rendering mode
-		char arrangeModifier;           // 1 = mirror, 2 = upside-down
+		char arrangeModifier;           // 1 = mirror, 2 = v-flip
+		bool invertNoteColors;          // swap red/blue lane colors on the playfield
 		bool centerLeft;				// play singles on the left side
 		bool centerRight;				// play singles on the right side
 		bool isCenter() { return !centerLeft && !centerRight; }
@@ -224,6 +225,7 @@ public:
 			hiddenModifier = 0;
 			stealthModifier = false;
 			arrangeModifier = 0;
+			invertNoteColors = false;
 			judgementPositionMode = 0;
 			judgementMsDisplayMode = 0;
 			judgementEarlyLateMode = 0;

@@ -565,6 +565,7 @@ void mainSongwheelLoop(UTIME dt)
 				gs.player[p].judgementPositionMode  = 0;
 				gs.player[p].judgementMsDisplayMode = 4;
 				gs.player[p].judgementEarlyLateMode = 0;
+				gs.player[p].invertNoteColors       = false;
 			}
 			else
 			{
@@ -576,6 +577,7 @@ void mainSongwheelLoop(UTIME dt)
 				gs.player[p].scrollMode             = sm.player[p].scrollMode;
 				gs.player[p].fixedScrollPPS         = sm.player[p].fixedScrollPPS;
 				gs.player[p].visualOffset           = sm.player[p].visualOffset;
+				gs.player[p].invertNoteColors       = sm.player[p].invertNoteColors != 0;
 			}
 			// reverse, mirror, play position apply in both modes
 			{ int rm = sm.player[p].reverseMode;
@@ -1044,6 +1046,7 @@ void mainSongwheelLoop(UTIME dt)
 				gs.player[p].judgementPositionMode  = 0;
 				gs.player[p].judgementMsDisplayMode = 4;
 				gs.player[p].judgementEarlyLateMode = 0;
+				gs.player[p].invertNoteColors       = false;
 			}
 			else
 			{
@@ -1054,6 +1057,7 @@ void mainSongwheelLoop(UTIME dt)
 				gs.player[p].scrollMode             = sm.player[p].scrollMode;
 				gs.player[p].fixedScrollPPS         = sm.player[p].fixedScrollPPS;
 				gs.player[p].visualOffset           = sm.player[p].visualOffset;
+				gs.player[p].invertNoteColors       = sm.player[p].invertNoteColors != 0;
 			}
 			{ int rm = sm.player[p].reverseMode;
 			  gs.player[p].reverseModifier = (rm == 2) ? (unsigned char)0x99 : (rm != 0 ? (unsigned char)0xFF : (unsigned char)0x00); }
