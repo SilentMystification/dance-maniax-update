@@ -68,50 +68,55 @@ static const int   s_invertNoteColorsValues[]  = { 0, 1 };
 static const char* s_positionOptions[]     = { "Left", "Center", "Right" };
 static const int   s_positionValues[]      = { 1, 0, 2 };
 
+static const char* s_chartModOptionsSingles[] = { "Off", "Random", "S-Random", "Inverted" };
+static const int   s_chartModValuesSingles[]  = { 0, 1, 2, 4 };
+static const char* s_chartModOptionsDoubles[] = { "Off", "Random", "S-Random", "D-Random", "Inverted" };
+static const int   s_chartModValuesDoubles[]  = { 0, 1, 2, 3, 4 };
+
 //////////////////////////////////////////////////////////////////////////////
 // SettingsMenu implementation
 //////////////////////////////////////////////////////////////////////////////
 
-// Draw a directional arrow with a 1px black shadow. dir: 0=left, 1=right, 2=up, 3=down.
+// Draw a directional arrow with a 3px black outline. dir: 0=left, 1=right, 2=up, 3=down.
 // tipX/tipY is the point of the arrow. halfBase and depth control the triangle size.
 static void drawNavArrow(int tipX, int tipY, int dir, int halfBase, int depth, int rgb)
 {
-	int sdx = 0, sdy = 0;
+	const int B = 3;
 	int bx1, by1, bx2, by2;
-	int sbx1, sby1, sbx2, sby2;
+	int sbx1, sby1, sbx2, sby2, stX, stY;
 	switch ( dir )
 	{
-	case 0: // left
-		sdx = -1;
+	case 0: // left — tip on left, base on right
 		bx1 = tipX + depth;     by1 = tipY - halfBase;
 		bx2 = tipX + depth;     by2 = tipY + halfBase;
-		sbx1 = bx1 + 1; sby1 = by1 - 1;
-		sbx2 = bx2 + 1; sby2 = by2 + 1;
+		stX = tipX - B;   stY = tipY;
+		sbx1 = bx1 + B;  sby1 = by1 - B;
+		sbx2 = bx2 + B;  sby2 = by2 + B;
 		break;
-	case 1: // right
-		sdx = +1;
+	case 1: // right — tip on right, base on left
 		bx1 = tipX - depth;     by1 = tipY - halfBase;
 		bx2 = tipX - depth;     by2 = tipY + halfBase;
-		sbx1 = bx1 - 1; sby1 = by1 - 1;
-		sbx2 = bx2 - 1; sby2 = by2 + 1;
+		stX = tipX + B;   stY = tipY;
+		sbx1 = bx1 - B;  sby1 = by1 - B;
+		sbx2 = bx2 - B;  sby2 = by2 + B;
 		break;
-	case 2: // up
-		sdy = -1;
+	case 2: // up — tip on top, base on bottom
 		bx1 = tipX - halfBase;  by1 = tipY + depth;
 		bx2 = tipX + halfBase;  by2 = tipY + depth;
-		sbx1 = bx1 - 1; sby1 = by1 + 1;
-		sbx2 = bx2 + 1; sby2 = by2 + 1;
+		stX = tipX;       stY = tipY - B;
+		sbx1 = bx1 - B;  sby1 = by1 + B;
+		sbx2 = bx2 + B;  sby2 = by2 + B;
 		break;
-	default: // down
-		sdy = +1;
+	default: // down — tip on bottom, base on top
 		bx1 = tipX - halfBase;  by1 = tipY - depth;
 		bx2 = tipX + halfBase;  by2 = tipY - depth;
-		sbx1 = bx1 - 1; sby1 = by1 - 1;
-		sbx2 = bx2 + 1; sby2 = by2 - 1;
+		stX = tipX;       stY = tipY + B;
+		sbx1 = bx1 - B;  sby1 = by1 - B;
+		sbx2 = bx2 + B;  sby2 = by2 - B;
 		break;
 	}
-	triangle(rm.m_backbuf, tipX + sdx, tipY + sdy, sbx1, sby1, sbx2, sby2, makecol(0,0,0));
-	triangle(rm.m_backbuf, tipX,       tipY,        bx1,  by1,  bx2,  by2,  rgb);
+	triangle(rm.m_backbuf, stX, stY, sbx1, sby1, sbx2, sby2, makecol(0, 0, 0));
+	triangle(rm.m_backbuf, tipX, tipY + 1, bx1, by1 + 1, bx2, by2 + 1, rgb);
 }
 
 static void fillToggleItem(SettingsItem& item, PLAYER_DATA& p)
@@ -131,6 +136,7 @@ static void fillToggleItem(SettingsItem& item, PLAYER_DATA& p)
 void SettingsMenu::resetSettings(int playerData)
 {
 	m_selectedItem = 0;
+	gs.player[playerData].chartMod = 0;
 
 	if ( sm.player[playerData].useSimpleMenu == 0 )
 	{
@@ -170,6 +176,7 @@ void SettingsMenu::buildItemList(int player)
 {
 	m_itemCount  = 0;
 	m_isAdvanced = (sm.player[player].useSimpleMenu == 1);
+	memset(m_items, 0, sizeof(m_items));
 	PLAYER_DATA& p = sm.player[player];
 
 	if ( !m_isAdvanced )
@@ -313,7 +320,42 @@ void SettingsMenu::buildItemList(int player)
 		m_items[m_itemCount].flagToSetOnChange= NULL;
 		m_itemCount++;
 
-		// 9. Visual Offset
+		// 9. Invert Note Colors
+		m_items[m_itemCount].name             = "Invert Note Colors";
+		m_items[m_itemCount].type             = SETTINGS_LIST;
+		m_items[m_itemCount].dependency       = DEP_NONE;
+		m_items[m_itemCount].options          = s_invertNoteColorsOptions;
+		m_items[m_itemCount].optionValues     = s_invertNoteColorsValues;
+		m_items[m_itemCount].optionCount      = 2;
+		m_items[m_itemCount].value            = &p.invertNoteColors;
+		m_items[m_itemCount].flagToSetOnChange= NULL;
+		m_itemCount++;
+
+		// 10. Chart Mods — not saved between credits; value lives in gs.player (not sm.player)
+		// D-Random is doubles-only: reset to Regular Random if in singles with D-Random selected
+		if ( !gs.isDoubles && gs.player[player].chartMod == 3 )
+			gs.player[player].chartMod = 1;
+		m_items[m_itemCount].name             = "Chart Mods";
+		m_items[m_itemCount].type             = SETTINGS_LIST;
+		m_items[m_itemCount].dependency       = DEP_NONE;
+		m_items[m_itemCount].optionSlotW      = 90;
+		if ( gs.isDoubles )
+		{
+			m_items[m_itemCount].options      = s_chartModOptionsDoubles;
+			m_items[m_itemCount].optionValues = s_chartModValuesDoubles;
+			m_items[m_itemCount].optionCount  = 5;
+		}
+		else
+		{
+			m_items[m_itemCount].options      = s_chartModOptionsSingles;
+			m_items[m_itemCount].optionValues = s_chartModValuesSingles;
+			m_items[m_itemCount].optionCount  = 4;
+		}
+		m_items[m_itemCount].value            = &gs.player[player].chartMod;
+		m_items[m_itemCount].flagToSetOnChange= NULL;
+		m_itemCount++;
+
+		// 11. Visual Offset
 		m_items[m_itemCount].name             = "Visual Offset";
 		m_items[m_itemCount].type             = SETTINGS_RANGE;
 		m_items[m_itemCount].dependency       = DEP_NONE;
@@ -324,7 +366,7 @@ void SettingsMenu::buildItemList(int player)
 		m_items[m_itemCount].flagToSetOnChange= NULL;
 		m_itemCount++;
 
-		// 10. Audio Offset
+		// 12. Audio Offset
 		m_items[m_itemCount].name             = "Audio Offset";
 		m_items[m_itemCount].type             = SETTINGS_RANGE;
 		m_items[m_itemCount].dependency       = DEP_NONE;
@@ -335,7 +377,7 @@ void SettingsMenu::buildItemList(int player)
 		m_items[m_itemCount].flagToSetOnChange= &p.hasCustomAudioOffset;
 		m_itemCount++;
 
-		// 11. Score Mode
+		// 13. Score Mode
 		m_items[m_itemCount].name             = "Score Mode";
 		m_items[m_itemCount].type             = SETTINGS_LIST;
 		m_items[m_itemCount].dependency       = DEP_NONE;
@@ -346,7 +388,7 @@ void SettingsMenu::buildItemList(int player)
 		m_items[m_itemCount].flagToSetOnChange= NULL;
 		m_itemCount++;
 
-		// 12. Scroll Mode
+		// 14. Scroll Mode
 		m_items[m_itemCount].name             = "Scroll Mode";
 		m_items[m_itemCount].type             = SETTINGS_LIST;
 		m_items[m_itemCount].dependency       = DEP_NONE;
@@ -354,17 +396,6 @@ void SettingsMenu::buildItemList(int player)
 		m_items[m_itemCount].optionValues     = s_scrollModeValues;
 		m_items[m_itemCount].optionCount      = 2;
 		m_items[m_itemCount].value            = &p.scrollMode;
-		m_items[m_itemCount].flagToSetOnChange= NULL;
-		m_itemCount++;
-
-		// 13. Invert Note Colors
-		m_items[m_itemCount].name             = "Invert Note Colors";
-		m_items[m_itemCount].type             = SETTINGS_LIST;
-		m_items[m_itemCount].dependency       = DEP_NONE;
-		m_items[m_itemCount].options          = s_invertNoteColorsOptions;
-		m_items[m_itemCount].optionValues     = s_invertNoteColorsValues;
-		m_items[m_itemCount].optionCount      = 2;
-		m_items[m_itemCount].value            = &p.invertNoteColors;
 		m_items[m_itemCount].flagToSetOnChange= NULL;
 		m_itemCount++;
 	}
@@ -416,6 +447,7 @@ void SettingsMenu::open(int playerData, int side)
 	m_optionSlideOffset = 0;
 	m_optionSlideTimer  = 0;
 	m_optionSlideDir    = 0;
+	m_activeSlotW       = SETTINGS_OPTION_SLOT_W;
 	m_holdDir           = 0;
 	m_holdTime          = 0;
 	m_repeatTimer       = 0;
@@ -758,7 +790,8 @@ void SettingsMenu::handleInput(UTIME dt)
 			{
 				*item.flagToSetOnChange = true;
 			}
-			m_optionSlideOffset = m_optionSlideDir * SETTINGS_OPTION_SLOT_W;
+			m_activeSlotW       = (item.type == SETTINGS_LIST && item.optionSlotW > 0) ? item.optionSlotW : SETTINGS_OPTION_SLOT_W;
+			m_optionSlideOffset = m_optionSlideDir * m_activeSlotW;
 			m_optionSlideTimer  = SETTINGS_OPTION_SLIDE_MS;
 		}
 	}
@@ -786,7 +819,7 @@ void SettingsMenu::render(UTIME dt)
 		if ( step > (int)m_optionSlideTimer ) step = (int)m_optionSlideTimer;
 		m_optionSlideTimer -= step;
 		int remainPct = (m_optionSlideTimer * 100 / SETTINGS_OPTION_SLIDE_MS);
-		m_optionSlideOffset = m_optionSlideDir * getValueFromRange(0, SETTINGS_OPTION_SLOT_W, remainPct);
+		m_optionSlideOffset = m_optionSlideDir * getValueFromRange(0, m_activeSlotW, remainPct);
 	}
 	else
 	{
@@ -960,13 +993,14 @@ void SettingsMenu::render(UTIME dt)
 			int centerColor = (m_items[i].optionValues[idx] == m_items[i].savedValue) ? TEXT_COLOR_GREEN : TEXT_COLOR_WHITE;
 			renderOutlinedColoredString(curLabel, cx - cw / 2, optRowY, centerColor);
 
+			int listSlotW = (m_items[i].optionSlotW > 0) ? m_items[i].optionSlotW : SETTINGS_OPTION_SLOT_W;
 			// previous option: green if it's the savedValue, white otherwise
 			if ( idx > 0 )
 			{
 				const char* prevLabel = m_items[i].options[idx - 1];
 				int prevColor = (m_items[i].optionValues[idx - 1] == m_items[i].savedValue)
 					? TEXT_COLOR_GREEN : TEXT_COLOR_WHITE;
-				int px = panelCenterX - SETTINGS_OPTION_SLOT_W + slideOff;
+				int px = panelCenterX - listSlotW + slideOff;
 				int pw = (int)strlen(prevLabel) * 10;
 				renderOutlinedColoredString(prevLabel, px - pw/2, optRowY, prevColor);
 			}
@@ -976,7 +1010,7 @@ void SettingsMenu::render(UTIME dt)
 				const char* nextLabel = m_items[i].options[idx + 1];
 				int nextColor = (m_items[i].optionValues[idx + 1] == m_items[i].savedValue)
 					? TEXT_COLOR_GREEN : TEXT_COLOR_WHITE;
-				int nx = panelCenterX + SETTINGS_OPTION_SLOT_W + slideOff;
+				int nx = panelCenterX + listSlotW + slideOff;
 				int nw = (int)strlen(nextLabel) * 10;
 				renderOutlinedColoredString(nextLabel, nx - nw/2, optRowY, nextColor);
 			}
@@ -1017,7 +1051,7 @@ void SettingsMenu::render(UTIME dt)
 
 			// scale slide animation to match slot width
 			int rangeSlide = (isSelected && m_isEditingItem)
-				? (m_optionSlideOffset * slotW / SETTINGS_OPTION_SLOT_W) : 0;
+				? (m_optionSlideOffset * slotW / m_activeSlotW) : 0;
 			int cx = panelCenterX + rangeSlide;
 
 			// helper to pick color for a given range value (neighbors use outlined colored string)

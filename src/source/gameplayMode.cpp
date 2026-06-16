@@ -148,6 +148,10 @@ void arrangeChart(std::vector<struct ARROW> *chart, std::vector<struct FREEZE> *
 // precondition: see description of arguments at function declaration
 // postcondition: if type != 0 then the chart and holds will be modified
 
+void applyChartMod(std::vector<struct ARROW> *chart, std::vector<struct FREEZE> *holds, int mod, bool isDoubles, bool isCenter, bool isRightSide);
+// precondition: mod is one of 0=Off, 1=Random, 2=S-Random, 3=D-Random, 4=Inverted
+// postcondition: if mod != 0 then the chart and holds are rearranged in place
+
 int checkForExtraStages();
 // precondition: the game is between stages, and at least gs.numStagesPerCredit have been cleared
 // postcondition: modifies the song choices and returns 0-2, the number of bonus songs awarded
@@ -1241,6 +1245,14 @@ void loadNextSong()
 		p1maxscore = readChart(&gs.player[0].currentChart, &gs.player[0].freezeArrows, gs.player[0].stagesPlayed[gs.currentStage], gs.player[0].stagesLevels[gs.currentStage]);
 	}
 
+	// versus co-random: if both players share the same random mod, seed rand() identically
+	// so both charts receive the same random arrangement before other mods are applied
+	unsigned int sharedChartModSeed = (unsigned int)rand();
+	bool useSharedChartModSeed = gs.isVersus
+		&& gs.player[0].chartMod == gs.player[1].chartMod
+		&& gs.player[0].chartMod >= 1
+		&& gs.player[0].chartMod <= 3; // only random-family mods (not Inverted, which is deterministic)
+
 	for ( int p = 0; p < (gs.isVersus ? 2 : 1); p++ )
 	{
 		gs.player[p].nextStage();
@@ -1268,9 +1280,16 @@ void loadNextSong()
 			sm.player[p].currentSet[gs.currentStage - 1].calculateStatus();
 		}
 
+		bool isCenter    = gs.isSingles() && gs.player[0].isCenter();
+		bool isRightSide = (gs.isVersus && p == 1) || (gs.isSingles() && gs.player[0].centerRight);
+		if ( gs.player[p].chartMod > 0 )
+		{
+			if ( useSharedChartModSeed ) { srand(sharedChartModSeed); }
+			applyChartMod(&gs.player[p].currentChart, &gs.player[p].freezeArrows, gs.player[p].chartMod, gs.isDoubles, isCenter, isRightSide);
+		}
 		if ( gs.player[p].arrangeModifier > 0 )
 		{
-			arrangeChart(&gs.player[p].currentChart, &gs.player[p].freezeArrows, gs.player[p].arrangeModifier, gs.isDoubles, gs.isSingles() && gs.player[0].isCenter());
+			arrangeChart(&gs.player[p].currentChart, &gs.player[p].freezeArrows, gs.player[p].arrangeModifier, gs.isDoubles, isCenter);
 		}
 	}
 	
@@ -1306,6 +1325,170 @@ void loadNextSong()
 	}
 
 	announcerTargetSpeak = (p1maxscore + p2maxscore)/7; // speak approximately 7 times per song (although it is both random and dependant on other factors)
+}
+
+static void shuffleInts(int* arr, int count)
+{
+	for ( int i = 0; i < count - 1; i++ )
+	{
+		int j = i + rand() % (count - i);
+		int tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+	}
+}
+
+static void applyColumnRandom(std::vector<struct ARROW>* chart, std::vector<struct FREEZE>* holds, bool isDoubles, bool isDRandom, bool isCenter, bool isRightSide)
+{
+	int perm[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+
+	if ( isDoubles )
+	{
+		if ( isDRandom )
+		{
+			shuffleInts(perm + 2, 4); // scramble center 4 first so they can cross sides
+			shuffleInts(perm, 4);     // then scramble each half independently
+			shuffleInts(perm + 4, 4);
+		}
+		else { shuffleInts(perm, 4); shuffleInts(perm + 4, 4); }
+	}
+	else if ( isCenter )
+	{
+		shuffleInts(perm + 2, 4); // active columns are 2-5
+	}
+	else if ( isRightSide )
+	{
+		shuffleInts(perm + 4, 4); // active columns are 4-7
+	}
+	else
+	{
+		shuffleInts(perm, 4); // active columns are 0-3
+	}
+
+	for ( std::vector<struct ARROW>::iterator c = chart->begin(); c != chart->end(); c++ )
+	{
+		for ( int i = 0; i < 4; i++ )
+		{
+			if ( c->columns[i] >= 0 && c->columns[i] <= 7 )
+				c->columns[i] = (char)perm[c->columns[i]];
+		}
+	}
+
+	for ( std::vector<struct FREEZE>::iterator h = holds->begin(); h != holds->end(); h++ )
+	{
+		for ( int i = 0; i < 2; i++ )
+		{
+			if ( h->columns[i] >= 0 && h->columns[i] <= 7 )
+				h->columns[i] = (char)perm[h->columns[i]];
+		}
+	}
+}
+
+static void applySRandom(std::vector<struct ARROW>* chart, std::vector<struct FREEZE>* holds, bool isDoubles, bool isCenter, bool isRightSide)
+{
+	int poolSize = isDoubles ? 8 : 4;
+	int i = 0;
+
+	while ( i < (int)chart->size() )
+	{
+		UTIME t = (*chart)[i].timing;
+
+		// collect all active column slots sharing this timing
+		int refArrows[32];
+		int refSlots[32];
+		int oldCols[32];
+		int refCount = 0;
+
+		int j = i;
+		while ( j < (int)chart->size() && (*chart)[j].timing == t )
+		{
+			for ( int s = 0; s < 4; s++ )
+			{
+				if ( (*chart)[j].columns[s] >= 0 && (*chart)[j].columns[s] <= 7 && refCount < 32 )
+				{
+					refArrows[refCount] = j;
+					refSlots[refCount]  = s;
+					oldCols[refCount]   = (*chart)[j].columns[s];
+					refCount++;
+				}
+			}
+			j++;
+		}
+
+		if ( refCount > 0 )
+		{
+			int poolBase = isCenter ? 2 : (isRightSide ? 4 : 0);
+			int pool[8];
+			for ( int k = 0; k < poolSize; k++ ) pool[k] = poolBase + k;
+			int n = refCount < poolSize ? refCount : poolSize;
+			for ( int k = 0; k < n; k++ )
+			{
+				int r = k + rand() % (poolSize - k);
+				int tmp = pool[k]; pool[k] = pool[r]; pool[r] = tmp;
+			}
+			for ( int k = 0; k < n; k++ )
+			{
+				(*chart)[refArrows[k]].columns[refSlots[k]] = (char)pool[k];
+			}
+
+			// build old->new mapping and apply to freeze arrows that start at this timing
+			int remap[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+			for ( int k = 0; k < n; k++ )
+				remap[oldCols[k]] = pool[k];
+
+			for ( std::vector<struct FREEZE>::iterator h = holds->begin(); h != holds->end(); h++ )
+			{
+				if ( h->startTime == t )
+				{
+					for ( int ci = 0; ci < 2; ci++ )
+					{
+						if ( h->columns[ci] >= 0 && h->columns[ci] <= 7 )
+							h->columns[ci] = (char)remap[h->columns[ci]];
+					}
+				}
+			}
+		}
+
+		i = j;
+	}
+}
+
+static void applyInverted(std::vector<struct ARROW>* chart, std::vector<struct FREEZE>* holds, bool isDoubles, bool isCenter, bool isRightSide)
+{
+	// left singles: 0<->1, 2<->3; center: 2<->3, 4<->5; right singles: 4<->5, 6<->7; doubles: all pairs
+	static const char leftInvert[8]    = { 1, 0, 3, 2, 4, 5, 6, 7 };
+	static const char centerInvert[8]  = { 0, 1, 3, 2, 5, 4, 6, 7 };
+	static const char rightInvert[8]   = { 0, 1, 2, 3, 5, 4, 7, 6 };
+	static const char doublesInvert[8] = { 1, 0, 3, 2, 5, 4, 7, 6 };
+	const char* inv = isDoubles ? doublesInvert : (isCenter ? centerInvert : (isRightSide ? rightInvert : leftInvert));
+
+	for ( std::vector<struct ARROW>::iterator c = chart->begin(); c != chart->end(); c++ )
+	{
+		for ( int i = 0; i < 4; i++ )
+		{
+			if ( c->columns[i] >= 0 && c->columns[i] <= 7 )
+				c->columns[i] = inv[c->columns[i]];
+		}
+	}
+
+	for ( std::vector<struct FREEZE>::iterator h = holds->begin(); h != holds->end(); h++ )
+	{
+		for ( int i = 0; i < 2; i++ )
+		{
+			if ( h->columns[i] >= 0 && h->columns[i] <= 7 )
+				h->columns[i] = inv[h->columns[i]];
+		}
+	}
+}
+
+// mod: 1=Random, 2=S-Random, 3=D-Random (all 8 cols; acts as Random in singles), 4=Inverted
+void applyChartMod(std::vector<struct ARROW>* chart, std::vector<struct FREEZE>* holds, int mod, bool isDoubles, bool isCenter, bool isRightSide)
+{
+	switch ( mod )
+	{
+	case 1: applyColumnRandom(chart, holds, isDoubles, false, isCenter, isRightSide); break;
+	case 2: applySRandom(chart, holds, isDoubles, isCenter, isRightSide);             break;
+	case 3: applyColumnRandom(chart, holds, isDoubles, true,  isCenter, isRightSide); break;
+	case 4: applyInverted(chart, holds, isDoubles, isCenter, isRightSide);            break;
+	}
 }
 
 // chart - list of tap notes

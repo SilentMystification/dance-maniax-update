@@ -830,7 +830,7 @@ void renderCreditsDisplay()
 
 	if ( gs.isFreestyleMode )
 	{
-		renderWhiteString(" CONTINUOUS PLAY MODE ", (SCREEN_WIDTH - 220) / 2, y);
+		renderWhiteString(" ENDLESS PLAY MODE ", (SCREEN_WIDTH - 220) / 2, y);
 	} 
 	else if ( gs.isFreeplay )
 	{
@@ -2031,7 +2031,7 @@ void renderGameOptions()
 
 	textprintf(rm.m_backbuf, font, 50, 100, testMenuSubIndex == 0 ? RED : WHITE, "SONGS PER CREDIT");
 	textprintf(rm.m_backbuf, font, 50, 130, testMenuSubIndex == 1 ? RED : WHITE, "DISABLE MENU TIMER");
-	textprintf(rm.m_backbuf, font, 50, 160, testMenuSubIndex == 2 ? RED : WHITE, "CONTINUOUS PLAY MODE");
+	textprintf(rm.m_backbuf, font, 50, 160, testMenuSubIndex == 2 ? RED : WHITE, "ENDLESS PLAY MODE");
 	textprintf(rm.m_backbuf, font, 50, 310, testMenuSubIndex == 3 ? RED : WHITE, "FACTORY SETTINGS");
 	textprintf(rm.m_backbuf, font, 50, 340, testMenuSubIndex == 4 ? RED : WHITE, "SAVE AND EXIT");
 

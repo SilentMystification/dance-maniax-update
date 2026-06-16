@@ -26,6 +26,7 @@ struct SettingsItem
 	const char**       options;
 	const int*         optionValues;
 	int                optionCount;
+	int                optionSlotW;  // 0 = use global SETTINGS_OPTION_SLOT_W
 
 	// RANGE type
 	int                minVal;
@@ -82,6 +83,7 @@ private:
 	int          m_cancelHoldTimer;      // ms L+R have been held during edit mode (2000 = cancel)
 	int          m_lastNavTimer;         // ms since last navigation input (for chord detection)
 	int          m_lastNavDir;           // direction of last nav: -1=up, +1=down, 0=none
+	int          m_activeSlotW;          // slot width of the item currently being slide-animated
 };
 
 #endif
