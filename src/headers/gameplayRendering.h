@@ -102,7 +102,7 @@ static int dmxHoldColors[5][4][3] =
 		{  76, 255, 231 },
 	},
 	{
-		{ 255, 216,   0 },  // gold notes (not used)jhat
+		{ 255, 216,   0 },  // gold notes (not used)
 		{  60,  60,  20 },
 		{ 255, 255,  38 },
 		{ 255, 231,  76 },

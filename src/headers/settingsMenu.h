@@ -87,4 +87,9 @@ private:
 	bool         m_waitForRelease;       // after edit cancel, block L+R close until buttons released
 };
 
+void applyProfileToCredit(int p);
+// Copies all per-player profile settings from sm.player[p] into gs.player[p],
+// resets per-credit runtime state (chartMod), and enforces simple-menu defaults.
+// Call at credit start and whenever settings close mid-credit.
+
 #endif

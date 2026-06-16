@@ -14,6 +14,42 @@ extern InputManager     im;
 extern EffectsManager   em;
 extern SongEntry*       songs;
 
+void applyProfileToCredit(int p)
+{
+	gs.player[p].chartMod = 0;
+	if ( sm.player[p].useSimpleMenu == 0 )
+	{
+		// simple mode: apply forced defaults to runtime state; sm.player[p] is never modified
+		gs.player[p].scrollMode             = 0;
+		gs.player[p].speedMod               = sm.player[p].speedMod;
+		gs.player[p].visualOffset           = 0;
+		gs.player[p].judgementPositionMode  = 0;
+		gs.player[p].judgementMsDisplayMode = 4;
+		gs.player[p].judgementEarlyLateMode = 0;
+		gs.player[p].invertNoteColors       = false;
+	}
+	else
+	{
+		// expert mode: copy all profile values
+		gs.player[p].judgementPositionMode  = sm.player[p].judgementPositionMode;
+		gs.player[p].judgementMsDisplayMode = sm.player[p].judgementMsDisplayMode;
+		gs.player[p].judgementEarlyLateMode = sm.player[p].judgementEarlyLateMode;
+		gs.player[p].speedMod               = sm.player[p].speedMod;
+		gs.player[p].scrollMode             = sm.player[p].scrollMode;
+		gs.player[p].fixedScrollPPS         = sm.player[p].fixedScrollPPS;
+		gs.player[p].visualOffset           = sm.player[p].visualOffset;
+		gs.player[p].invertNoteColors       = sm.player[p].invertNoteColors != 0;
+	}
+	{ int rm2 = sm.player[p].reverseMode;
+	  gs.player[p].reverseModifier = (rm2 == 2) ? (unsigned char)0x99 : (rm2 != 0 ? (unsigned char)0xFF : (unsigned char)0x00); }
+	gs.player[p].arrangeModifier = (char)sm.player[p].mirrorMode;
+	if ( !gs.isDoubles && !gs.isVersus )
+	{
+		gs.player[p].centerLeft  = (sm.player[p].playPosition == 1);
+		gs.player[p].centerRight = (sm.player[p].playPosition == 2);
+	}
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // Visual constants — tweak these without touching logic
 //////////////////////////////////////////////////////////////////////////////
@@ -134,8 +170,7 @@ static void fillToggleItem(SettingsItem& item, PLAYER_DATA& p)
 void SettingsMenu::resetSettings(int playerData)
 {
 	m_selectedItem = 0;
-	gs.player[playerData].chartMod = 0;
-	sm.applyProfileToCredit(playerData);
+	applyProfileToCredit(playerData);
 }
 
 void SettingsMenu::buildItemList(int player)

@@ -301,7 +301,6 @@ public:
 		bgmAnchorFmodMs = 0;
 		bgmLastFmodPos = 0;
 		currentSongIsPreview = false;
-		bgmGap = 0;
 
 		// global game state
 		isSolo = false;

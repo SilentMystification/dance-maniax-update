@@ -344,6 +344,7 @@ int main()
 			return 0;
 		}
 		sm.resetData();
+		sm.runDataFixers();
 	}
 
 	im.updateKeyStates(1);

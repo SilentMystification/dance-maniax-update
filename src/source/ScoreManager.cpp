@@ -5,6 +5,7 @@
 #include <string>
 
 #include "../headers/scoreManager.h"
+#include <windows.h>
 
 #include "../headers/GameStateManager.h"
 extern GameStateManager gs;
@@ -21,41 +22,6 @@ void ScoreManager::resetData()
 	player[1].resetData();
 }
 
-void ScoreManager::applyProfileToCredit(int p)
-{
-	if ( player[p].useSimpleMenu == 0 )
-	{
-		// simple mode: apply forced defaults to runtime state; sm.player[p] is never modified
-		gs.player[p].scrollMode             = 0;
-		gs.player[p].speedMod               = player[p].speedMod;
-		gs.player[p].fixedScrollPPS         = player[p].fixedScrollPPS;
-		gs.player[p].visualOffset           = 0;
-		gs.player[p].judgementPositionMode  = 0;
-		gs.player[p].judgementMsDisplayMode = 4;
-		gs.player[p].judgementEarlyLateMode = 0;
-		gs.player[p].invertNoteColors       = false;
-	}
-	else
-	{
-		// expert mode: copy all profile values
-		gs.player[p].judgementPositionMode  = player[p].judgementPositionMode;
-		gs.player[p].judgementMsDisplayMode = player[p].judgementMsDisplayMode;
-		gs.player[p].judgementEarlyLateMode = player[p].judgementEarlyLateMode;
-		gs.player[p].speedMod               = player[p].speedMod;
-		gs.player[p].scrollMode             = player[p].scrollMode;
-		gs.player[p].fixedScrollPPS         = player[p].fixedScrollPPS;
-		gs.player[p].visualOffset           = player[p].visualOffset;
-		gs.player[p].invertNoteColors       = player[p].invertNoteColors != 0;
-	}
-	{ int rm = player[p].reverseMode;
-	  gs.player[p].reverseModifier = (rm == 2) ? (unsigned char)0x99 : (rm != 0 ? (unsigned char)0xFF : (unsigned char)0x00); }
-	gs.player[p].arrangeModifier = (char)player[p].mirrorMode;
-	if ( !gs.isDoubles && !gs.isVersus )
-	{
-		gs.player[p].centerLeft  = (player[p].playPosition == 1);
-		gs.player[p].centerRight = (player[p].playPosition == 2);
-	}
-}
 
 bool ScoreManager::loadPlayerFromDisk(char* name, char side)
 {
@@ -100,18 +66,18 @@ bool ScoreManager::loadPlayerFromDisk(char* name, char side)
 
 	if ( vnum >= 2 )
 	{
-		fread(&p.judgementPositionMode,  sizeof(int),  1, fp);
-		fread(&p.judgementMsDisplayMode, sizeof(int),  1, fp);
-		fread(&p.judgementEarlyLateMode, sizeof(int),  1, fp);
-		fread(&p.scrollMode,             sizeof(int),  1, fp);
-		fread(&p.speedMod,               sizeof(int),  1, fp);
-		fread(&p.fixedScrollPPS,         sizeof(int),  1, fp);
-		fread(&p.scoreMode,              sizeof(int),  1, fp);
-		fread(&p.audioOffset,            sizeof(int),  1, fp);
-		fread(&p.hasCustomAudioOffset,   sizeof(bool), 1, fp);
-		fread(&p.visualOffset,           sizeof(int),  1, fp);
-		fread(&p.invertNoteColors,       sizeof(int),  1, fp);
-		fread(&p.useSimpleMenu,          sizeof(int),  1, fp);
+		fread(&p.judgementPositionMode,  sizeof(int), 1, fp);
+		fread(&p.judgementMsDisplayMode, sizeof(int), 1, fp);
+		fread(&p.judgementEarlyLateMode, sizeof(int), 1, fp);
+		fread(&p.scrollMode,             sizeof(int), 1, fp);
+		fread(&p.speedMod,               sizeof(int), 1, fp);
+		fread(&p.fixedScrollPPS,         sizeof(int), 1, fp);
+		fread(&p.scoreMode,              sizeof(int), 1, fp);
+		fread(&p.audioOffset,            sizeof(int), 1, fp);
+		{ int tmp = 0; fread(&tmp, sizeof(int), 1, fp); p.hasCustomAudioOffset = (tmp != 0); }
+		fread(&p.visualOffset,           sizeof(int), 1, fp);
+		fread(&p.invertNoteColors,       sizeof(int), 1, fp);
+		fread(&p.useSimpleMenu,          sizeof(int), 1, fp);
 	}
 	fread(&p.lastSinglesSongID, sizeof(int), 1, fp);
 	fread(&p.lastDoublesSongID, sizeof(int), 1, fp);
@@ -390,7 +356,7 @@ void ScoreManager::savePlayerToDisk(PLAYER_DATA &p)
 	fwrite(&p.fixedScrollPPS,         sizeof(int),  1, fp);
 	fwrite(&p.scoreMode,              sizeof(int),  1, fp);
 	fwrite(&p.audioOffset,            sizeof(int),  1, fp);
-	fwrite(&p.hasCustomAudioOffset,   sizeof(bool), 1, fp);
+	{ int tmp = p.hasCustomAudioOffset ? 1 : 0; fwrite(&tmp, sizeof(int), 1, fp); }
 	fwrite(&p.visualOffset,           sizeof(int),  1, fp);
 	fwrite(&p.invertNoteColors,       sizeof(int),  1, fp);
 	fwrite(&p.useSimpleMenu,          sizeof(int),  1, fp);
@@ -433,4 +399,41 @@ void ScoreManager::savePlayerToDisk(PLAYER_DATA &p)
 	}
 
 	safeCloseFile(fp, scoreFilename);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Data fixers — run once at startup to migrate save files to current layout.
+// Each fixer is self-contained: safe to re-run on already-migrated files.
+// Remove a fixer when the backend is replaced and old files no longer exist.
+//////////////////////////////////////////////////////////////////////////////
+
+void ScoreManager::runDataFixers()
+{
+	// Add static fixer functions here as needed and call them in the loop below.
+	// Each fixer must be a no-op on already-migrated files.
+	// Remove all fixers when the save backend is replaced.
+	WIN32_FIND_DATAA findData;
+	HANDLE hFind = FindFirstFileA("PLAYERS\\*.prefs", &findData);
+	if ( hFind == INVALID_HANDLE_VALUE ) return;
+	do {
+		char path[MAX_PATH];
+		sprintf_s(path, sizeof(path), "PLAYERS\\%s", findData.cFileName);
+
+		// read version number from file header
+		FILE* fp = fopen(path, "rb");
+		if ( !fp ) continue;
+		char magic[4] = {0};
+		long vnum = 0;
+		fread(magic, 1, 4, fp);
+		fread(&vnum, sizeof(long), 1, fp);
+		fclose(fp);
+
+		if ( memcmp(magic, "DMXp", 4) != 0 ) continue;
+
+		if ( vnum == 2 )
+		{
+			// v2 fixers go here
+		}
+	} while ( FindNextFileA(hFind, &findData) );
+	FindClose(hFind);
 }

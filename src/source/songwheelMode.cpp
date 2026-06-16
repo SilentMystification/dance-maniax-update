@@ -558,7 +558,7 @@ void mainSongwheelLoop(UTIME dt)
 
 			// copy updated settings to gs.player so they take effect next song
 			int p = settingsPlayerSlot[side];
-			sm.applyProfileToCredit(p);
+			applyProfileToCredit(p);
 
 			if ( sm.player[p].isLoggedIn )
 			{
@@ -635,6 +635,13 @@ void mainSongwheelLoop(UTIME dt)
 		}
 	}
 
+	// sphere rotation animation runs every frame regardless of settings overlay
+	if ( isSphereMoving )
+	{
+		updateSongwheelRotation(dt);
+		titleAnimTimer = 0;
+	}
+
 	// while settings menus are open, suppress normal wheel/submenu input;
 	// all other state (timer, preview, animations, render) runs normally below
 	if ( !(isInSettings[0] || isInSettings[1]) )
@@ -657,10 +664,7 @@ void mainSongwheelLoop(UTIME dt)
 	}
 	else if ( isSphereMoving )
 	{
-		updateSongwheelRotation(dt);
-		titleAnimTimer = 0;
-
-		// holding the button down means continous motion - not a stop (and flicker) on each banner
+		// animation already advanced above; only handle hold-to-continue input here
 		if ( !isSphereMoving && !isRandomSelect )
 		{
 			if ( (im.isKeyDown(MENU_LEFT_1P) || im.isKeyDown(MENU_LEFT_2P)) && !(im.isKeyDown(MENU_RIGHT_1P) || im.isKeyDown(MENU_RIGHT_2P)) )
@@ -1008,7 +1012,7 @@ void mainSongwheelLoop(UTIME dt)
 			settingsWaitForRelease[side] = false;
 
 			int p = settingsPlayerSlot[side];
-			sm.applyProfileToCredit(p);
+			applyProfileToCredit(p);
 			if ( sm.player[p].isLoggedIn )
 				sm.savePlayersToDisk();
 		}

@@ -8,6 +8,7 @@
 #include "../headers/lightsManager.h"
 #include "../headers/scoreManager.h"
 #include "../headers/songwheelMode.h"
+#include "../headers/settingsMenu.h"
 
 extern GameStateManager gs;
 extern RenderingManager rm;
@@ -863,7 +864,7 @@ void endLoginMode()
 	// copy profile prefs into this credit's runtime state
 	for ( int p = 0; p < 2; p++ )
 	{
-		sm.applyProfileToCredit(p);
+		applyProfileToCredit(p);
 	}
 
 	// update and save the most recent player names
