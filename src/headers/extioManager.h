@@ -44,6 +44,10 @@ private:
 	// precondition: only called while in boot mode, and should be called once each loop
 	// returns: returns false when this manager gives up on finding the extio, true otherwise
 
+	void setBaudRate(DWORD rate);
+	// precondition: hSerial is a valid open handle
+	// postcondition: serial port reconfigured to the new baud rate without closing the handle
+
 	//////////////////////////////////////////////////////////////////////////
 	// LOW LEVEL SERIAL FUNCTIONS
 	//////////////////////////////////////////////////////////////////////////

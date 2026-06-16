@@ -78,10 +78,19 @@ bool extioManager::updateInitialize(UTIME dt)
 				ReadData(inputBuffer, PACKET_SIZE);
 				if ( inputBuffer[0] == 'O' && inputBuffer[1] == 'K' && inputBuffer[2] == '!' )
 				{
-					isTalking = true;
-					connectionState = 3;
 					al_trace("Handshake accepted! Found the IO board on port %d.\r\n", comPort);
-					WriteData("I", 1); // begin the input request loop
+					if ( usePhoenixIO )
+					{
+						WriteData("BPS", 3); // request baud rate switch to 115200
+						powerOnTime     = 0; // reuse as settle timer
+						connectionState = 4;
+					}
+					else
+					{
+						isTalking = true;
+						connectionState = 3;
+						WriteData("I", 1); // begin the input request loop
+					}
 				}
 				else
 				{
@@ -104,6 +113,18 @@ bool extioManager::updateInitialize(UTIME dt)
 		else if ( connectionState == 3 )
 		{
 			al_trace("Do not call updateInitialize() after success!\r\n");
+		}
+		else if ( connectionState == 4 )
+		{
+			// waiting for both sides to settle after "BPS" was sent; powerOnTime reused as settle timer
+			if ( powerOnTime >= 50 )
+			{
+				setBaudRate(CBR_115200);
+				al_trace("Switched to 115200 baud.\r\n");
+				isTalking       = true;
+				connectionState = 3;
+				WriteData("I", 1); // begin the input request loop
+			}
 		}
 	}
 
@@ -202,17 +223,9 @@ bool extioManager::attemptConnection(const char* port)
 		return false;
 	}
 
-	//Define serial connection parameters for the arduino board
-	if ( usePhoenixIO )
-	{
-		dcbSerialParams.BaudRate = CBR_115200;
-		al_trace("Using Phoenix IO\r\n");
-	}
-	else
-	{
-		dcbSerialParams.BaudRate = CBR_9600;
-		al_trace("Using Standard IO\r\n");
-	}
+	// Always start at 9600 — Phoenix firmware auto-negotiates up after the DMX handshake
+	dcbSerialParams.BaudRate = CBR_9600;
+	al_trace(usePhoenixIO ? "Using Phoenix IO (starting at 9600, will switch)\r\n" : "Using Standard IO\r\n");
 	dcbSerialParams.ByteSize = 8;
 	dcbSerialParams.StopBits = ONESTOPBIT;
 	dcbSerialParams.Parity = NOPARITY;
@@ -225,6 +238,16 @@ bool extioManager::attemptConnection(const char* port)
 
 	isConnected = true;
 	return true;
+}
+
+void extioManager::setBaudRate(DWORD rate)
+{
+	DCB dcb = {0};
+	if ( GetCommState(hSerial, &dcb) )
+	{
+		dcb.BaudRate = rate;
+		SetCommState(hSerial, &dcb);
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////////
