@@ -1,18 +1,3 @@
-# THIS PROJECT IS NO LONGER BEING UPDATED
-For many years I was updating the source code here with new features, compatibility
-for new and different io boards, and bugfixes. Mostly bugfixes.
-
-But now the engine is starting to show its age and it needs a lot of work to remain
-useful. I've been putting off updates to the window resolution, the song selection,
-the background videos, nonstop mode, and more. And honestly Stepmania just does a
-better job now. I don't have much motivation to continue to update my code when
-Stepmania is just simply a better engine and a better choice.
-
-In the future I may start a new project, such as a curated Stepmania theme plus
-songpack which would be designed for modern rhythm game fans. Such a project likely
-would not be allowed on GitHub. In the meantime besides Stepmania I also recommend
-running the original game in MAME!
-
 # dance-maniax-update
 This repo is for my fan-made recreation of Konami's 1999 arcade game, Dance Maniax.
 
@@ -58,27 +43,26 @@ Recommended Hardware (I run on this, but have run on much less)
 * Intel HD Graphics 
 
 ### MAJOR CHANGES IN 2026 UPDATE
-# CAB OFFSETS
-There is now a configurable cab offset located in the operator menu under Sound Setttings -> Audio Offset.
-
-You should take some time to calibrate this
-
-At a minimum, it should compensate for the 
-
 
 # PHOENIX IO
 The 2026 update brings an updated firmware for cab IO. It is fully backwards compatible with devices previously flashed with extio firmware. 
 
-To enable the new PHOENIX IO, flash the `extio_phoenix.ino` located in `.\firmware\extio_phoenix\` in Arduino Studio or your preferred Arduino flashing tool.
+To enable the new PHOENIX IO, flash the `extio_phoenix.ino` located in 
+`.\firmware\extio_phoenix\` in Arduino IDE or your preferred Arduino flashing tool.
 
 After, enable the new IO backend by renaming the `usephoenixio.option` file to `usephoenixio`
 
 Both of these must done or else the game will fail to properly initialize IO.
 
-If you want to revert back to the original firmware, flash the original `extio.ino` and rename or remove the `usephoenixio` file.
+If you want to revert back to the original firmware, flash the original `extio.ino`
+located in `.\firmware\extio_phoenix\` and rename or remove the `usephoenixio` file.
 
 At it's core the new firmware only changes the BAUD rate of the IO's serial device from 9600 BAUD to 115200 BAUD.
+
 This change should reduce input latency and make the game engine drive IO sync instead of waiting for the serial device to respond.
+
+For in depth instuctions consult with the `Installation Instructions.md` file in the 
+firmware folder.
 
 # ASIO SUPPORT
 With the 2026 Update, native ASIO is now supported! Originally DMX Update used DirectSound as it's audio backend. 
@@ -92,8 +76,19 @@ To enable support you MUST meet the following prerequisites:
 * Native ASIO driver for your hardware that supports outputting on channel 0
 * 32-bit ASIO driver for your hardware (64-bit OS is fine, but you must have a 32-bit driver for this application to function as it is 32-bit)
 
-Do note, most Realtek ALC chipsets natively support ASIO, just not out of the box. 
-If you have a realtek audio device you can try to enable ASIO support using the bundled installer in the `.\ASIO` folder.
+Do note, most Realtek ALC chipsets natively support ASIO and meet this requirement,
+just not out of the box. If you have a realtek audio device you can try to enable
+ASIO support using the bundled installer in the `.\ASIO` folder. 
+
+Restart after installing and use VBAASIOTest32 to check if ASIO mode is functioning. 
+Devices > Realtek ASIO
+
+If you hear a sin wave after selecting you ASIO is working. If Realtek ASIO does not 
+show up, your device does not support native ASIO. 
+
+You can tweak the ASIO settings under Device > Control Panel to adjust or view your buffer size. 
+Use this information below to configure Cab Offsets.
+
 
 On boot you will see one of the 3 messages printed during the DanceManiax System Startup boot screen:
 | Boot message | Meaning |
@@ -101,3 +96,51 @@ On boot you will see one of the 3 messages printed during the DanceManiax System
 | `SOUND CHECK: OK` | Original DirectSound backend used, ASIO is NOT enabled with an option file |
 | `SOUND CHECK: OK - ASIO` | ASIO is enabled via option and successfully initialized |
 | `SOUND CHECK: OK - ASIO -> DSOUND` | ASIO is enabled but it did NOT successfully initialize, falling back to DirectSound |
+
+# CAB OFFSETS
+There is now a configurable cab offset located in the operator menu under Sound Setttings -> Audio Offset.
+
+Additionally in the new Settings Menu there are per-player visual and audio offsets.
+
+You should take some time to calibrate these.
+
+At a minimum, you should set it at the same value as your ASIO buffer compensate for the ASIO buffer or directsound buffer. 
+
+For ASIO it is simple:
+Offset = (Buffer Length in Samples / Sample Rate in Hz) * 1000
+
+My setup has an ASIO buffer of 384 samples and is running at 48000hz:
+Offset = (384 / 48000) * 1000 
+Offset = 8ms
+
+This is a starting point for what the cab offset should be. 
+
+If unable to use ASIO, the DirectSound buffer size is shared among other applications so it is
+both larger and not directly exposed as a static value. Start at 10ms and work your way up.
+
+To narrow in on this value, enable expert options and pay attention to the AVG value you get
+at the end of each song, this represents the average timing of 80% of your hits (minus the top and bottom 10%)
+
+The average AVG that you get across multiple plays is a safe value to use as either 
+your personal offset or the cab offset. 
+
+# Judgement Changes 
+The way judgements are done for hits has been changed a bit. The timing windows remain
+the exact same however, how the game computes your judgement windows has been tightened quite
+a bit. This may result in the game feeling different. With no changes you will probably
+notice that you are consistently hitting early.
+
+You will most likely need to configure your personal / cab offsets described above
+to truly benefit from the changes implemented here.
+
+Additionally, a Marvelous timing window is now available to the player. 
+These are all timing windows:
+
+        early ←———————— 0 ms ————————→ late
+
+Marvelous: [±24 ms]
+Perfect:   [±48 ms]
+Great:     [±120 ms]
+Good:      [±150 ms]
+MISS:      after +150 ms (or no valid hit)
+
