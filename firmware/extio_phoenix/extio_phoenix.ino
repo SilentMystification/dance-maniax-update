@@ -9,8 +9,7 @@ boolean runningError = false;
 
 void setup()
 {
-  // Start at 9600 so old game versions can connect; switches to 115200 after "BPS" from new game
-  Serial.begin(9600);
+  Serial.begin(115200);
   inputBuffer[0] = 0;
   outputBuffer[0] = 0;
 
@@ -37,7 +36,6 @@ void setup()
 
 void loop()
 {
-  // video amp
 }
 
 /*
@@ -50,8 +48,7 @@ void serialEvent()
 {
   while (Serial.available())
   {
-    // keep listening until an entire packet (3 bytes) is read
-    if (inputLen < 4)
+    if (inputLen < 5)
     {
       inputBuffer[inputLen++] = (char)Serial.read();
     }
@@ -123,19 +120,6 @@ void serialEvent()
           outputBuffer[0] = 'B'; outputBuffer[1] = 'A'; outputBuffer[2] = 'D'; outputBuffer[3] = 0;
           outputLen = 3;
           runningError = true; // what are you sending me?
-        }
-        inputLen = 0;
-      }
-    }
-    else if ( inputBuffer[0] == 'B' ) // baud rate switch: new game requests 115200
-    {
-      if ( inputLen >= 3 )
-      {
-        if (inputBuffer[0] == 'B' && inputBuffer[1] == 'P' && inputBuffer[2] == 'S')
-        {
-          Serial.flush(); // drain TX before switching
-          delay(10);
-          Serial.begin(115200);
         }
         inputLen = 0;
       }

@@ -35,7 +35,11 @@ To install the game download the file "install.ps1" above and run it. This is a
 Windows PowerShell script that will download 7 zip files (about 775 MB total),
 extract them (about 2 GB total), and then delete the zip files. To run a
 Powershell file, first open a Powershell prompt, then type "./" followed by the
-name of the file.
+name of the file:
+`./install.ps1`
+
+If you get a permissions error, run:
+`Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`
 
 The output of the working game will be in the `deploy` folder. This can be run as-is or if you build this project for debugging and need further testing capabilities  
 
@@ -54,11 +58,18 @@ Recommended Hardware (I run on this, but have run on much less)
 * Intel HD Graphics 
 
 ### MAJOR CHANGES IN 2026 UPDATE
+# CAB OFFSETS
+There is now a configurable cab offset located in the operator menu under Sound Setttings -> Audio Offset.
+
+You should take some time to calibrate this
+
+At a minimum, it should compensate for the 
+
 
 # PHOENIX IO
 The 2026 update brings an updated firmware for cab IO. It is fully backwards compatible with devices previously flashed with extio firmware. 
 
-To enable the new PHOENIX IO, flash the `extio_phoenix.ino` in Arduino Studio or your prefered Arduino flashing tool.
+To enable the new PHOENIX IO, flash the `extio_phoenix.ino` located in `.\firmware\extio_phoenix\` in Arduino Studio or your preferred Arduino flashing tool.
 
 After, enable the new IO backend by renaming the `usephoenixio.option` file to `usephoenixio`
 
@@ -75,7 +86,7 @@ With the 2026 Update, native ASIO is now supported! Originally DMX Update used D
 Now it is togglable between DirectSound and ASIO. To toggle the ASIO backend simply rename the `enableasio.option` file to `enableasio` and boot the game!
 
 This was done a part of the larger goal of improving judgement accuracy. 
-Additionally, while this does reduce the latency in the audio pipeline the major gain from this is to reduce latency jitter that is inherent to the DirectSound implementation
+Additionally, while this does reduce the latency in the audio pipeline the major gain from this is to consistently set a buffer size that can be compensated for with the new audio offset features.
 
 To enable support you MUST meet the following prerequisites:
 * Native ASIO driver for your hardware that supports outputting on channel 0

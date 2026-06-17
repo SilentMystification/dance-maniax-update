@@ -79,18 +79,9 @@ bool extioManager::updateInitialize(UTIME dt)
 				if ( inputBuffer[0] == 'O' && inputBuffer[1] == 'K' && inputBuffer[2] == '!' )
 				{
 					al_trace("Handshake accepted! Found the IO board on port %d.\r\n", comPort);
-					if ( usePhoenixIO )
-					{
-						WriteData("BPS", 3); // request baud rate switch to 115200
-						powerOnTime     = 0; // reuse as settle timer
-						connectionState = 4;
-					}
-					else
-					{
-						isTalking = true;
-						connectionState = 3;
-						WriteData("I", 1); // begin the input request loop
-					}
+					isTalking = true;
+					connectionState = 3;
+					WriteData("I", 1); // begin the input request loop
 				}
 				else
 				{
@@ -113,18 +104,6 @@ bool extioManager::updateInitialize(UTIME dt)
 		else if ( connectionState == 3 )
 		{
 			al_trace("Do not call updateInitialize() after success!\r\n");
-		}
-		else if ( connectionState == 4 )
-		{
-			// waiting for both sides to settle after "BPS" was sent; powerOnTime reused as settle timer
-			if ( powerOnTime >= 50 )
-			{
-				setBaudRate(CBR_115200);
-				al_trace("Switched to 115200 baud.\r\n");
-				isTalking       = true;
-				connectionState = 3;
-				WriteData("I", 1); // begin the input request loop
-			}
 		}
 	}
 
@@ -223,9 +202,8 @@ bool extioManager::attemptConnection(const char* port)
 		return false;
 	}
 
-	// Always start at 9600 — Phoenix firmware auto-negotiates up after the DMX handshake
-	dcbSerialParams.BaudRate = CBR_9600;
-	al_trace(usePhoenixIO ? "Using Phoenix IO (starting at 9600, will switch)\r\n" : "Using Standard IO\r\n");
+	dcbSerialParams.BaudRate = usePhoenixIO ? CBR_115200 : CBR_9600;
+	al_trace(usePhoenixIO ? "Using Phoenix IO at 115200\r\n" : "Using Standard IO at 9600\r\n");
 	dcbSerialParams.ByteSize = 8;
 	dcbSerialParams.StopBits = ONESTOPBIT;
 	dcbSerialParams.Parity = NOPARITY;
