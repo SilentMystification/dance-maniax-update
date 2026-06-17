@@ -1,5 +1,6 @@
-# Build + auto pre-release on push to main-update.
-# Tags v3.0.0-beta.N (N increments from latest beta tag).
+# Build + GitHub release on push to main-update (beta) or manual stable dispatch.
+# Push to main-update: auto-tags v3.0.0-beta.N (pre-release).
+# workflow_dispatch with version: tags vX.Y.Z (regular release, not pre-release).
 # Release assets: DMX.exe, DMX.zip (deploy/ contents at zip root), InitialSetup.zip.
 
 name: Release
@@ -8,6 +9,12 @@ on:
   push:
     branches:
       - main-update
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Stable semver (e.g. 3.0.0). Omit the v prefix.'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -23,26 +30,44 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
-      - name: Compute next beta version
+      - name: Compute release version
         id: version
         shell: pwsh
         run: |
-          $tags = @(git tag -l 'v3.0.0-beta.*')
-          $maxN = 0
-          foreach ($tag in $tags) {
-            if ($tag -match '^v3\.0\.0-beta\.(\d+)$') {
-              $n = [int]$matches[1]
-              if ($n -gt $maxN) { $maxN = $n }
+          $isStable = '${{ github.event_name }}' -eq 'workflow_dispatch'
+          if ($isStable) {
+            $version = '${{ github.event.inputs.version }}'.Trim()
+            if ($version -match '^v') { $version = $version.Substring(1) }
+            if ($version -notmatch '^\d+\.\d+\.\d+$') {
+              Write-Error "Stable version must be semver X.Y.Z (got: $version)"
             }
+            $tag = "v$version"
+            $prevTag = (git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | Where-Object { $_ -notmatch '-beta' } | Sort-Object { [version]($_ -replace '^v','') } -Descending | Select-Object -First 1)
+            if (-not $prevTag) {
+              $betaTags = @(git tag -l 'v3.0.0-beta.*')
+              $prevTag = ($betaTags | Sort-Object { [int]($_ -replace '^v3\.0\.0-beta\.','') } -Descending | Select-Object -First 1)
+            }
+            $prerelease = 'false'
+          } else {
+            $tags = @(git tag -l 'v3.0.0-beta.*')
+            $maxN = 0
+            foreach ($t in $tags) {
+              if ($t -match '^v3\.0\.0-beta\.(\d+)$') {
+                $n = [int]$matches[1]
+                if ($n -gt $maxN) { $maxN = $n }
+              }
+            }
+            $nextN = $maxN + 1
+            $version = "3.0.0-beta.$nextN"
+            $tag = "v$version"
+            $prevTag = if ($maxN -gt 0) { "v3.0.0-beta.$maxN" } else { "" }
+            $prerelease = 'true'
           }
-          $nextN = $maxN + 1
-          $version = "3.0.0-beta.$nextN"
-          $tag = "v$version"
-          $prevTag = if ($maxN -gt 0) { "v3.0.0-beta.$maxN" } else { "" }
           "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "prev_tag=$prevTag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          Write-Host "Next release: $tag (previous: $(if ($prevTag) { $prevTag } else { 'none' }))"
+          "prerelease=$prerelease" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Next release: $tag (prerelease=$prerelease, previous: $(if ($prevTag) { $prevTag } else { 'none' }))"
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
@@ -107,8 +132,10 @@ jobs:
             echo ""
             if [ -n "$PREV_TAG" ] && git rev-parse --verify "${PREV_TAG}^{commit}" >/dev/null 2>&1; then
               echo "Changes since \`${PREV_TAG}\`:"
-            else
+            elif echo "$NEW_TAG" | grep -q '\-beta'; then
               echo "First v3.0.0-beta pre-release."
+            else
+              echo "First stable release in this series."
             fi
             echo ""
             if [ -n "$PREV_TAG" ] && git rev-parse --verify "${PREV_TAG}^{commit}" >/dev/null 2>&1; then
@@ -174,7 +201,7 @@ jobs:
           name: ${{ steps.version.outputs.tag }}
           target_commitish: ${{ github.sha }}
           body_path: release_notes.md
-          prerelease: true
+          prerelease: ${{ steps.version.outputs.prerelease == 'true' }}
           files: |
             deploy/DMX.exe
             DMX.zip
