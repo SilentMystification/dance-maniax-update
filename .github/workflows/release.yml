@@ -194,7 +194,7 @@ jobs:
           $global:LASTEXITCODE = 0
 
           Copy-Item -Path firmware -Destination "$staging/firmware" -Recurse
-          Copy-Item -Path README.md, install.ps1, install_win7.ps1, run_once_win_xp.bat -Destination $staging
+          Copy-Item -Path README.md, install.ps1, run_once_win_xp.bat -Destination $staging
 
           $zip = Join-Path $env:GITHUB_WORKSPACE "InitialSetup.zip"
           if (Test-Path $zip) { Remove-Item $zip -Force }
