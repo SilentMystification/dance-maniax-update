@@ -261,7 +261,7 @@ class EffectsManager
 public:
 	void initialize();
 
-	void playSample(int which);
+	void playSample(int which, int volume = 255);
 	void announcerQuip(int which);
 	bool announcerQuipChance(int which, int percent);
 	

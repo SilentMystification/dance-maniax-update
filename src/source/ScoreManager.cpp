@@ -82,6 +82,10 @@ bool ScoreManager::loadPlayerFromDisk(char* name, char side)
 	fread(&p.lastSinglesSongID, sizeof(int), 1, fp);
 	fread(&p.lastDoublesSongID, sizeof(int), 1, fp);
 	fread(&p.playPosition,      sizeof(int), 1, fp);
+	if ( vnum >= 2 )
+	{
+		fread(&p.scoreDisplay, sizeof(int), 1, fp); // graceful EOF on files lacking this field
+	}
 
 	fclose(fp);
 
@@ -364,6 +368,7 @@ void ScoreManager::savePlayerToDisk(PLAYER_DATA &p)
 	fwrite(&p.lastDoublesSongID,      sizeof(int),  1, fp);
 	int savedPosition = (p.playPosition == 0) ? 0 : -1;
 	fwrite(&savedPosition,            sizeof(int),  1, fp);
+	fwrite(&p.scoreDisplay,           sizeof(int),  1, fp);
 
 	safeCloseFile(fp, prefsFilename);
 
@@ -403,8 +408,9 @@ void ScoreManager::savePlayerToDisk(PLAYER_DATA &p)
 
 //////////////////////////////////////////////////////////////////////////////
 // Data fixers — run once at startup to migrate save files to current layout.
-// Each fixer is self-contained: safe to re-run on already-migrated files.
-// Remove a fixer when the backend is replaced and old files no longer exist.
+// This is only here for development purposes as we're adding in new features
+// that dont warrant a version bump yet. 
+// Remove a fixer when the backend is replaced or old files no longer exist.
 //////////////////////////////////////////////////////////////////////////////
 
 void ScoreManager::runDataFixers()

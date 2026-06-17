@@ -73,8 +73,11 @@ void applyProfileToCredit(int p)
 //////////////////////////////////////////////////////////////////////////////
 // Static option label arrays
 //////////////////////////////////////////////////////////////////////////////
-static const char* s_scoreModeOptions[]    = { "Classic", "Expert" };
-static const int   s_scoreModeValues[]     = { 0, 1 };
+static const char* s_scoreModeOptions[]       = { "Classic", "Expert" };
+static const int   s_scoreModeValues[]        = { 0, 1 };
+
+static const char* s_scoreDisplayOptions[]    = { "Standard", "Expert" };
+static const int   s_scoreDisplayValues[]     = { 0, 1 };
 
 static const char* s_scrollModeOptions[]   = { "Classic", "Fixed" };
 static const int   s_scrollModeValues[]    = { 0, 1 };
@@ -357,7 +360,7 @@ void SettingsMenu::buildItemList(int player)
 		m_itemCount++;
 
 		// 11. Visual Offset
-		m_items[m_itemCount].name             = "Visual Offset";
+		m_items[m_itemCount].name             = "Visual Offset (ms)";
 		m_items[m_itemCount].type             = SETTINGS_RANGE;
 		m_items[m_itemCount].dependency       = DEP_NONE;
 		m_items[m_itemCount].minVal           = -100;
@@ -368,7 +371,7 @@ void SettingsMenu::buildItemList(int player)
 		m_itemCount++;
 
 		// 12. Audio Offset
-		m_items[m_itemCount].name             = "Audio Offset";
+		m_items[m_itemCount].name             = "Audio Offset (ms)";
 		m_items[m_itemCount].type             = SETTINGS_RANGE;
 		m_items[m_itemCount].dependency       = DEP_NONE;
 		m_items[m_itemCount].minVal           = -500;
@@ -389,7 +392,18 @@ void SettingsMenu::buildItemList(int player)
 		m_items[m_itemCount].flagToSetOnChange= NULL;
 		m_itemCount++;
 
-		// 14. Scroll Mode
+		// 14. Score Display
+		m_items[m_itemCount].name             = "Score Display";
+		m_items[m_itemCount].type             = SETTINGS_LIST;
+		m_items[m_itemCount].dependency       = DEP_NONE;
+		m_items[m_itemCount].options          = s_scoreDisplayOptions;
+		m_items[m_itemCount].optionValues     = s_scoreDisplayValues;
+		m_items[m_itemCount].optionCount      = 2;
+		m_items[m_itemCount].value            = &p.scoreDisplay;
+		m_items[m_itemCount].flagToSetOnChange= NULL;
+		m_itemCount++;
+
+		// 15. Scroll Mode
 		m_items[m_itemCount].name             = "Scroll Mode";
 		m_items[m_itemCount].type             = SETTINGS_LIST;
 		m_items[m_itemCount].dependency       = DEP_NONE;
@@ -792,7 +806,10 @@ void SettingsMenu::handleInput(UTIME dt)
 
 		if ( *item.value != prevVal )
 		{
-			em.playSample(SFX_DIFFICULTY_MOVE);
+			int holdAge  = MAX(0, m_holdTime - HOLD_INITIAL_DELAY);
+			int rampT    = MIN(holdAge, HOLD_RAMP_DURATION);
+			int volume   = 50 + rampT * 50 / HOLD_RAMP_DURATION; // 50 on first tap, 100 at full speed
+			em.playSample(SFX_DIFFICULTY_MOVE, volume);
 			if ( item.flagToSetOnChange != NULL )
 			{
 				*item.flagToSetOnChange = true;

@@ -188,6 +188,7 @@ struct PLAYER_DATA
 	int invertNoteColors;       // 0=Off, 1=On — swap red/blue lane colors (expert menu only)
 	int playPosition;           // -1=Unset(login side), 0=Center, 1=Left, 2=Right
 	int useSimpleMenu;          // 0=Simple (default), 1=Advanced
+	int scoreDisplay;           // 0=Standard, 1=Expert
 	int lastSinglesSongID;      // songID of last manually selected singles song; 0 if none
 	int lastDoublesSongID;      // songID of last manually selected doubles song; 0 if none
 
@@ -245,6 +246,7 @@ struct PLAYER_DATA
 		invertNoteColors       = 0;
 		playPosition           = -1;
 		useSimpleMenu          = 0;
+		scoreDisplay           = 0;   // Standard
 		lastSinglesSongID      = 0;
 		lastDoublesSongID      = 0;
 	}

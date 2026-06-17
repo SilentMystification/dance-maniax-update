@@ -474,11 +474,16 @@ void EffectsManager::initialize()
 	}
 }
 
-void EffectsManager::playSample(int which)
+void EffectsManager::playSample(int which, int volume)
 {
 	if ( which < 41 || which > 156 ) // exclude announcers
 	{
-		playSFXOnce(fmod_sfx[which]);
+		if ( fmod_sfx[which] != NULL )
+		{
+			int ch = FSOUND_PlaySound(FSOUND_FREE, fmod_sfx[which]);
+			if ( volume != 255 )
+				FSOUND_SetVolume(ch, volume);
+		}
 	}
 }
 
