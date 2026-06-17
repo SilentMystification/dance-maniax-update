@@ -3,44 +3,61 @@
 New-Item -ItemType Directory -Force -Path 'deploy\tmp' | Out-Null
 Move-Item -Path 'deploy\DMX.exe' -Destination 'deploy\tmp\DMX.exe' -Force
 
+$urls = @(
+    'https://dmx.bossru.sh/update/DMX_initial_data.zip',
+    'https://dmx.bossru.sh/update/DMX_initial_video.zip',
+    'https://dmx.bossru.sh/update/DMX_1st.zip',
+    'https://dmx.bossru.sh/update/DMX_2nd.zip',
+    'https://dmx.bossru.sh/update/DMX_Update.zip',
+    'https://dmx.bossru.sh/update/DMX_2015120100_DMX_2016051800.zip',
+    'https://dmx.bossru.sh/update/DMX_2016_2019.zip'
+)
+
+$files = $urls | ForEach-Object { [System.IO.Path]::GetFileName($_) }
+
 Write-Output "Now downloading 7 zip files, 775MB in total..."
+Write-Output ""
 
-#download 7 zip files
-(New-Object Net.WebClient).DownloadFile('https://dmx.bossru.sh/update/DMX_initial_data.zip', 'DMX_initial_data.zip')
-(New-Object Net.WebClient).DownloadFile('https://dmx.bossru.sh/update/DMX_initial_video.zip', 'DMX_initial_video.zip')
-(New-Object Net.WebClient).DownloadFile('https://dmx.bossru.sh/update/DMX_1st.zip', 'DMX_1st.zip')
-(New-Object Net.WebClient).DownloadFile('https://dmx.bossru.sh/update/DMX_2nd.zip', 'DMX_2nd.zip')
-(New-Object Net.WebClient).DownloadFile('https://dmx.bossru.sh/update/DMX_Update.zip', 'DMX_Update.zip')
-(New-Object Net.WebClient).DownloadFile('https://dmx.bossru.sh/update/DMX_2015120100_DMX_2016051800.zip', 'DMX_2015120100_DMX_2016051800.zip')
-(New-Object Net.WebClient).DownloadFile('https://dmx.bossru.sh/update/DMX_2016_2019.zip', 'DMX_2016_2019.zip')
+for ($i = 0; $i -lt $urls.Count; $i++) {
+    $url  = $urls[$i]
+    $file = $files[$i]
+    Write-Output "Downloading $url..."
+    (New-Object Net.WebClient).DownloadFile($url, $file)
+    Write-Output "$file download complete."
+    Write-Output ""
+}
 
-#extract and delete them
-Expand-Archive -LiteralPath 'DMX_initial_data.zip' -DestinationPath 'deploy' -Force
-Expand-Archive -LiteralPath 'DMX_initial_video.zip' -DestinationPath 'deploy' -Force
-Expand-Archive -LiteralPath 'DMX_1st.zip' -DestinationPath 'deploy' -Force
-Expand-Archive -LiteralPath 'DMX_2nd.zip' -DestinationPath 'deploy' -Force
-Expand-Archive -LiteralPath 'DMX_Update.zip' -DestinationPath 'deploy' -Force
-Expand-Archive -LiteralPath 'DMX_2015120100_DMX_2016051800.zip' -DestinationPath 'deploy' -Force
-Expand-Archive -LiteralPath 'DMX_2016_2019.zip' -DestinationPath 'deploy' -Force
+Write-Output "Moving files and applying data..."
+Write-Output ""
 
-Remove-Item -LiteralPath 'DMX_initial_data.zip' -Force
-Remove-Item -LiteralPath 'DMX_initial_video.zip' -Force
-Remove-Item -LiteralPath 'DMX_1st.zip' -Force
-Remove-Item -LiteralPath 'DMX_2nd.zip' -Force
-Remove-Item -LiteralPath 'DMX_Update.zip' -Force
-Remove-Item -LiteralPath 'DMX_2015120100_DMX_2016051800.zip' -Force
-Remove-Item -LiteralPath 'DMX_2016_2019.zip' -Force
+foreach ($file in $files) {
+    Write-Output "Extracting $file..."
+    Expand-Archive -LiteralPath $file -DestinationPath 'deploy' -Force
+    Write-Output "$file extracted."
+    Write-Output ""
+}
+
+Write-Output "Cleaning up..."
+foreach ($file in $files) {
+    Remove-Item -LiteralPath $file -Force
+}
+Write-Output "Done."
+Write-Output ""
 
 # TODO: Remove this hack once the newest DMX.exe is included in the CDN zip files.
 Remove-Item -LiteralPath 'deploy\DMX.exe' -Force
 Move-Item -Path 'deploy\tmp\DMX.exe' -Destination 'deploy\DMX.exe' -Force
 Remove-Item -LiteralPath 'deploy\tmp' -Force
 
-#links directly to the 7 zip files
-#https://dmx.bossru.sh/update/DMX_initial_data.zip
-#https://dmx.bossru.sh/update/DMX_initial_video.zip
-#https://dmx.bossru.sh/update/DMX_1st.zip
-#https://dmx.bossru.sh/update/DMX_2nd.zip
-#https://dmx.bossru.sh/update/DMX_Update.zip
-#https://dmx.bossru.sh/update/DMX_2015120100_DMX_2016051800.zip
-#https://dmx.bossru.sh/update/DMX_2016_2019.zip
+Write-Output "Latest DMX.exe copied."
+Write-Output ""
+# END TODO
+
+Write-Output "LET'S DANCE!"
+Write-Output ""
+
+foreach ($i in 5..1) {
+    Write-Output "Install script closing in $i..."
+    Start-Sleep -Seconds 1
+}
+
