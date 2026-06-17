@@ -33,6 +33,10 @@ jobs:
           fetch-depth: 1
           fetch-tags: true
 
+      - name: Fetch tags for version
+        shell: bash
+        run: git fetch --tags --force
+
       - name: Compute release version
         id: version
         shell: pwsh
@@ -52,9 +56,18 @@ jobs:
             }
             $prerelease = 'false'
           } else {
-            $tags = @(git tag -l 'v3.0.0-beta.*')
+            # ls-remote sees all remote beta tags (shallow checkout may omit local tag -l entries)
+            $betaTagNames = @()
+            git ls-remote --tags origin 'refs/tags/v3.0.0-beta.*' | ForEach-Object {
+              if ($_ -match 'refs/tags/(v3\.0\.0-beta\.\d+)$') {
+                $betaTagNames += $matches[1]
+              }
+            }
+            if ($betaTagNames.Count -eq 0) {
+              $betaTagNames = @(git tag -l 'v3.0.0-beta.*')
+            }
             $maxN = 0
-            foreach ($t in $tags) {
+            foreach ($t in $betaTagNames) {
               if ($t -match '^v3\.0\.0-beta\.(\d+)$') {
                 $n = [int]$matches[1]
                 if ($n -gt $maxN) { $maxN = $n }
