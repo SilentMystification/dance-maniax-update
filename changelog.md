@@ -14,6 +14,10 @@ Stable releases use **Actions → Release → Run workflow** with a semver like 
 
 ## Unreleased
 
+_Add new changes here. Only this section is included in the next release notes._
+
+## v3.0.0-beta.9
+
 Clean up release process
 
 ## v3.0.0-beta.1 – v3.0.0-beta.6
