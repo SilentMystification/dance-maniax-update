@@ -265,8 +265,9 @@ void mainGameplayLoop(UTIME dt)
 	updateParticles(dt);
 	renderGameplay();
 
-	// Re-anchor to FMOD's decoded position each update; interpolate with wall clock between
-	// anchors. FMOD_BUFFER_COMP_MS removes the constant ring buffer write-ahead.
+	// Re-anchor to FMOD's decoded position each update; interpolate with wall clock between anchors.
+	// bgmStartLatencyMs is measured at the first anchor: fmodPos_ms minus wall elapsed since playSong().
+	// Subtracting it converts FMOD's decode-cursor position to actual playback position.
 	// bgmGap is the remaining hardware output latency (ASIO buffer or DirectSound/WAE period).
 	UTIME now = timeGetTime();
 	if (gs.currentSongChannel != -1)
@@ -281,13 +282,22 @@ void mainGameplayLoop(UTIME dt)
 				gs.bgmAnchorWall    = now;
 				gs.bgmLastFmodPos   = fmodPos;
 				gs.bgmSyncAnchored  = true;
+
+				if (!gs.bgmLatencyMeasured)
+				{
+					int wallElapsed = (int)(now - gs.bgmSongStartWall);
+					gs.bgmStartLatencyMs = gs.bgmAnchorFmodMs - wallElapsed;
+					gs.bgmLatencyMeasured = true;
+					al_trace("FMOD start latency: fmod=%dms wall=%dms offset=%dms\r\n",
+						gs.bgmAnchorFmodMs, wallElapsed, gs.bgmStartLatencyMs);
+				}
 			}
 		}
 	}
 
 	if (gs.bgmSyncAnchored)
 	{
-		long syncedBase = (long)(now - gs.bgmAnchorWall) + gs.bgmAnchorFmodMs + FMOD_BUFFER_COMP_MS;
+		long syncedBase = (long)(now - gs.bgmAnchorWall) + gs.bgmAnchorFmodMs - gs.bgmStartLatencyMs;
 		bool useCustom0 = (sm.player[0].useSimpleMenu == 1) && sm.player[0].hasCustomAudioOffset;
 		bool useCustom1 = (sm.player[1].useSimpleMenu == 1) && sm.player[1].hasCustomAudioOffset;
 		int gap0 = useCustom0 ? sm.player[0].audioOffset : gs.bgmGap;
@@ -1320,10 +1330,13 @@ void loadNextSong()
 	gs.loadSong(gs.player[0].stagesPlayed[gs.currentStage], false, useAlternateMusic);
 	vm.loadScript(movieScripts[songID_to_listID(gs.player[0].stagesPlayed[gs.currentStage])].c_str()); // I love the "])]" on this line!!!
 	gs.playSong();
-	gs.bgmSyncAnchored = false;
-	gs.bgmAnchorWall    = 0;
-	gs.bgmAnchorFmodMs  = 0;
-	gs.bgmLastFmodPos   = 0;
+	gs.bgmSongStartWall   = timeGetTime();
+	gs.bgmSyncAnchored    = false;
+	gs.bgmAnchorWall      = 0;
+	gs.bgmAnchorFmodMs    = 0;
+	gs.bgmLastFmodPos     = 0;
+	gs.bgmStartLatencyMs  = 0;
+	gs.bgmLatencyMeasured = false;
 	vm.play();
 	isMidTransition = true;
 	songTransitionTime = BANNER_ANIM_LENGTH;

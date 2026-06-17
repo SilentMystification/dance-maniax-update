@@ -31,7 +31,6 @@
 #endif
 
 #define FMOD_BUFFER_SIZE_MS 100  // FSOUND_SetBufferSize argument; controls FMOD internal ring buffer
-#define FMOD_BUFFER_COMP_MS  25  // FMOD write-ahead: FMOD_BUFFER_SIZE_MS / 4 (one sub-block)
 
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 480
