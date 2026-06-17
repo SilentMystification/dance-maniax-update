@@ -1,46 +1,52 @@
 # Changelog
 
+All notable changes to this project are documented here.
+
+Format follows [Keep a Changelog](https://keepachangelog.com/).
+
+**Workflow:** add bullets under **`## Unreleased`**. Each release publishes that section to GitHub Release notes, then CI moves it to **`## vX.Y.Z`** and clears **`## Unreleased`**. Older version sections are kept for history and are not republished.
+
 ## Beta releases (`v3.0.0-beta.N`)
 
 Pushes to `main-update` publish a GitHub pre-release; `N` increments automatically (`v3.0.0-beta.1`, `v3.0.0-beta.2`, …).
 
+Stable releases use **Actions → Release → Run workflow** with a semver like `3.0.0`.
+
 ## Unreleased
 
-Judgement Display
+Clean up release process
 
-Advanced results screen
+## v3.0.0-beta.1 – v3.0.0-beta.6
 
-Add login functionality to Continuous Mode
+_Shipped during early v3 pre-releases. Kept for history; not included in future release notes._
 
+### Added / changed
 
+- Judgement display
+- Advanced results screen
+- Login functionality in Continuous Mode
 
-Audio backend changes:
-* Optional native ASIO support
-* Global offset in operator menu
-** Per player offset in profile
-* Wall Clock Synchronization of audio playback to reduce jitter
+### Audio
 
-Phoenix IO - Enhanced extio firmware that runs at 115200 BAUD instead of 9600 BAUD 
-* Game runs at 1000 ticks per second internally, 
-  * At 9600 BAUD the time it takes for the serial data to make a round trip is ~4ms
-  * at 115200 BAUD RTT is < 1ms
-* IO is now evaluated PER GAME TICK instead of every 4ish ms making the game engine what drives the sync instead of waiting for IO to respond.
+- Optional native ASIO support
+- Global offset in operator menu
+- Per-player offset in profile
+- Wall-clock synchronization of audio playback to reduce jitter
 
+### Phoenix IO
 
-option files added
+- Enhanced extio firmware at 115200 baud (vs 9600 baud)
+- IO evaluated per game tick instead of ~4 ms serial round-trip
 
-Song select options menu for P1 and P2
-* Animated gold selector slides smoothly between items; snaps on wrap-around
-* Selector combines transparent warm highlight fill + gold outline into one moving unit
-* Dark purple outline drawn around each setting item box
-* Bobbing gold triangle appears below the active value when editing a setting, disappears on confirm
-* Blue bobbing triangles replace < > text for left/right navigation arrows
-* Sound effects: open/close sounds, song-select sound on entering edit, mild/wild sound on value change, songwheel appear sound on confirm
-* Scroll sound plays when navigating between settings
-* "Upside-Down" mirror option renamed to "V-Flip" to prevent text clipping
+### Options & UI
 
-Center + Mirror bug fix
-* Selecting Center play position and Mirror modifier simultaneously caused notes to render at the
-  outer columns (0,1,6,7) instead of the center columns (2,3,4,5)
-* Fixed by adding a dedicated center-mode mirror matrix to arrangeChart that correctly swaps
-  columns within the center range (col2<->col5, col3<->col4)
+- Option files added
+- Song select options menu for P1 and P2
+- Animated gold selector; dark purple item outlines
+- Bobbing gold triangle when editing; blue triangles for nav arrows
+- Settings menu sound effects (open/close, scroll, value change)
+- "Upside-Down" mirror renamed to "V-Flip"
+
+### Fixed
+
+- Center + Mirror: notes rendered at outer columns instead of center columns (2–5)
