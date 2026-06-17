@@ -2,25 +2,13 @@
 
 All notable changes to this project are documented here.
 
-Format follows [Keep a Changelog](https://keepachangelog.com/).
-
-**Workflow:**
-
-1. Add bullets under **`## Unreleased`** while you work.
-2. Push code to **`main-update`** — CI publishes that section on the GitHub Release (if not empty).
-3. After the release, **you** move those lines to a version heading (e.g. `## v3.0.0-beta.10`) and clear **`## Unreleased`**. Include that edit in your next commit (markdown-only pushes do not trigger a release).
-
-CI never commits changelog changes — no extra bot commits to pull.
+Format follows [Keep a Changelog](https://keepachangelog.com/). GitHub Release notes are generated from commits and merged PRs only — edit a release on GitHub if you want a custom summary.
 
 ## Beta releases (`v3.0.0-beta.N`)
 
 Pushes to `main-update` publish a GitHub pre-release; `N` increments automatically (`v3.0.0-beta.1`, `v3.0.0-beta.2`, …).
 
 Stable releases use **Actions → Release → Run workflow** with a semver like `3.0.0`.
-
-## Unreleased
-
-_Add new changes here. Only this section is included in the next release notes._
 
 ## v3.0.0-beta.9
 

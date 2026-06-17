@@ -179,19 +179,6 @@ jobs:
             } >> release_notes.md
           fi
 
-          if [ -f changelog.md ] && grep -q '^## Unreleased' changelog.md; then
-            EXCERPT=$(awk '/^## Unreleased/{found=1; next} found && /^## /{exit} found{print}' changelog.md \
-              | sed '/^$/d' | grep -Ev '^_.*_$' || true)
-            if [ -n "$EXCERPT" ]; then
-              {
-                echo "### Changelog"
-                echo ""
-                echo "$EXCERPT"
-                echo ""
-              } >> release_notes.md
-            fi
-          fi
-
           cat release_notes.md
 
       - name: Package InitialSetup.zip
@@ -207,7 +194,7 @@ jobs:
           $global:LASTEXITCODE = 0
 
           Copy-Item -Path firmware -Destination "$staging/firmware" -Recurse
-          Copy-Item -Path README.md, changelog.md, install.ps1, run_once_win_xp.bat -Destination $staging
+          Copy-Item -Path README.md, install.ps1, run_once_win_xp.bat -Destination $staging
 
           $zip = Join-Path $env:GITHUB_WORKSPACE "InitialSetup.zip"
           if (Test-Path $zip) { Remove-Item $zip -Force }
