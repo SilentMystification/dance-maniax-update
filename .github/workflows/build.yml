@@ -9,7 +9,11 @@ on:
       - main
       - master
       - 'feature/**'
+    paths-ignore:
+      - '**.md'
   pull_request:
+    paths-ignore:
+      - '**.md'
 
 jobs:
   build:
@@ -18,13 +22,24 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
+      - name: Cache Release build objects
+        uses: actions/cache@v4
+        with:
+          path: src/DMX_Remake/Release
+          key: ${{ runner.os }}-msbuild-release-${{ hashFiles('src/**/*.cpp', 'src/**/*.h', 'src/DMX_Remake.vcxproj') }}
+          restore-keys: |
+            ${{ runner.os }}-msbuild-release-
+
       - name: Build Release
         run: >
           msbuild src/DMX_Remake.vcxproj
+          /m
           /p:Configuration=Release
           /p:Platform=Win32
           /p:PlatformToolset=v145
