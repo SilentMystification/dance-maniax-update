@@ -1,5 +1,6 @@
 # Build + auto pre-release on push to main-update.
 # Tags v3.0.0-beta.N (N increments from latest beta tag).
+# Release assets: DMX.exe, DMX.zip (deploy/ contents at zip root), InitialSetup.zip.
 
 name: Release
 
@@ -52,10 +53,25 @@ jobs:
           /t:Build
           /v:minimal
 
-      - name: Package InitialSetup zip
+      - name: Package DMX.zip
         shell: pwsh
         run: |
-          $version = '${{ steps.version.outputs.version }}'
+          $staging = Join-Path $env:RUNNER_TEMP "DMX"
+          if (Test-Path $staging) { Remove-Item $staging -Recurse -Force }
+          New-Item -ItemType Directory -Path $staging | Out-Null
+
+          # deploy/ contents at zip root — no deploy/ wrapper; DATA excluded
+          robocopy deploy $staging /E /XD DATA /NFL /NDL /NJH /NJS /nc /ns /np
+          if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE }
+          $global:LASTEXITCODE = 0
+
+          $zip = Join-Path $env:GITHUB_WORKSPACE "DMX.zip"
+          if (Test-Path $zip) { Remove-Item $zip -Force }
+          Compress-Archive -Path "$staging/*" -DestinationPath $zip
+
+      - name: Package InitialSetup.zip
+        shell: pwsh
+        run: |
           $staging = Join-Path $env:RUNNER_TEMP "InitialSetup"
           if (Test-Path $staging) { Remove-Item $staging -Recurse -Force }
           New-Item -ItemType Directory -Path $staging | Out-Null
@@ -68,12 +84,9 @@ jobs:
           Copy-Item -Path firmware -Destination "$staging/firmware" -Recurse
           Copy-Item -Path README.md, changelog.md, install.ps1, run_once_win_xp.bat -Destination $staging
 
-          $zipName = "InitialSetup-v$version.zip"
-          $zip = Join-Path $env:GITHUB_WORKSPACE $zipName
+          $zip = Join-Path $env:GITHUB_WORKSPACE "InitialSetup.zip"
           if (Test-Path $zip) { Remove-Item $zip -Force }
           Compress-Archive -Path "$staging/*" -DestinationPath $zip
-          "zip_name=$zipName" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-        id: package
 
       - name: Generate release notes
         shell: bash
@@ -161,4 +174,5 @@ jobs:
           prerelease: true
           files: |
             deploy/DMX.exe
-            ${{ steps.package.outputs.zip_name }}
+            DMX.zip
+            InitialSetup.zip
