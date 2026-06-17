@@ -1,0 +1,164 @@
+# Build + auto pre-release on push to main-update.
+# Tags v3.0.0-beta.N (N increments from latest beta tag).
+
+name: Release
+
+on:
+  push:
+    branches:
+      - main-update
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute next beta version
+        id: version
+        shell: pwsh
+        run: |
+          $tags = @(git tag -l 'v3.0.0-beta.*')
+          $maxN = 0
+          foreach ($tag in $tags) {
+            if ($tag -match '^v3\.0\.0-beta\.(\d+)$') {
+              $n = [int]$matches[1]
+              if ($n -gt $maxN) { $maxN = $n }
+            }
+          }
+          $nextN = $maxN + 1
+          $version = "3.0.0-beta.$nextN"
+          $tag = "v$version"
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Next release: $tag"
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build Release
+        run: >
+          msbuild src/DMX_Remake.vcxproj
+          /p:Configuration=Release
+          /p:Platform=Win32
+          /p:PlatformToolset=v145
+          /t:Build
+          /v:minimal
+
+      - name: Package InitialSetup zip
+        shell: pwsh
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          $staging = Join-Path $env:RUNNER_TEMP "InitialSetup"
+          if (Test-Path $staging) { Remove-Item $staging -Recurse -Force }
+          New-Item -ItemType Directory -Path $staging | Out-Null
+
+          New-Item -ItemType Directory -Path "$staging/deploy" | Out-Null
+          robocopy deploy "$staging/deploy" /E /XD DATA /NFL /NDL /NJH /NJS /nc /ns /np
+          if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE }
+          $global:LASTEXITCODE = 0
+
+          Copy-Item -Path firmware -Destination "$staging/firmware" -Recurse
+          Copy-Item -Path README.md, changelog.md, install.ps1, run_once_win_xp.bat -Destination $staging
+
+          $zipName = "InitialSetup-v$version.zip"
+          $zip = Join-Path $env:GITHUB_WORKSPACE $zipName
+          if (Test-Path $zip) { Remove-Item $zip -Force }
+          Compress-Archive -Path "$staging/*" -DestinationPath $zip
+          "zip_name=$zipName" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        id: package
+
+      - name: Generate release notes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEW_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          PREV_TAG=$(git tag -l 'v3.0.0-beta.*' --sort=-v:refname | head -n1 || true)
+
+          {
+            echo "## ${{ steps.version.outputs.tag }}"
+            echo ""
+            if [ -n "$PREV_TAG" ]; then
+              echo "Changes since \`$PREV_TAG\`:"
+            else
+              echo "First v3.0.0-beta pre-release."
+            fi
+            echo ""
+            if [ -n "$PREV_TAG" ]; then
+              git log "${PREV_TAG}..HEAD" --pretty=format:'- %s (%h)' --no-merges || true
+            else
+              git log -30 --pretty=format:'- %s (%h)' --no-merges || true
+            fi
+            echo ""
+            echo ""
+          } > release_notes.md
+
+          if command -v gh >/dev/null 2>&1; then
+            {
+              echo "### Merged pull requests"
+              echo ""
+              if [ -n "$PREV_TAG" ]; then
+                RANGE="${PREV_TAG}..HEAD"
+              else
+                RANGE="HEAD"
+              fi
+              PRS=$(gh api "repos/${GITHUB_REPOSITORY}/pulls?state=closed&base=main-update&per_page=100" \
+                --jq '.[] | select(.merged_at != null) | "\(.merged_at) \(.number) \(.title)"' 2>/dev/null || true)
+              if [ -n "$PREV_TAG" ] && [ -n "$PRS" ]; then
+                PREV_DATE=$(git log -1 --format=%aI "$PREV_TAG" 2>/dev/null || echo "")
+                echo "$PRS" | while read -r line; do
+                  merged_at=$(echo "$line" | awk '{print $1}')
+                  if [ -n "$PREV_DATE" ] && [[ "$merged_at" > "$PREV_DATE" ]]; then
+                    num=$(echo "$line" | awk '{print $2}')
+                    title=$(echo "$line" | cut -d' ' -f3-)
+                    echo "- #${num}: ${title}"
+                  fi
+                done
+              elif [ -z "$PREV_TAG" ] && [ -n "$PRS" ]; then
+                echo "$PRS" | head -20 | while read -r line; do
+                  num=$(echo "$line" | awk '{print $2}')
+                  title=$(echo "$line" | cut -d' ' -f3-)
+                  echo "- #${num}: ${title}"
+                done
+              else
+                echo "_No merged PR metadata available._"
+              fi
+              echo ""
+            } >> release_notes.md
+          fi
+
+          if [ -f changelog.md ]; then
+            if grep -q '^## Unreleased' changelog.md; then
+              EXCERPT=$(awk '/^## Unreleased/{found=1; next} found && /^## /{exit} found{print}' changelog.md | sed '/^$/d' | head -20)
+              if [ -n "$EXCERPT" ]; then
+                {
+                  echo "### From changelog"
+                  echo ""
+                  echo "$EXCERPT"
+                  echo ""
+                } >> release_notes.md
+              fi
+            fi
+          fi
+
+          cat release_notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          body_path: release_notes.md
+          prerelease: true
+          files: |
+            deploy/DMX.exe
+            ${{ steps.package.outputs.zip_name }}

@@ -1,5 +1,5 @@
-# Build DMX.exe on push/PR. Uses windows-latest (VS 2026 / v145 when available).
-# Release|Win32 only — not DeployToCab (no V:\ cab copy, no Debug rebuild).
+# Build-only CI: feature/** pushes, main/master, and all PRs.
+# Push to main-update triggers release.yml (build + GitHub pre-release).
 
 name: Build
 

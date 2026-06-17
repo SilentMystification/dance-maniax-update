@@ -1,3 +1,11 @@
+# Changelog
+
+## Beta releases (`v3.0.0-beta.N`)
+
+Pushes to `main-update` publish a GitHub pre-release; `N` increments automatically (`v3.0.0-beta.1`, `v3.0.0-beta.2`, …).
+
+## Unreleased
+
 Judgement Display
 
 Advanced results screen
