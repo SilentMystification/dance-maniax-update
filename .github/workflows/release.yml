@@ -21,6 +21,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          fetch-tags: true
 
       - name: Compute next beta version
         id: version
@@ -37,9 +38,11 @@ jobs:
           $nextN = $maxN + 1
           $version = "3.0.0-beta.$nextN"
           $tag = "v$version"
+          $prevTag = if ($maxN -gt 0) { "v3.0.0-beta.$maxN" } else { "" }
           "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          Write-Host "Next release: $tag"
+          "prev_tag=$prevTag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Next release: $tag (previous: $(if ($prevTag) { $prevTag } else { 'none' }))"
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
@@ -93,23 +96,25 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           NEW_TAG: ${{ steps.version.outputs.tag }}
+          PREV_TAG: ${{ steps.version.outputs.prev_tag }}
+          RELEASE_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          PREV_TAG=$(git tag -l 'v3.0.0-beta.*' --sort=-v:refname | head -n1 || true)
+          git fetch --tags --force
 
           {
-            echo "## ${{ steps.version.outputs.tag }}"
+            echo "## ${NEW_TAG}"
             echo ""
-            if [ -n "$PREV_TAG" ]; then
-              echo "Changes since \`$PREV_TAG\`:"
+            if [ -n "$PREV_TAG" ] && git rev-parse --verify "${PREV_TAG}^{commit}" >/dev/null 2>&1; then
+              echo "Changes since \`${PREV_TAG}\`:"
             else
               echo "First v3.0.0-beta pre-release."
             fi
             echo ""
-            if [ -n "$PREV_TAG" ]; then
-              git log "${PREV_TAG}..HEAD" --pretty=format:'- %s (%h)' --no-merges || true
+            if [ -n "$PREV_TAG" ] && git rev-parse --verify "${PREV_TAG}^{commit}" >/dev/null 2>&1; then
+              git log "${PREV_TAG}..${RELEASE_SHA}" --pretty=format:'- %s (%h)' --no-merges
             else
-              git log -30 --pretty=format:'- %s (%h)' --no-merges || true
+              git log -30 "${RELEASE_SHA}" --pretty=format:'- %s (%h)' --no-merges
             fi
             echo ""
             echo ""
@@ -119,16 +124,12 @@ jobs:
             {
               echo "### Merged pull requests"
               echo ""
-              if [ -n "$PREV_TAG" ]; then
-                RANGE="${PREV_TAG}..HEAD"
-              else
-                RANGE="HEAD"
-              fi
               PRS=$(gh api "repos/${GITHUB_REPOSITORY}/pulls?state=closed&base=main-update&per_page=100" \
                 --jq '.[] | select(.merged_at != null) | "\(.merged_at) \(.number) \(.title)"' 2>/dev/null || true)
-              if [ -n "$PREV_TAG" ] && [ -n "$PRS" ]; then
-                PREV_DATE=$(git log -1 --format=%aI "$PREV_TAG" 2>/dev/null || echo "")
+              if [ -n "$PREV_TAG" ] && git rev-parse --verify "${PREV_TAG}^{commit}" >/dev/null 2>&1 && [ -n "$PRS" ]; then
+                PREV_DATE=$(git log -1 --format=%aI "${PREV_TAG}")
                 echo "$PRS" | while read -r line; do
+                  [ -z "$line" ] && continue
                   merged_at=$(echo "$line" | awk '{print $1}')
                   if [ -n "$PREV_DATE" ] && [[ "$merged_at" > "$PREV_DATE" ]]; then
                     num=$(echo "$line" | awk '{print $2}')
@@ -138,6 +139,7 @@ jobs:
                 done
               elif [ -z "$PREV_TAG" ] && [ -n "$PRS" ]; then
                 echo "$PRS" | head -20 | while read -r line; do
+                  [ -z "$line" ] && continue
                   num=$(echo "$line" | awk '{print $2}')
                   title=$(echo "$line" | cut -d' ' -f3-)
                   echo "- #${num}: ${title}"
@@ -170,6 +172,7 @@ jobs:
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           name: ${{ steps.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           body_path: release_notes.md
           prerelease: true
           files: |
