@@ -194,55 +194,6 @@ jobs:
 
           cat release_notes.md
 
-      - name: Promote changelog Unreleased to release tag
-        id: changelog
-        shell: bash
-        env:
-          NEW_TAG: ${{ steps.version.outputs.tag }}
-        run: |
-          set -euo pipefail
-          python <<'PY'
-          import os
-          import re
-          import sys
-
-          tag = os.environ["NEW_TAG"]
-          path = "changelog.md"
-
-          with open(path, encoding="utf-8") as f:
-              content = f.read()
-
-          match = re.search(r"(?m)^## Unreleased\s*\n(.*?)(?=^## |\Z)", content, re.S)
-          if not match:
-              sys.exit(0)
-
-          body_lines = [
-              ln for ln in match.group(1).splitlines()
-              if ln.strip() and not re.fullmatch(r"_.*_", ln.strip())
-          ]
-          if not body_lines:
-              print("No unreleased changelog entries to promote.")
-              sys.exit(0)
-
-          excerpt = "\n".join(body_lines) + "\n"
-          before = content[: match.start()]
-          after = content[match.end() :].lstrip("\n")
-
-          placeholder = (
-              "## Unreleased\n\n"
-              "_Add new changes here. Only this section is included in the next release notes._\n\n"
-          )
-          new_section = f"## {tag}\n\n{excerpt}\n"
-          new_content = before + placeholder + new_section + after
-
-          with open(path, "w", encoding="utf-8", newline="\n") as f:
-              f.write(new_content)
-
-          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
-              out.write("promoted=true\n")
-          print(f"Promoted Unreleased section to ## {tag}")
-          PY
-
       - name: Package InitialSetup.zip
         shell: pwsh
         run: |
@@ -274,16 +225,3 @@ jobs:
             deploy/DMX.exe
             DMX.zip
             InitialSetup.zip
-
-      - name: Commit promoted changelog
-        if: steps.changelog.outputs.promoted == 'true'
-        shell: bash
-        env:
-          NEW_TAG: ${{ steps.version.outputs.tag }}
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add changelog.md
-          git commit -m "chore: changelog for ${NEW_TAG} [skip release]"
-          git push

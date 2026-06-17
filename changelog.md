@@ -4,7 +4,13 @@ All notable changes to this project are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
-**Workflow:** add bullets under **`## Unreleased`**. Each release publishes that section to GitHub Release notes, then CI moves it to **`## vX.Y.Z`** and clears **`## Unreleased`**. Older version sections are kept for history and are not republished.
+**Workflow:**
+
+1. Add bullets under **`## Unreleased`** while you work.
+2. Push code to **`main-update`** — CI publishes that section on the GitHub Release (if not empty).
+3. After the release, **you** move those lines to a version heading (e.g. `## v3.0.0-beta.10`) and clear **`## Unreleased`**. Include that edit in your next commit (markdown-only pushes do not trigger a release).
+
+CI never commits changelog changes — no extra bot commits to pull.
 
 ## Beta releases (`v3.0.0-beta.N`)
 
