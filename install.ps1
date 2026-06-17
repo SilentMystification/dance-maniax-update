@@ -1,5 +1,38 @@
 # TODO: Remove this hack once the newest DMX.exe is included in the CDN zip files.
 # The CDN zips contain an older DMX.exe that would overwrite the newer build in deploy/.
+
+function Show-Tls12BlockedMessage {
+    Write-Output "Your machine does not support TLS1.2 "
+    Write-Output ""
+    Write-Output "Run this script on a newer machine and copy the contents of the Deploy folder back to the cab to play."
+}
+
+function Wait-PressAnyKeyToClose {
+    Write-Output ""
+    Write-Output "Press any key to close..."
+    $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+}
+
+function Test-Tls12Available {
+    try {
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        return $true
+    } catch {
+        try {
+            [Net.ServicePointManager]::SecurityProtocol = 3072
+            return $true
+        } catch {
+            return $false
+        }
+    }
+}
+
+if (-not (Test-Tls12Available)) {
+    Show-Tls12BlockedMessage
+    Wait-PressAnyKeyToClose
+    exit 1
+}
+
 New-Item -ItemType Directory -Force -Path 'deploy\tmp' | Out-Null
 Move-Item -Path 'deploy\DMX.exe' -Destination 'deploy\tmp\DMX.exe' -Force
 
@@ -22,7 +55,13 @@ for ($i = 0; $i -lt $urls.Count; $i++) {
     $url  = $urls[$i]
     $file = $files[$i]
     Write-Output "Downloading $url..."
-    (New-Object Net.WebClient).DownloadFile($url, $file)
+    try {
+        (New-Object Net.WebClient).DownloadFile($url, $file)
+    } catch {
+        Show-Tls12BlockedMessage
+        Wait-PressAnyKeyToClose
+        exit 1
+    }
     Write-Output "$file download complete."
     Write-Output ""
 }
@@ -56,8 +95,4 @@ Write-Output ""
 Write-Output "LET'S DANCE!"
 Write-Output ""
 
-foreach ($i in 5..1) {
-    Write-Output "Install script closing in $i..."
-    Start-Sleep -Seconds 1
-}
-
+Wait-PressAnyKeyToClose

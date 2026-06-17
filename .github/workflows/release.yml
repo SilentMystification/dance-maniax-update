@@ -93,6 +93,11 @@ jobs:
           /t:Build
           /v:minimal
 
+      - name: Remove debug symbols from deploy
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path deploy -Filter *.pdb -ErrorAction SilentlyContinue | Remove-Item -Force
+
       - name: Package DMX.zip
         shell: pwsh
         run: |
@@ -100,8 +105,8 @@ jobs:
           if (Test-Path $staging) { Remove-Item $staging -Recurse -Force }
           New-Item -ItemType Directory -Path $staging | Out-Null
 
-          # deploy/ contents at zip root — no deploy/ wrapper; DATA excluded
-          robocopy deploy $staging /E /XD DATA /NFL /NDL /NJH /NJS /nc /ns /np
+          # deploy/ contents at zip root — no deploy/ wrapper; DATA and PDB excluded
+          robocopy deploy $staging /E /XD DATA /XF *.pdb /NFL /NDL /NJH /NJS /nc /ns /np
           if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE }
           $global:LASTEXITCODE = 0
 
@@ -189,7 +194,7 @@ jobs:
           New-Item -ItemType Directory -Path $staging | Out-Null
 
           New-Item -ItemType Directory -Path "$staging/deploy" | Out-Null
-          robocopy deploy "$staging/deploy" /E /XD DATA /NFL /NDL /NJH /NJS /nc /ns /np
+          robocopy deploy "$staging/deploy" /E /XD DATA /XF *.pdb /NFL /NDL /NJH /NJS /nc /ns /np
           if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE }
           $global:LASTEXITCODE = 0
 
