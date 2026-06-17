@@ -1024,16 +1024,30 @@ void finalizeCurrentSongStats(int p)
 
 	long sum = 0;
 	for ( int i = 0; i < n; i++ ) sum += gs.player[p].noteDiffs[i];
-	rec.avgDiff = (double)sum / n;
-
 	double mean = (double)sum / n;
+
 	double variance = 0.0;
 	for ( int i = 0; i < n; i++ )
 	{
 		double d = gs.player[p].noteDiffs[i] - mean;
 		variance += d * d;
 	}
-	rec.unstableRate = sqrt(variance / n) * 10.0;
+	double stddev = sqrt(variance / n);
+	rec.unstableRate = stddev * 10.0;
+
+	double trimLow  = mean - 1.5 * stddev;
+	double trimHigh = mean + 1.5 * stddev;
+	long   trimSum  = 0;
+	int    trimN    = 0;
+	for ( int i = 0; i < n; i++ )
+	{
+		if ( gs.player[p].noteDiffs[i] >= trimLow && gs.player[p].noteDiffs[i] <= trimHigh )
+		{
+			trimSum += gs.player[p].noteDiffs[i];
+			trimN++;
+		}
+	}
+	rec.avgDiff = (trimN > 0) ? (double)trimSum / trimN : mean;
 	gs.player[p].noteDiffs.clear();
 }
 
