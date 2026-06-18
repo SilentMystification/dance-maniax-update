@@ -260,10 +260,8 @@ void mainGameplayLoop(UTIME dt)
 	if (gs.bgmSyncAnchored)
 	{
 		long syncedBase = (long)(now - gs.bgmAnchorWall) + gs.bgmAnchorFmodMs;
-		bool useCustom0 = (sm.player[0].useSimpleMenu == 1) && sm.player[0].hasCustomAudioOffset;
-		bool useCustom1 = (sm.player[1].useSimpleMenu == 1) && sm.player[1].hasCustomAudioOffset;
-		int gap0 = useCustom0 ? sm.player[0].audioOffset : gs.bgmGap;
-		int gap1 = useCustom1 ? sm.player[1].audioOffset : gs.bgmGap;
+		int gap0 = gs.bgmGap + sm.player[0].audioOffset;
+		int gap1 = gs.bgmGap + sm.player[1].audioOffset;
 		gs.player[0].timeElapsed = (UTIME)MAX(0, syncedBase + gap0);
 		gs.player[1].timeElapsed = (UTIME)MAX(0, syncedBase + gap1);
 	}
@@ -1038,8 +1036,8 @@ void finalizeCurrentSongStats(int p)
 	double stddev = sqrt(variance / n);
 	rec.unstableRate = stddev * 10.0;
 
-	double trimLow  = mean - 1.5 * stddev;
-	double trimHigh = mean + 1.5 * stddev;
+	double trimLow  = mean - 2.0 * stddev;
+	double trimHigh = mean + 2.0 * stddev;
 	long   trimSum  = 0;
 	int    trimN    = 0;
 	for ( int i = 0; i < n; i++ )
