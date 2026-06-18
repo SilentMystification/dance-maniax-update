@@ -470,7 +470,9 @@ int readDWI(std::vector<struct ARROW> *chart, std::vector<struct FREEZE> *holds,
 		if ( _strcmpi("GAP", tagName) == 0 )
 		{
 			gap = atoi(tagValue);
+#ifdef _DEBUG
 			al_trace("gap = %d\r\n", gap);
+#endif
 		}
 		if ( _strcmpi("CHANGEBPM", tagName) == 0 ) // #CHANGEBPM:992.000=95.000,1016.000=190.000;
 		{
@@ -547,7 +549,9 @@ int readDWI(std::vector<struct ARROW> *chart, std::vector<struct FREEZE> *holds,
 		{
 			continue; // uh-oh;
 		}
+#ifdef _DEBUG
 		al_trace("%f\r\n", currentTime);
+#endif
 
 		switch ( beats[i].type )
 		{
