@@ -13,10 +13,24 @@ is not based on Stepmania, nor is it related to it.)
 Permission is granted to run the software and play the game however you like
 without restriction.
 
-The installation instructions have been UPDATED as of September 7th, 2022.
+# Installation Instructions
+The installation instructions have been UPDATED as of June 16th, 2026.
 Installing the game is now easier than ever!
 
-To install the game download the file "install.ps1" above and run it. This is a
+To install the game download the latest InitialInstall.zip file in the [Releases tab](https://github.com/SilentMystification/dance-maniax-update/releases) 
+
+Unzip `InitialInstall.zip` and right click + run `install.ps1`
+
+If you get a permissions error, run the following in PowerShell from the install directory
+to temporarily bypasss execution policies: 
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+./install.ps1
+```
+
+For further installation instructions 
+
+ "install.ps1" above and run it. This is a
 Windows PowerShell script that will download 7 zip files (about 775 MB total),
 extract them (about 2 GB total), and then delete the zip files. To run a
 Powershell file, first open a Powershell prompt, then type "./" followed by the
@@ -30,7 +44,7 @@ The output of the working game will be in the `deploy` folder. This can be run a
 
 To run the game simply run DMX.exe after a successful install. The first run of
 the program will prompt you to change the default settings.
-It will also download even more songs!
+
 
 
 
