@@ -507,6 +507,10 @@ void renderStageDisplay()
 	{
 		y = 140; // demo play = blank
 	}
+	else if ( gs.isFreestyleMode )
+	{
+		y = (gs.player[0].timeElapsed % 200) < 100 ? 120 : 100; // freestyle: always "EXTRA STAGE"
+	}
 	else if ( gs.currentStage < gs.numSongsPerSet-1 )
 	{
 		y = 20*gs.currentStage;
