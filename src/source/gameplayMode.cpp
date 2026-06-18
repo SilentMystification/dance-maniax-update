@@ -614,8 +614,13 @@ void doChartLogic(UTIME dt, int p)
 		}
 		if ( gs.player[p].currentChart[n].type == BPM_CHANGE )
 		{
-			gs.player[p].bpmUpdateTimer = BPM_UPDATE_LENGTH;
-			gs.player[p].newScrollRate = gs.player[p].currentChart[n].color;
+			int targetRate = gs.player[p].currentChart[n].color;
+			if ( gs.player[p].newScrollRate != targetRate )
+			{
+				gs.player[p].bpmUpdateTimer = BPM_UPDATE_LENGTH;
+				gs.player[p].newScrollRate  = targetRate;
+			}
+			// else: look-ahead already seeded the animation; leave bpmUpdateTimer counting down
 		}
 		if ( gs.player[p].currentChart[n].type == SCROLL_STOP )
 		{
@@ -664,6 +669,24 @@ void doChartLogic(UTIME dt, int p)
 		if ( gs.player[p].currentNote == (int)gs.player[p].currentChart.size() )
 		{
 			gs.player[p].currentNote = (int)gs.player[p].currentChart.size() - 1;
+			break;
+		}
+	}
+
+	// Look-ahead: find the next BPM change within BPM_UPDATE_LENGTH ms and seed the animation
+	// early so it completes at the event rather than starting then.
+	for ( unsigned int scan = n; scan < gs.player[p].currentChart.size(); scan++ )
+	{
+		int msUntil = (int)gs.player[p].currentChart[scan].timing - (int)gs.player[p].timeElapsed;
+		if ( msUntil > BPM_UPDATE_LENGTH ) break;
+		if ( gs.player[p].currentChart[scan].type == BPM_CHANGE )
+		{
+			int targetRate = gs.player[p].currentChart[scan].color;
+			if ( gs.player[p].newScrollRate != targetRate )
+			{
+				gs.player[p].newScrollRate  = targetRate;
+				gs.player[p].bpmUpdateTimer = msUntil;
+			}
 			break;
 		}
 	}
@@ -1272,13 +1295,16 @@ void loadNextSong()
 	{
 		gs.player[p].nextStage();
 
-		// capture initial BPM for fixed scroll mode pps ratio
+		// capture initial BPM for fixed scroll mode pps ratio, and pre-set scrollRate so the
+		// first render uses the correct pps regardless of the previous song's ending BPM.
 		gs.player[p].baseBPM = 0;
 		for ( int i = 0; i < (int)gs.player[p].currentChart.size(); i++ )
 		{
 			if ( gs.player[p].currentChart[i].type == BPM_CHANGE )
 			{
-				gs.player[p].baseBPM = gs.player[p].currentChart[i].color;
+				gs.player[p].baseBPM     = gs.player[p].currentChart[i].color;
+				gs.player[p].scrollRate    = gs.player[p].baseBPM;
+				gs.player[p].newScrollRate = gs.player[p].baseBPM;
 				break;
 			}
 		}
