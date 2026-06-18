@@ -1599,6 +1599,7 @@ void mainBootLoop(UTIME dt)
 			}
 			else if ( asioRequested )
 			{
+				//Indicate fallback to direct sound
 				soundBackend = "ASIO -> DSOUND";
 			}
 			else
