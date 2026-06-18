@@ -86,6 +86,7 @@ bool debugCheats = false;
 extern InputManager im;
 int retireTimer = 0; // for ending the game early when there is a lack of input
 int lampCycle = 0;
+extern volatile UTIME g_dspLastChunkWall; // wall time of last FMOD DSP chunk boundary (main.cpp)
 
 // in-song speed adjustment
 static const int SPEED_CHANGE_DISPLAY_MS = 3000;
@@ -235,6 +236,56 @@ void firstGameplayLoop()
 
 void mainGameplayLoop(UTIME dt)
 {
+	// Sync song clock before chart logic so timeElapsed is current when hits are judged.
+	// Re-anchor to FMOD's position each update; interpolate with wall clock between anchors.
+	// bgmGap is the hardware ouptut latency, should be the same as the buffer length for asio or directsound.
+	UTIME now = timeGetTime();
+	if (gs.currentSongChannel != -1)
+	{
+		unsigned int fmodPos = FSOUND_GetCurrentPosition(gs.currentSongChannel);
+		if (fmodPos > 0 && fmodPos != gs.bgmLastFmodPos)
+		{
+			int freq = FSOUND_GetOutputRate();
+			if (freq > 0)
+			{
+				gs.bgmAnchorFmodMs = fmodPos / freq * 1000 + fmodPos % freq * 1000 / freq;
+				// Use DSP callback wall time — set from FMOD's mixer thread at the exact chunk
+				// boundary, eliminating the 0-2ms game-loop polling lag from the anchor.
+				gs.bgmAnchorWall   = g_dspLastChunkWall > 0 ? g_dspLastChunkWall : now;
+				gs.bgmLastFmodPos  = fmodPos;
+				gs.bgmSyncAnchored = true;
+
+				if (!gs.bgmLatencyMeasured)
+				{
+					int wallElapsed    = (int)(now - gs.bgmSongStartWall);
+					int dspAnchorElapsed = (int)(gs.bgmAnchorWall - gs.bgmSongStartWall);
+					gs.bgmStartLatencyMs = gs.bgmAnchorFmodMs - wallElapsed;
+					gs.bgmLatencyMeasured = true;
+					al_trace("FMOD start latency: fmod=%dms wall=%dms dspAnchor=%dms one-shot=%dms\r\n",
+						gs.bgmAnchorFmodMs, wallElapsed, dspAnchorElapsed, gs.bgmStartLatencyMs);
+				}
+			}
+		}
+	}
+
+	if (gs.bgmSyncAnchored)
+	{
+		// No latencyCorrection: DSP callback anchor eliminates the one-shot bimodal variance.
+		// syncedBase tracks FMOD position extrapolated by wall clock from the precise chunk time.
+		long syncedBase = (long)(now - gs.bgmAnchorWall) + gs.bgmAnchorFmodMs;
+		bool useCustom0 = (sm.player[0].useSimpleMenu == 1) && sm.player[0].hasCustomAudioOffset;
+		bool useCustom1 = (sm.player[1].useSimpleMenu == 1) && sm.player[1].hasCustomAudioOffset;
+		int gap0 = useCustom0 ? sm.player[0].audioOffset : gs.bgmGap;
+		int gap1 = useCustom1 ? sm.player[1].audioOffset : gs.bgmGap;
+		gs.player[0].timeElapsed = (UTIME)MAX(0, syncedBase + gap0);
+		gs.player[1].timeElapsed = (UTIME)MAX(0, syncedBase + gap1);
+	}
+	else
+	{
+		gs.player[0].timeElapsed += dt;
+		gs.player[1].timeElapsed += dt;
+	}
+
 	int p = 0;
 	for ( p = 0; p < (gs.isVersus ? 2 : 1); p++ )
 	{
@@ -265,51 +316,6 @@ void mainGameplayLoop(UTIME dt)
 	updateParticles(dt);
 	renderGameplay();
 
-	// Re-anchor to FMOD's decoded position each update; interpolate with wall clock between anchors.
-	// bgmStartLatencyMs is measured at the first anchor: fmodPos_ms minus wall elapsed since playSong().
-	// Subtracting it converts FMOD's decode-cursor position to actual playback position.
-	// bgmGap is the remaining hardware output latency (ASIO buffer or DirectSound/WAE period).
-	UTIME now = timeGetTime();
-	if (gs.currentSongChannel != -1)
-	{
-		unsigned int fmodPos = FSOUND_GetCurrentPosition(gs.currentSongChannel);
-		if (fmodPos > 0 && fmodPos != gs.bgmLastFmodPos)
-		{
-			int freq = FSOUND_GetFrequency(gs.currentSongChannel);
-			if (freq > 0)
-			{
-				gs.bgmAnchorFmodMs  = fmodPos / freq * 1000 + fmodPos % freq * 1000 / freq;
-				gs.bgmAnchorWall    = now;
-				gs.bgmLastFmodPos   = fmodPos;
-				gs.bgmSyncAnchored  = true;
-
-				if (!gs.bgmLatencyMeasured)
-				{
-					int wallElapsed = (int)(now - gs.bgmSongStartWall);
-					gs.bgmStartLatencyMs = gs.bgmAnchorFmodMs - wallElapsed;
-					gs.bgmLatencyMeasured = true;
-					al_trace("FMOD start latency: fmod=%dms wall=%dms offset=%dms\r\n",
-						gs.bgmAnchorFmodMs, wallElapsed, gs.bgmStartLatencyMs);
-				}
-			}
-		}
-	}
-
-	if (gs.bgmSyncAnchored)
-	{
-		long syncedBase = (long)(now - gs.bgmAnchorWall) + gs.bgmAnchorFmodMs - gs.bgmStartLatencyMs;
-		bool useCustom0 = (sm.player[0].useSimpleMenu == 1) && sm.player[0].hasCustomAudioOffset;
-		bool useCustom1 = (sm.player[1].useSimpleMenu == 1) && sm.player[1].hasCustomAudioOffset;
-		int gap0 = useCustom0 ? sm.player[0].audioOffset : gs.bgmGap;
-		int gap1 = useCustom1 ? sm.player[1].audioOffset : gs.bgmGap;
-		gs.player[0].timeElapsed = (UTIME)MAX(0, syncedBase + gap0);
-		gs.player[1].timeElapsed = (UTIME)MAX(0, syncedBase + gap1);
-	}
-	else
-	{
-		gs.player[0].timeElapsed += dt;
-		gs.player[1].timeElapsed += dt;
-	}
 	gs.player[0].judgementTime += dt;
 	gs.player[1].judgementTime += dt;
 
@@ -1337,6 +1343,7 @@ void loadNextSong()
 	gs.bgmLastFmodPos     = 0;
 	gs.bgmStartLatencyMs  = 0;
 	gs.bgmLatencyMeasured = false;
+	g_dspLastChunkWall    = 0; // reset so a stale value from the previous song is not used
 	vm.play();
 	isMidTransition = true;
 	songTransitionTime = BANNER_ANIM_LENGTH;

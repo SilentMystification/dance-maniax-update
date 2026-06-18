@@ -30,8 +30,6 @@
 #define DONT_WANNA_HEAR_IT 0
 #endif
 
-#define FMOD_BUFFER_SIZE_MS 100  // FSOUND_SetBufferSize argument; controls FMOD internal ring buffer
-
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 480
 

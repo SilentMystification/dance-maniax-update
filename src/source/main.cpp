@@ -85,6 +85,9 @@ bool pillarBoxMode = false;
 bool vsyncEnabled = false;
 bool asioRequested = false;
 bool usePhoenixIO = false;
+int g_asioInitRate = 44100;       // sample rate parsed from enableasio (or 44100 default)
+int g_asioBufferSamples = 0;      // ASIO hardware buffer in samples parsed from enableasio (0 = unknown)
+volatile UTIME g_dspLastChunkWall = 0; // wall time of the last FMOD DSP chunk boundary (written by FMOD mixer thread)
 
 BITMAP** m_banners; // used globally
 BITMAP* m_caution;
@@ -189,6 +192,15 @@ void renderSoundOptions();
 void renderDataOptions();
 
 
+
+// DSP callback — fires from FMOD's mixer thread at each chunk boundary.
+// Records the precise wall time so gameplayMode can anchor syncedBase without game-loop polling lag.
+static void* F_CALLBACKAPI dspSyncCallback(void* /*originalbuffer*/, void* newbuffer, int /*length*/, void* /*userdata*/)
+{
+    g_dspLastChunkWall = timeGetTime();
+    return newbuffer;
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // Main Program
 //////////////////////////////////////////////////////////////////////////////
@@ -238,6 +250,18 @@ int main()
 	if ( fileExists("enableasio") )
 	{
 		asioRequested = true;
+		// parse optional "sampleRate [bufferSamples]" from the file
+		// e.g. "48000 384" — sample rate and ASIO hardware buffer size in samples
+		FILE* ef = NULL;
+		fopen_s(&ef, "enableasio", "rt");
+		if ( ef )
+		{
+			int parsedRate = 0, parsedBuf = 0;
+			int n = fscanf_s(ef, "%d %d", &parsedRate, &parsedBuf);
+			if ( n >= 1 && parsedRate > 0 ) g_asioInitRate = parsedRate;
+			if ( n >= 2 && parsedBuf  > 0 ) g_asioBufferSamples = parsedBuf;
+			fclose(ef);
+		}
 		FSOUND_SetOutput(FSOUND_OUTPUT_ASIO);
 		FSOUND_GetNumDrivers(); // triggers internal ASIO COM initialization; return value is unreliable for modern drivers but the call is required
 		signed char driverResult = FSOUND_SetDriver(0);
@@ -246,19 +270,22 @@ int main()
 #endif
 		FSOUND_SetMixer(FSOUND_MIXER_QUALITY_FPU);
 	}
-	FSOUND_SetBufferSize(FMOD_BUFFER_SIZE_MS);
-    if (!FSOUND_Init(44100, 64, 0))
+	al_trace("FMOD: init rate=%d Hz asioBuffer=%d samples\r\n", g_asioInitRate, g_asioBufferSamples);
+    if (!FSOUND_Init(g_asioInitRate, 64, 0))
     {
 		allegro_message("FMOD failed to initialize: %d", FSOUND_GetError());
 		return EXIT_FAILURE;
     }
-	al_trace("ASIO: after Init. output=%d err=%d\r\n", FSOUND_GetOutput(), FSOUND_GetError());
+	al_trace("FMOD init: outputRate=%d DSP_bufLen=%d samples DSP_bufTotal=%d samples\r\n", FSOUND_GetOutputRate(), FSOUND_DSP_GetBufferLength(), FSOUND_DSP_GetBufferLengthTotal());
+	al_trace("ASIO: after Init. output=%d err=%d outputRate=%d\r\n", FSOUND_GetOutput(), FSOUND_GetError(), FSOUND_GetOutputRate());
 	if ( asioRequested && FSOUND_GetOutput() != FSOUND_OUTPUT_ASIO )
 	{
 		al_trace("WARNING: ASIO is enabled but failed to properly initialize. FMOD error: %d\r\n", FSOUND_GetError());
 		al_trace("Ensure your hardware supports ASIO with a 32bit driver and that it is configured properly, or disable the enableasio option.\r\n");
 		al_trace("Falling back to Direct Sound.\r\n");
 	}
+	FSOUND_DSP_Create(&dspSyncCallback, FSOUND_DSP_DEFAULTPRIORITY_USER, NULL);
+	al_trace("FMOD: DSP sync callback registered\r\n");
 	//*/
 
 	// initialize graphics resources
