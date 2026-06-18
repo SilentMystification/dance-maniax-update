@@ -46,8 +46,6 @@ public:
 	int          bgmAnchorFmodMs;   // FMOD position in ms at last re-anchor
 	unsigned int bgmLastFmodPos;    // raw FMOD sample position at last re-anchor (change detection)
 	UTIME        bgmSongStartWall;  // timeGetTime() when playSong() was called
-	int          bgmStartLatencyMs; // measured write-ahead: first fmodPos_ms minus wall elapsed at that moment
-	bool         bgmLatencyMeasured;
 	bool	currentSongIsPreview;
 
 	// non-player game state data
@@ -304,8 +302,6 @@ public:
 		bgmAnchorFmodMs = 0;
 		bgmLastFmodPos = 0;
 		bgmSongStartWall = 0;
-		bgmStartLatencyMs = 0;
-		bgmLatencyMeasured = false;
 		currentSongIsPreview = false;
 
 		// global game state

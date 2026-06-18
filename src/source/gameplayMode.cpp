@@ -254,16 +254,6 @@ void mainGameplayLoop(UTIME dt)
 				gs.bgmAnchorWall   = g_dspLastChunkWall > 0 ? g_dspLastChunkWall : now;
 				gs.bgmLastFmodPos  = fmodPos;
 				gs.bgmSyncAnchored = true;
-
-				if (!gs.bgmLatencyMeasured)
-				{
-					int wallElapsed    = (int)(now - gs.bgmSongStartWall);
-					int dspAnchorElapsed = (int)(gs.bgmAnchorWall - gs.bgmSongStartWall);
-					gs.bgmStartLatencyMs = gs.bgmAnchorFmodMs - wallElapsed;
-					gs.bgmLatencyMeasured = true;
-					al_trace("FMOD start latency: fmod=%dms wall=%dms dspAnchor=%dms one-shot=%dms\r\n",
-						gs.bgmAnchorFmodMs, wallElapsed, dspAnchorElapsed, gs.bgmStartLatencyMs);
-				}
 			}
 		}
 	}
@@ -1341,8 +1331,6 @@ void loadNextSong()
 	gs.bgmAnchorWall      = 0;
 	gs.bgmAnchorFmodMs    = 0;
 	gs.bgmLastFmodPos     = 0;
-	gs.bgmStartLatencyMs  = 0;
-	gs.bgmLatencyMeasured = false;
 	g_dspLastChunkWall    = 0; // reset so a stale value from the previous song is not used
 	vm.play();
 	isMidTransition = true;
