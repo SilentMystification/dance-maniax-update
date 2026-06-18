@@ -85,6 +85,7 @@ bool pillarBoxMode = false;
 bool vsyncEnabled = false;
 bool asioRequested = false;
 bool usePhoenixIO = false;
+volatile UTIME g_dspLastChunkWall = 0; // wall time of the last FMOD DSP chunk boundary (written by FMOD mixer thread)
 
 BITMAP** m_banners; // used globally
 BITMAP* m_caution;
@@ -188,6 +189,13 @@ void renderBookkeeping(int temp);
 void renderSoundOptions();
 void renderDataOptions();
 
+// DSP callback — fires from FMOD's mixer thread at each chunk boundary.
+// Records the precise wall time so gameplayMode can anchor syncedBase without game-loop polling lag.
+static void* F_CALLBACKAPI dspSyncCallback(void* /*originalbuffer*/, void* newbuffer, int /*length*/, void* /*userdata*/)
+{
+    g_dspLastChunkWall = timeGetTime();
+    return newbuffer;
+}
 
 //////////////////////////////////////////////////////////////////////////////
 // Main Program
@@ -246,19 +254,18 @@ int main()
 #endif
 		FSOUND_SetMixer(FSOUND_MIXER_QUALITY_FPU);
 	}
-	FSOUND_SetBufferSize(FMOD_BUFFER_SIZE_MS);
     if (!FSOUND_Init(44100, 64, 0))
     {
 		allegro_message("FMOD failed to initialize: %d", FSOUND_GetError());
 		return EXIT_FAILURE;
     }
-	al_trace("ASIO: after Init. output=%d err=%d\r\n", FSOUND_GetOutput(), FSOUND_GetError());
 	if ( asioRequested && FSOUND_GetOutput() != FSOUND_OUTPUT_ASIO )
 	{
 		al_trace("WARNING: ASIO is enabled but failed to properly initialize. FMOD error: %d\r\n", FSOUND_GetError());
 		al_trace("Ensure your hardware supports ASIO with a 32bit driver and that it is configured properly, or disable the enableasio option.\r\n");
 		al_trace("Falling back to Direct Sound.\r\n");
 	}
+	FSOUND_DSP_Create(&dspSyncCallback, FSOUND_DSP_DEFAULTPRIORITY_USER, NULL);
 	//*/
 
 	// initialize graphics resources

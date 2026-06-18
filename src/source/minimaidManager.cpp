@@ -51,11 +51,13 @@ void minimaidManager::initialize()
 	int numDevice = 1;
 	while ( p != NULL )
 	{
+#ifdef _DEBUG
 		al_trace("---------------------------------------------------------\n");
 		al_trace("DEVICE #%d = %ls\n", numDevice, p->product_string);
 		al_trace("VID: %d, PID: %d\n", p->vendor_id, p->product_id);
 		al_trace("PATH: %s\n", p->path);
 		al_trace("---------------------------------------------------------\n");
+#endif
 
 		// since there can me multiple "devices" under Windows for a single IO board, try to open them all until one works
 		if ( handle == NULL && lstrcmpW(p->product_string, L"Minimaid JAMMA IO Board") == 0 )
