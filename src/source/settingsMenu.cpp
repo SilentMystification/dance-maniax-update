@@ -808,7 +808,7 @@ void SettingsMenu::handleInput(UTIME dt)
 		{
 			int holdAge  = MAX(0, m_holdTime - HOLD_INITIAL_DELAY);
 			int rampT    = MIN(holdAge, HOLD_RAMP_DURATION);
-			int volume   = 50 + rampT * 50 / HOLD_RAMP_DURATION; // 50 on first tap, 100 at full speed
+			int volume   = 100 - rampT * 50 / HOLD_RAMP_DURATION; // 100 on first tap, 50 at full speed
 			em.playSample(SFX_DIFFICULTY_MOVE, volume);
 			if ( item.flagToSetOnChange != NULL )
 			{
