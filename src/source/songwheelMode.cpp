@@ -266,6 +266,15 @@ void firstSongwheelLoop()
 		m_versions = loadImage("DATA/songwheel/versions.tga");
 	}
 
+	// mid-credit re-entry: if the current stage slot is already assigned, skip the songwheel entirely
+	if ( gs.returningToSongwheel && gs.player[0].stagesPlayed[gs.currentStage] > 0 )
+	{
+		gs.returningToSongwheel = false;
+		gs.g_currentGameMode = GAMEPLAY;
+		gs.g_gameModeTransition = 1;
+		return;
+	}
+
 	// mid-credit re-entry: restore UI state but keep songwheelIndex, currentStage, and stagesPlayed
 	if ( gs.returningToSongwheel )
 	{

@@ -1340,6 +1340,16 @@ void loadNextSong()
 		}
 	}
 
+	// extra stage battery: Classic and Bonus use 4-miss battery, applied here so it doesn't show during song 3 results
+	if ( gs.currentStage == gs.numSongsPerSet && (gs.extraTrackMode == 0 || gs.extraTrackMode == 1) )
+	{
+		for ( int i = 0; i < 2; i++ )
+		{
+			gs.player[i].useBattery = true;
+			gs.player[i].lifebarLives = 4;
+		}
+	}
+
 	announcerTargetSpeak = (p1maxscore + p2maxscore)/7; // speak approximately 7 times per song (although it is both random and dependant on other factors)
 }
 
@@ -1568,6 +1578,9 @@ int checkForExtraStages()
 
 	if ( !awardedExtra )
 	{
+		if ( gs.extraTrackMode == 3 )
+			return 0; // Disabled: no extra stage
+
 		// basic extra stage requirement: are your combined scores at least 900,000 on average?
 		if ( sumP1 >= 900000 || sumP2 >= 900000 )
 		{
@@ -1664,18 +1677,18 @@ int checkForExtraStages()
 			}
 
 			// make it happen
-			gs.player[0].stagesPlayed[gs.numSongsPerSet] = songToPlay;
-			gs.player[0].stagesLevels[gs.numSongsPerSet] = levelP1;
-			gs.player[0].useBattery = true;
-			gs.player[0].lifebarLives = 4;
-			if ( gs.isVersus )
+			if ( gs.extraTrackMode == 0 ) // Classic: auto-select song
 			{
-				gs.player[1].stagesPlayed[gs.numSongsPerSet] = songToPlay;
-				gs.player[1].stagesLevels[gs.numSongsPerSet] = levelP2;
-				gs.player[1].useBattery = true;
-				gs.player[1].lifebarLives = 4;
+				gs.player[0].stagesPlayed[gs.numSongsPerSet] = songToPlay;
+				gs.player[0].stagesLevels[gs.numSongsPerSet] = levelP1;
+				if ( gs.isVersus )
+				{
+					gs.player[1].stagesPlayed[gs.numSongsPerSet] = songToPlay;
+					gs.player[1].stagesLevels[gs.numSongsPerSet] = levelP2;
+				}
 			}
-			
+			// Battery for Classic/Bonus applied in loadNextSong() when the extra stage slot loads
+
 			em.announcerQuip( GUY_EARN_EXTRA );
 		}
 	}

@@ -68,6 +68,7 @@ public:
 	bool isDoublePremium;
 	bool isEventMode;
 	bool isFreestyleMode;
+	int  extraTrackMode;        // 0=Classic, 1=Bonus, 2=Safe, 3=Disabled
 	bool returningToSongwheel;  // true mid-credit when returning from per-song results to songwheel
 	bool skipFreestyleMods; // freestyle expert: skip MAINMENU modifier rows
 	bool creditComplete;        // true when all songs (including bonus) are done; triggers full results after per-song results
@@ -325,6 +326,7 @@ public:
 		isDoublePremium = false;
 		isEventMode = false;
 		isFreestyleMode = false;
+		extraTrackMode = 0;
 		returningToSongwheel = false;
 		skipFreestyleMods = false;
 		creditComplete = false;
@@ -488,6 +490,7 @@ public:
 			if ( fread(&bgmGap, sizeof(int), 1, fp) != 1 ) bgmGap = 0;
 			if ( fread(&n, sizeof(long), 1, fp) == 1 ) isEventMode     = n != 0;
 			if ( fread(&n, sizeof(long), 1, fp) == 1 ) isFreestyleMode = n != 0;
+			if ( fread(&extraTrackMode, sizeof(int), 1, fp) != 1 ) extraTrackMode = 0;
 		}
 
 		isInitialized = true;
@@ -524,6 +527,7 @@ public:
 		fwrite(&n, sizeof(long), 1, fp);
 		n = isFreestyleMode ? 1 : 0;
 		fwrite(&n, sizeof(long), 1, fp);
+		fwrite(&extraTrackMode, sizeof(int), 1, fp);
 
 		safeCloseFile(fp, MSETTING_FILENAME);
 	}
