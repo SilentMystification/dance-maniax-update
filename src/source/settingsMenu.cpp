@@ -17,7 +17,7 @@ extern SongEntry*       songs;
 void applyProfileToCredit(int p)
 {
 	gs.player[p].chartMod = 0;
-	if ( sm.player[p].useSimpleMenu == 0 )
+	if ( !sm.player[p].useExpertMenu )
 	{
 		// simple mode: apply forced defaults to runtime state; sm.player[p] is never modified
 		gs.player[p].scrollMode             = 0;
@@ -166,7 +166,7 @@ static void fillToggleItem(SettingsItem& item, PLAYER_DATA& p)
 	item.options          = s_menuModeOptions;
 	item.optionValues     = s_menuModeValues;
 	item.optionCount      = 2;
-	item.value            = &p.useSimpleMenu;
+	item.value            = &p.useExpertMenu;
 	item.flagToSetOnChange= NULL;
 }
 
@@ -179,7 +179,7 @@ void SettingsMenu::resetSettings(int playerData)
 void SettingsMenu::buildItemList(int player)
 {
 	m_itemCount  = 0;
-	m_isAdvanced = (sm.player[player].useSimpleMenu == 1);
+	m_isAdvanced = sm.player[player].useExpertMenu;
 	memset(m_items, 0, sizeof(m_items));
 	PLAYER_DATA& p = sm.player[player];
 
@@ -496,15 +496,15 @@ void SettingsMenu::open(int playerData, int side)
 	{
 		m_items[i].savedValue = *m_items[i].value;
 	}
-	// audio offset: if not custom, show bgmGap as the "saved" value
+	// audio offset: if not custom, seed display at 0 (delta from bgmGap)
 	for ( int i = 0; i < m_itemCount; i++ )
 	{
 		if ( m_items[i].flagToSetOnChange == &sm.player[m_playerData].hasCustomAudioOffset )
 		{
 			if ( !sm.player[m_playerData].hasCustomAudioOffset )
 			{
-				m_items[i].savedValue = gs.bgmGap;
-				*m_items[i].value     = gs.bgmGap;
+				m_items[i].savedValue = 0;
+				*m_items[i].value     = 0;
 			}
 			break;
 		}
@@ -706,15 +706,15 @@ void SettingsMenu::handleInput(UTIME dt)
 			m_holdDir = 0; m_holdTime = 0; m_repeatTimer = 0;
 
 			// check if the committed item is the menu mode toggle
-			if ( m_items[m_selectedItem].value == &sm.player[m_playerData].useSimpleMenu )
+			if ( m_items[m_selectedItem].value == &sm.player[m_playerData].useExpertMenu )
 			{
-				int newMode = sm.player[m_playerData].useSimpleMenu;
+				int newMode = sm.player[m_playerData].useExpertMenu;
 				if ( newMode == prevSaved )
 				{
 					// no change — exit edit mode silently
 					return;
 				}
-				if ( newMode == 1 )
+				if ( newMode )
 					em.announcerQuip(82); // switching to Advanced: GAME_0082.wav
 				else
 					em.announcerQuip(79); // switching to Simple: GAME_0079.wav
@@ -725,7 +725,7 @@ void SettingsMenu::handleInput(UTIME dt)
 				m_selectedItem = 0;
 				for ( int i = 0; i < m_itemCount; i++ )
 				{
-					if ( m_items[i].value == &sm.player[m_playerData].useSimpleMenu )
+					if ( m_items[i].value == &sm.player[m_playerData].useExpertMenu )
 					{
 						m_selectedItem = i;
 						break;

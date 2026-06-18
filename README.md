@@ -21,6 +21,9 @@ To install the game download the latest InitialInstall.zip file in the [Releases
 
 Unzip `InitialInstall.zip` and right click + run `install.ps1`
 
+The PowerShell script that will download 7 zip files (about 775 MB total),
+extract them (about 2 GB total), and then delete the zip files.
+
 If you get a permissions error, run the following in PowerShell from the install directory
 to temporarily bypasss execution policies: 
 ```powershell
@@ -28,37 +31,95 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 ./install.ps1
 ```
 
-For further installation instructions 
-
- "install.ps1" above and run it. This is a
-Windows PowerShell script that will download 7 zip files (about 775 MB total),
-extract them (about 2 GB total), and then delete the zip files. To run a
-Powershell file, first open a Powershell prompt, then type "./" followed by the
-name of the file:
-`./install.ps1`
-
-If you get a permissions error, run:
-`Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`
-
-The output of the working game will be in the `deploy` folder. This can be run as-is or if you build this project for debugging and need further testing capabilities  
-
 To run the game simply run DMX.exe after a successful install. The first run of
-the program will prompt you to change the default settings.
+the program will prompt you to change the default settings for the cab.
+
+# Build Instructions
+If you want to build from source, pull the latest main-update or master branch 
+and fork off of it.  
 
 
+Build requirements:
+VS Build Tools 2022 or 2026 (earlier might work)
 
 
+# System Requirements
 This will run on basically anything.
 
 Recommended Hardware (I run on this, but have run on much less)
-* Windows 7 or higher
+* Windows 7 or higher *
 * 4GB RAM
 * Intel i3 4330
 * Intel HD Graphics 
 
-### MAJOR CHANGES IN 2026 UPDATE
 
-# PHOENIX IO
+\* XP support should be possible if built with VS 2012 but work would need to be done to make the project openable in VS 2012 
+
+# MAJOR CHANGES IN 2026 UPDATE
+
+## GAMEPLAY CHANGES
+No more pick 3 play 3 style gameplay. Now you will pick 1 song and play 1 song
+in all modes other than Courses.
+
+Continuous Mode is now much more friendly for home use. You can now sign in
+on a profile and enjoy endless plays. Scores are saved at the end of each song
+instead of at the end of each credit.
+
+## Mid-Credit Settings Screen
+There is now a settings screen that can be opened with LEFT + RIGT + START on each side.
+The menu can be closed by holding LEFT + RIGHT together.
+
+This menu will let you configure all of the options set after logging in.
+Additionally this menu will let you configure all of the newly added features.
+
+Some new expert options:
+Fixed scroll speed + Green Number
+Configurable Judgement Display
+Chart mods (Random, S-Random, Inverted)
+Visual Offset
+Audio Offset
+
+## JUDGEMENT CHANGES
+The way judgements are done for hits has been changed a bit. The timing windows remain
+the exact same however, how the game computes your judgement windows has been tightened quite
+a bit. This may result in the game feeling different. With no changes you will probably
+notice that you are consistently hitting early.
+
+You will most likely need to configure your personal / cab offsets described above
+to truly benefit from the changes implemented here.
+
+Additionally, a Marvelous timing window is now available to the player. 
+These are all timing windows:
+
+early ←———————— 0 ms ————————→ late
+
+Marvelous: [±24 ms]
+Perfect:   [±48 ms]
+Great:     [±120 ms]
+Good:      [±150 ms]
+MISS:      after +150 ms (or no valid hit)
+
+## EX-SCORE
+Refered to as EXP in DanceManiax. 
+
+Computed as follows:
+Marvelous: +5
+Perfect:   +4
+Great:     +2
+Good:      +1
+MISS:      +0
+
+These scores are automatically saved and are viewable by switching to Adavanced Scoring.
+
+## ADVANCED SCORE SCREENS
+Expert Settings > Score Mode > Expert
+Shows the following information:
+* How many Early / Late notes you get per judgement window
+* EXP / MAX%
+* UR (Unstable Rate)
+* AVG (Average offset of a hit note) 
+
+## PHOENIX IO EXTIO FIRMWARE
 The 2026 update brings an updated firmware for cab IO. It is fully backwards compatible with devices previously flashed with extio firmware. 
 
 To enable the new PHOENIX IO, flash the `extio_phoenix.ino` located in 
@@ -78,7 +139,7 @@ This change should reduce input latency and make the game engine drive IO sync i
 For in depth instuctions consult with the `Installation Instructions.md` file in the 
 firmware folder.
 
-# ASIO SUPPORT
+## ASIO SUPPORT
 With the 2026 Update, native ASIO is now supported! Originally DMX Update used DirectSound as it's audio backend. 
 
 Now it is togglable between DirectSound and ASIO. To toggle the ASIO backend simply rename the `enableasio.option` file to `enableasio` and boot the game!
@@ -101,8 +162,7 @@ If you hear a sin wave after selecting you ASIO is working. If Realtek ASIO does
 show up, your device does not support native ASIO. 
 
 You can tweak the ASIO settings under Device > Control Panel to adjust or view your buffer size. 
-Use this information below to configure Cab Offsets.
-
+Use this information below to configure Cab Offsets below.
 
 On boot you will see one of the 3 messages printed during the DanceManiax System Startup boot screen:
 | Boot message | Meaning |
@@ -111,7 +171,11 @@ On boot you will see one of the 3 messages printed during the DanceManiax System
 | `SOUND CHECK: OK - ASIO` | ASIO is enabled via option and successfully initialized |
 | `SOUND CHECK: OK - ASIO -> DSOUND` | ASIO is enabled but it did NOT successfully initialize, falling back to DirectSound |
 
-# CAB OFFSETS
+### AUDIO SETUP
+If you're using ASIO (or even if you're not) you should set your audio device to
+16 bit / 44100hz and disable all sound enhancements.
+
+## CAB OFFSETS
 There is now a configurable cab offset located in the operator menu under Sound Setttings -> Audio Offset.
 
 Additionally in the new Settings Menu there are per-player visual and audio offsets.
@@ -123,38 +187,61 @@ At a minimum, you should set it at the same value as your ASIO buffer compensate
 For ASIO it is simple:
 Offset = (Buffer Length in Samples / Sample Rate in Hz) * 1000
 
-My setup has an ASIO buffer of 384 samples and is running at 48000hz:
-Offset = (384 / 48000) * 1000 
-Offset = 8ms
+My setup has an ASIO buffer of 384 samples and is running at 44100hz:
+Offset = (384 / 44100) * 1000 = 11.6ms
+Cab Offset = +12ms
 
-This is a starting point for what the cab offset should be. 
+Assuming you just have a line out straight to dumb speakers, this should be your cab offset.
+
+If you have wacky audio effects enabled or otherwise have an audio setup with more latency,
+
+This is a starting point for what the cab offset should be. If your 
 
 If unable to use ASIO, the DirectSound buffer size is shared among other applications so it is
 both larger and not directly exposed as a static value. Start at 10ms and work your way up.
 
-To narrow in on this value, enable expert options and pay attention to the AVG value you get
-at the end of each song, this represents the average timing of 80% of your hits (minus the top and bottom 10%)
+Optimally, the Cab's Audio offset should only be used to compensate for hardware audio latency
+while player's can compensate for personal preference below.
 
-The average AVG that you get across multiple plays is a safe value to use as either 
-your personal offset or the cab offset. 
+### PER PLAYER AUDIO AND VISUAL OFFSETS
+In the Expert Settings menu there are two options for configuring Visual and Audio offsets. 
 
-# Judgement Changes 
-The way judgements are done for hits has been changed a bit. The timing windows remain
-the exact same however, how the game computes your judgement windows has been tightened quite
-a bit. This may result in the game feeling different. With no changes you will probably
-notice that you are consistently hitting early.
+Visual Offset (ms) will adjust the Y position of each not on the screen by 1 ms increments.
+Judgement windows are not changed or moved AT ALL when using visual offsets. 
+* A +42 offset will move all notes to where they would be visually 42ms in the future.
+* A -69 offset will move all notes to where they would be visually 69ms in the past.
 
-You will most likely need to configure your personal / cab offsets described above
-to truly benefit from the changes implemented here.
+Audio Offset (ms) will adjust the timing window for judgements in 1ms increments.
+The judgement window will slide forwards or backwards but will remain the same size.
+* A +20 offset will move the judgement window forward 20ms throughout the entire song.
+* A -16 offset will move the judgement window backwards 16ms throughout the entire song.
 
-Additionally, a Marvelous timing window is now available to the player. 
-These are all timing windows:
+The Per-Player Audio Offset is meant to be used in tandem with the Audio Offset 
+in the Operator Menu to compensate for personal preference. 
 
-        early ←———————— 0 ms ————————→ late
+**THIS VALUE A DELTA TO WHAT IS SET AS THE CAB OFFSET.**
 
-Marvelous: [±24 ms]
-Perfect:   [±48 ms]
-Great:     [±120 ms]
-Good:      [±150 ms]
-MISS:      after +150 ms (or no valid hit)
+Cab offset = 12
+Player = 4
+Total offset = 16
+
+Cab offset = 14
+player = -4
+Total offset = 10
+
+Ideally, if your cab is calibrated correctly with that offset, the player offset should be 0ms.
+
+To narrow in on this value, enable Score Mode -> Expert in the Expert Settings and pay attention 
+to the AVG value you get at the end of each song.
+
+AVG represents the average timing within 2 standard deviations of the mean. 
+Effectively it is your average hit time with the outliers trimmed out.
+
+The average AVG that you get across multiple plays is a safe value to use as a personal offset.
+
+
+
+
+
+
 

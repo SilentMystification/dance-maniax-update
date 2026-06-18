@@ -884,7 +884,7 @@ void endLoginMode()
 	if ( gs.isFreestyleMode )
 	{
 		gs.currentGameType = MODE_FREE;
-		gs.skipFreestyleMods = ( sm.player[0].isLoggedIn && sm.player[0].useSimpleMenu == 1 );
+		gs.skipFreestyleMods = ( sm.player[0].isLoggedIn && sm.player[0].useExpertMenu );
 	}
 
 	gs.g_currentGameMode = MAINMENU;

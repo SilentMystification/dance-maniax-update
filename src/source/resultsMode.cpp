@@ -333,7 +333,7 @@ void renderResult(int which, int x, int player)
 		return; // it's fine to call this function on every stage. It just won't do anything for the non-stages.
 	}
 
-	if ( sm.player[currentPlayer].scoreMode == 1 && sm.player[currentPlayer].useSimpleMenu == 1 && isMidCreditResults && !gs.isVersus )
+	if ( sm.player[currentPlayer].scoreMode == 1 && sm.player[currentPlayer].useExpertMenu && isMidCreditResults && !gs.isVersus )
 	{
 		renderResultAdvanced(which, player);
 		return;
