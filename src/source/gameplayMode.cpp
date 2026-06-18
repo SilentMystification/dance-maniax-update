@@ -238,7 +238,6 @@ void mainGameplayLoop(UTIME dt)
 {
 	// Sync song clock before chart logic so timeElapsed is current when hits are judged.
 	// Re-anchor to FMOD's position each update; interpolate with wall clock between anchors.
-	// bgmGap is the hardware ouptut latency, should be the same as the buffer length for asio or directsound.
 	UTIME now = timeGetTime();
 	if (gs.currentSongChannel != -1)
 	{
@@ -260,8 +259,6 @@ void mainGameplayLoop(UTIME dt)
 
 	if (gs.bgmSyncAnchored)
 	{
-		// No latencyCorrection: DSP callback anchor eliminates the one-shot bimodal variance.
-		// syncedBase tracks FMOD position extrapolated by wall clock from the precise chunk time.
 		long syncedBase = (long)(now - gs.bgmAnchorWall) + gs.bgmAnchorFmodMs;
 		bool useCustom0 = (sm.player[0].useSimpleMenu == 1) && sm.player[0].hasCustomAudioOffset;
 		bool useCustom1 = (sm.player[1].useSimpleMenu == 1) && sm.player[1].hasCustomAudioOffset;
@@ -1326,7 +1323,6 @@ void loadNextSong()
 	gs.loadSong(gs.player[0].stagesPlayed[gs.currentStage], false, useAlternateMusic);
 	vm.loadScript(movieScripts[songID_to_listID(gs.player[0].stagesPlayed[gs.currentStage])].c_str()); // I love the "])]" on this line!!!
 	gs.playSong();
-	gs.bgmSongStartWall   = timeGetTime();
 	gs.bgmSyncAnchored    = false;
 	gs.bgmAnchorWall      = 0;
 	gs.bgmAnchorFmodMs    = 0;

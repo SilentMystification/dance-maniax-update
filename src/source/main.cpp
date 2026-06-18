@@ -189,8 +189,6 @@ void renderBookkeeping(int temp);
 void renderSoundOptions();
 void renderDataOptions();
 
-
-
 // DSP callback — fires from FMOD's mixer thread at each chunk boundary.
 // Records the precise wall time so gameplayMode can anchor syncedBase without game-loop polling lag.
 static void* F_CALLBACKAPI dspSyncCallback(void* /*originalbuffer*/, void* newbuffer, int /*length*/, void* /*userdata*/)

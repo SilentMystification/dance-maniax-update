@@ -45,7 +45,6 @@ public:
 	UTIME        bgmAnchorWall;     // timeGetTime() at last re-anchor
 	int          bgmAnchorFmodMs;   // FMOD position in ms at last re-anchor
 	unsigned int bgmLastFmodPos;    // raw FMOD sample position at last re-anchor (change detection)
-	UTIME        bgmSongStartWall;  // timeGetTime() when playSong() was called
 	bool	currentSongIsPreview;
 
 	// non-player game state data
@@ -301,7 +300,6 @@ public:
 		bgmAnchorWall = 0;
 		bgmAnchorFmodMs = 0;
 		bgmLastFmodPos = 0;
-		bgmSongStartWall = 0;
 		currentSongIsPreview = false;
 
 		// global game state
