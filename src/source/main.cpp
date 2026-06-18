@@ -86,6 +86,9 @@ bool vsyncEnabled = false;
 bool asioRequested = false;
 bool usePhoenixIO = false;
 volatile UTIME g_dspLastChunkWall = 0; // wall time of the last FMOD DSP chunk boundary (written by FMOD mixer thread)
+volatile UTIME g_dspChunkCount    = 0; // total DSP chunks fired since FMOD init (written by FMOD mixer thread)
+volatile UTIME g_dspSongStartChunk = 0; // g_dspChunkCount at the moment playSong() was called
+UTIME g_songStartWall = 0;             // timeGetTime() at the moment playSong() was called
 
 BITMAP** m_banners; // used globally
 BITMAP* m_caution;
@@ -194,6 +197,7 @@ void renderDataOptions();
 static void* F_CALLBACKAPI dspSyncCallback(void* /*originalbuffer*/, void* newbuffer, int /*length*/, void* /*userdata*/)
 {
     g_dspLastChunkWall = timeGetTime();
+    g_dspChunkCount++;
     return newbuffer;
 }
 

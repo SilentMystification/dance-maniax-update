@@ -25,6 +25,10 @@ extern "C" {
 #define MODE_FREE 1
 #define MODE_MISSION 2
 
+extern volatile UTIME g_dspChunkCount;
+extern volatile UTIME g_dspSongStartChunk;
+extern UTIME g_songStartWall;
+
 class GameStateManager
 {
 public:
@@ -44,7 +48,7 @@ public:
 	bool         bgmSyncAnchored;   // true once FMOD has produced at least one position
 	UTIME        bgmAnchorWall;     // timeGetTime() at last re-anchor
 	int          bgmAnchorFmodMs;   // FMOD position in ms at last re-anchor
-	unsigned int bgmLastFmodPos;    // raw FMOD sample position at last re-anchor (change detection)
+	UTIME        bgmLastChunkCount; // g_dspChunkCount at last re-anchor (change detection)
 	bool	currentSongIsPreview;
 
 	// non-player game state data
@@ -300,7 +304,7 @@ public:
 		bgmSyncAnchored = false;
 		bgmAnchorWall = 0;
 		bgmAnchorFmodMs = 0;
-		bgmLastFmodPos = 0;
+		bgmLastChunkCount = 0;
 		currentSongIsPreview = false;
 
 		// global game state
@@ -399,6 +403,8 @@ public:
 
 	void playSong()
 	{
+		g_dspSongStartChunk = g_dspChunkCount;
+		g_songStartWall = timeGetTime();
 		currentSongChannel = FSOUND_PlaySound(FSOUND_FREE, currentSongSample);
 		FSOUND_SetVolume(currentSongChannel, DONT_WANNA_HEAR_IT ? 0 : 128); // '64' leaves room to grow/shrink (turn up other volume controls)
 		FSOUND_SetLoopMode(currentSongChannel, currentSong < 100 ? FSOUND_LOOP_NORMAL : FSOUND_LOOP_OFF); // menu music should loop

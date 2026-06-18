@@ -86,7 +86,10 @@ bool debugCheats = false;
 extern InputManager im;
 int retireTimer = 0; // for ending the game early when there is a lack of input
 int lampCycle = 0;
-extern volatile UTIME g_dspLastChunkWall; // wall time of last FMOD DSP chunk boundary (main.cpp)
+extern volatile UTIME g_dspLastChunkWall;  // wall time of last FMOD DSP chunk boundary (main.cpp)
+extern volatile UTIME g_dspChunkCount;     // total DSP chunks fired since FMOD init (main.cpp)
+extern volatile UTIME g_dspSongStartChunk; // g_dspChunkCount at the moment playSong() was called (main.cpp)
+extern UTIME g_songStartWall;              // timeGetTime() at the moment playSong() was called (main.cpp)
 
 // in-song speed adjustment
 static const int SPEED_CHANGE_DISPLAY_MS = 3000;
@@ -239,21 +242,17 @@ void mainGameplayLoop(UTIME dt)
 	// Sync song clock before chart logic so timeElapsed is current when hits are judged.
 	// Re-anchor to FMOD's position each update; interpolate with wall clock between anchors.
 	UTIME now = timeGetTime();
-	if (gs.currentSongChannel != -1)
+	if (g_dspChunkCount > g_dspSongStartChunk && g_dspChunkCount != gs.bgmLastChunkCount)
 	{
-		unsigned int fmodPos = FSOUND_GetCurrentPosition(gs.currentSongChannel);
-		if (fmodPos > 0 && fmodPos != gs.bgmLastFmodPos)
+		int freq = FSOUND_GetOutputRate();
+		if (freq > 0)
 		{
-			int freq = FSOUND_GetOutputRate();
-			if (freq > 0)
-			{
-				gs.bgmAnchorFmodMs = fmodPos / freq * 1000 + fmodPos % freq * 1000 / freq;
-				// Use DSP callback wall time — set from FMOD's mixer thread at the exact chunk
-				// boundary, eliminating the 0-2ms game-loop polling lag from the anchor.
-				gs.bgmAnchorWall   = g_dspLastChunkWall > 0 ? g_dspLastChunkWall : now;
-				gs.bgmLastFmodPos  = fmodPos;
-				gs.bgmSyncAnchored = true;
-			}
+			UTIME chunks = g_dspChunkCount - g_dspSongStartChunk;
+			int bufLen   = FSOUND_DSP_GetBufferLength();
+			gs.bgmAnchorFmodMs = (long long)chunks * bufLen * 1000 / freq;
+			gs.bgmAnchorWall   = g_dspLastChunkWall;
+			gs.bgmLastChunkCount = g_dspChunkCount;
+			gs.bgmSyncAnchored = true;
 		}
 	}
 
@@ -264,6 +263,21 @@ void mainGameplayLoop(UTIME dt)
 		int gap1 = gs.bgmGap + sm.player[1].audioOffset;
 		gs.player[0].timeElapsed = (UTIME)MAX(0, syncedBase + gap0);
 		gs.player[1].timeElapsed = (UTIME)MAX(0, syncedBase + gap1);
+
+		static UTIME lastDriftTrace = 0;
+		if (gs.player[0].timeElapsed - lastDriftTrace >= 5000)
+		{
+			lastDriftTrace = gs.player[0].timeElapsed;
+			int freq = FSOUND_GetOutputRate();
+			int bufLen = FSOUND_DSP_GetBufferLength();
+			UTIME chunks = g_dspChunkCount - g_dspSongStartChunk;
+			long chunkMs = freq > 0 ? (long long)chunks * bufLen * 1000 / freq : 0;
+			unsigned int fmodPos = FSOUND_GetCurrentPosition(gs.currentSongChannel);
+			long fmodMs = freq > 0 ? (fmodPos / freq * 1000 + fmodPos % freq * 1000 / freq) : 0;
+			long wallElapsed = (long)(now - g_songStartWall);
+			al_trace("drift check: timeElapsed=%d wallElapsed=%ld chunkMs=%ld fmodMs=%ld gap=%d\r\n",
+				gs.player[0].timeElapsed, wallElapsed, chunkMs, fmodMs, gap0);
+		}
 	}
 	else
 	{
@@ -279,8 +293,14 @@ void mainGameplayLoop(UTIME dt)
 
 		// process BPM gimmicks
 		SUBTRACT_TO_ZERO(gs.player[p].stopLength, dt);
+		int prevBpmTimer = gs.player[p].bpmUpdateTimer;
 		SUBTRACT_TO_ZERO(gs.player[p].bpmUpdateTimer, dt);
 		gs.player[p].scrollRate = WEIGHTED_AVERAGE(gs.player[p].scrollRate, gs.player[p].newScrollRate, gs.player[p].bpmUpdateTimer, BPM_UPDATE_LENGTH);
+		if ( prevBpmTimer > 0 && gs.player[p].bpmUpdateTimer == 0 )
+		{
+			al_trace("BPM transition complete p%d: scrollRate=%d newScrollRate=%d timeElapsed=%d\r\n",
+				p, gs.player[p].scrollRate, gs.player[p].newScrollRate, gs.player[p].timeElapsed);
+		}
 	}
 
 	SUBTRACT_TO_ZERO(songTransitionTime, dt);
@@ -615,6 +635,9 @@ void doChartLogic(UTIME dt, int p)
 		if ( gs.player[p].currentChart[n].type == BPM_CHANGE )
 		{
 			int targetRate = gs.player[p].currentChart[n].color;
+			al_trace("BPM_CHANGE p%d: timing=%d timeElapsed=%d color=%d scrollRate=%d newScrollRate=%d\r\n",
+				p, gs.player[p].currentChart[n].timing, gs.player[p].timeElapsed,
+				targetRate, gs.player[p].scrollRate, gs.player[p].newScrollRate);
 			if ( gs.player[p].newScrollRate != targetRate )
 			{
 				gs.player[p].bpmUpdateTimer = BPM_UPDATE_LENGTH;
@@ -669,24 +692,6 @@ void doChartLogic(UTIME dt, int p)
 		if ( gs.player[p].currentNote == (int)gs.player[p].currentChart.size() )
 		{
 			gs.player[p].currentNote = (int)gs.player[p].currentChart.size() - 1;
-			break;
-		}
-	}
-
-	// Look-ahead: find the next BPM change within BPM_UPDATE_LENGTH ms and seed the animation
-	// early so it completes at the event rather than starting then.
-	for ( unsigned int scan = n; scan < gs.player[p].currentChart.size(); scan++ )
-	{
-		int msUntil = (int)gs.player[p].currentChart[scan].timing - (int)gs.player[p].timeElapsed;
-		if ( msUntil > BPM_UPDATE_LENGTH ) break;
-		if ( gs.player[p].currentChart[scan].type == BPM_CHANGE )
-		{
-			int targetRate = gs.player[p].currentChart[scan].color;
-			if ( gs.player[p].newScrollRate != targetRate )
-			{
-				gs.player[p].newScrollRate  = targetRate;
-				gs.player[p].bpmUpdateTimer = msUntil;
-			}
 			break;
 		}
 	}
@@ -1308,6 +1313,10 @@ void loadNextSong()
 				break;
 			}
 		}
+		al_trace("loadNextSong p%d: songID=%d baseBPM=%d scrollRate=%d newScrollRate=%d speedMod=%d scrollMode=%d fixedScrollPPS=%d\r\n",
+			p, gs.player[p].stagesPlayed[gs.currentStage],
+			gs.player[p].baseBPM, gs.player[p].scrollRate, gs.player[p].newScrollRate,
+			gs.player[p].speedMod, gs.player[p].scrollMode, gs.player[p].fixedScrollPPS);
 
 		sm.player[p].currentSet[gs.currentStage].resetData();
 		sm.player[p].currentSet[gs.currentStage].time = time(NULL);
@@ -1350,7 +1359,7 @@ void loadNextSong()
 	gs.bgmSyncAnchored    = false;
 	gs.bgmAnchorWall      = 0;
 	gs.bgmAnchorFmodMs    = 0;
-	gs.bgmLastFmodPos     = 0;
+	gs.bgmLastChunkCount  = 0;
 	g_dspLastChunkWall    = 0; // reset so a stale value from the previous song is not used
 	vm.play();
 	isMidTransition = true;

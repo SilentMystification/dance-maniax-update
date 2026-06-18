@@ -123,6 +123,16 @@ void renderDMXChart(int player)
 	else
 		pps = gs.player[player].scrollRate * gs.player[player].speedMod / 10;
 
+	static int lastPps[2] = { -1, -1 };
+	if ( pps != lastPps[player] )
+	{
+		al_trace("renderDMX p%d: pps changed %d->%d scrollRate=%d baseBPM=%d fixedScrollPPS=%d timeElapsed=%d\r\n",
+			player, lastPps[player], pps,
+			gs.player[player].scrollRate, gs.player[player].baseBPM,
+			gs.player[player].fixedScrollPPS, gs.player[player].timeElapsed);
+		lastPps[player] = pps;
+	}
+
 	// where to start rendering the chart?
 	// TODO: implement sudden
 	//unsigned long startTime = gs.currentChart[gs.currentNote].timing;
