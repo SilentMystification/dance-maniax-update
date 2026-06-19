@@ -487,7 +487,7 @@ int main()
 			}
 
 			// check for the three menu buttons which work in all modes
-			if ( im.getKeyState(MENU_TEST) == JUST_DOWN && gs.g_currentGameMode != TESTMODE )
+			if ( im.getKeyState(MENU_TEST) == JUST_DOWN && gs.g_currentGameMode != TESTMODE && gs.g_currentGameMode != BOOTMODE )
 			{
 				gs.g_gameModeTransition = 1;
 				gs.g_currentGameMode = TESTMODE;
