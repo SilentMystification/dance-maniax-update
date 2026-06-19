@@ -264,6 +264,7 @@ void mainGameplayLoop(UTIME dt)
 		gs.player[0].timeElapsed = (UTIME)MAX(0, syncedBase + gap0);
 		gs.player[1].timeElapsed = (UTIME)MAX(0, syncedBase + gap1);
 
+#ifdef DMXDEBUG
 		static UTIME lastDriftTrace = 0;
 		if (gs.player[0].timeElapsed - lastDriftTrace >= 5000)
 		{
@@ -275,9 +276,11 @@ void mainGameplayLoop(UTIME dt)
 			unsigned int fmodPos = FSOUND_GetCurrentPosition(gs.currentSongChannel);
 			long fmodMs = freq > 0 ? (fmodPos / freq * 1000 + fmodPos % freq * 1000 / freq) : 0;
 			long wallElapsed = (long)(now - g_songStartWall);
-			al_trace("drift check: timeElapsed=%d wallElapsed=%ld chunkMs=%ld fmodMs=%ld gap=%d\r\n",
-				gs.player[0].timeElapsed, wallElapsed, chunkMs, fmodMs, gap0);
+			// wall_dsp: positive = wall clock ahead of DSP thread; fmod_dsp: positive = FMOD API ahead of DSP chunk count
+			al_trace("audio drift: wall=%ldms dsp=%ldms fmod=%ldms  wall_dsp=%+ldms fmod_dsp=%+ldms\r\n",
+				wallElapsed, chunkMs, fmodMs, wallElapsed - chunkMs, fmodMs - chunkMs);
 		}
+#endif
 	}
 	else
 	{

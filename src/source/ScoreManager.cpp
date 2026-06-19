@@ -4,6 +4,14 @@
 #include <stdio.h>
 #include <string>
 
+#ifdef DMXDEBUG
+#define PLAYERS_DIR      "PLAYERS_DEBUG/"
+#define PLAYERS_DIR_GLOB "PLAYERS_DEBUG/*.prefs"
+#else
+#define PLAYERS_DIR      "PLAYERS/"
+#define PLAYERS_DIR_GLOB "PLAYERS/*.prefs"
+#endif
+
 #include "../headers/scoreManager.h"
 #include <windows.h>
 
@@ -28,7 +36,7 @@ bool ScoreManager::loadPlayerFromDisk(char* name, char side)
 	FILE* fp = NULL;
 	struct PLAYER_DATA& p = side == 0 ? player[0] : player[1];
 
-	char baseFilename[64] = "PLAYERS/";
+	char baseFilename[64] = PLAYERS_DIR;
 	char prefsFilename[64] = "";
 	char scoreFilename[64] = "";
 
@@ -296,7 +304,7 @@ void ScoreManager::mergeCurrentScores(PLAYER_DATA &p, int side)
 bool ScoreManager::doesPlayerNameExist(char* name)
 {
 	FILE* fp = NULL;
-	char filename[64] = "PLAYERS/";
+	char filename[64] = PLAYERS_DIR;
 	strcat_s(filename, 64, name);
 	strcat_s(filename, 64, ".prefs");
 	if ( fopen_s(&fp, filename, "rb") != 0 ) // only care if the player exists, not if the file is corrupt
@@ -322,7 +330,7 @@ bool ScoreManager::isPinCorrect(int pin, int side)
 void ScoreManager::savePlayerToDisk(PLAYER_DATA &p)
 {
 	FILE* fp = NULL;
-	char baseFilename[64] = "PLAYERS/";
+	char baseFilename[64] = PLAYERS_DIR;
 	char prefsFilename[64] = "";
 	char scoreFilename[64] = "";
 
@@ -419,11 +427,11 @@ void ScoreManager::runDataFixers()
 	// Each fixer must be a no-op on already-migrated files.
 	// Remove all fixers when the save backend is replaced.
 	WIN32_FIND_DATAA findData;
-	HANDLE hFind = FindFirstFileA("PLAYERS\\*.prefs", &findData);
+	HANDLE hFind = FindFirstFileA(PLAYERS_DIR_GLOB, &findData);
 	if ( hFind == INVALID_HANDLE_VALUE ) return;
 	do {
 		char path[MAX_PATH];
-		sprintf_s(path, sizeof(path), "PLAYERS\\%s", findData.cFileName);
+		sprintf_s(path, sizeof(path), "%s%s", PLAYERS_DIR, findData.cFileName);
 
 		// read version number from file header
 		FILE* fp = fopen(path, "rb");

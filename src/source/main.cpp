@@ -211,7 +211,11 @@ int main()
 	_mkdir("CONF");
 	_mkdir("BACKUP");
 	_mkdir("UPDATE");
+#ifdef DMXDEBUG
+	_mkdir("PLAYERS_DEBUG");
+#else
 	_mkdir("PLAYERS");
+#endif
 	_mkdir("DATA");
 	
 	// setup the Allegro library
@@ -449,11 +453,9 @@ int main()
 	{
 		UTIME time = timeGetTime();
 
-		// TODO: time > last_utime freezes the game loop after ~49.7 days (timeGetTime() 32-bit wraparound).
-		// Fix: UTIME dt = time - last_utime; if (dt > 0) — unsigned subtraction handles wraparound correctly.
-		if ( time > last_utime )
+		UTIME dt = time - last_utime; // moving this outside of the loop prevents a crash that occurs if the game runs for ~50 days xD
+		if ( dt > 0 )
 		{
-			UTIME dt = time - last_utime;
 			//dt *= 1000; // FOR SOAK TESTING, CAUSES HILLARIOUS THINGS TO HAPPEN
 			last_utime = time;
 			totalGameTime += dt;
