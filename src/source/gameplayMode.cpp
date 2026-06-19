@@ -295,7 +295,7 @@ void mainGameplayLoop(UTIME dt)
 		SUBTRACT_TO_ZERO(gs.player[p].stopLength, dt);
 		int prevBpmTimer = gs.player[p].bpmUpdateTimer;
 		SUBTRACT_TO_ZERO(gs.player[p].bpmUpdateTimer, dt);
-		gs.player[p].scrollRate = WEIGHTED_AVERAGE(gs.player[p].scrollRate, gs.player[p].newScrollRate, gs.player[p].bpmUpdateTimer, BPM_UPDATE_LENGTH);
+		gs.player[p].scrollRate = WEIGHTED_AVERAGE(gs.player[p].oldScrollRate, gs.player[p].newScrollRate, gs.player[p].bpmUpdateTimer, gs.player[p].bpmAnimationLength);
 		if ( prevBpmTimer > 0 && gs.player[p].bpmUpdateTimer == 0 )
 		{
 			al_trace("BPM transition complete p%d: scrollRate=%d newScrollRate=%d timeElapsed=%d\r\n",
@@ -638,12 +638,15 @@ void doChartLogic(UTIME dt, int p)
 			al_trace("BPM_CHANGE p%d: timing=%d timeElapsed=%d color=%d scrollRate=%d newScrollRate=%d\r\n",
 				p, gs.player[p].currentChart[n].timing, gs.player[p].timeElapsed,
 				targetRate, gs.player[p].scrollRate, gs.player[p].newScrollRate);
+			gs.player[p].committedScrollRate = targetRate;
 			if ( gs.player[p].newScrollRate != targetRate )
 			{
-				gs.player[p].bpmUpdateTimer = BPM_UPDATE_LENGTH;
-				gs.player[p].newScrollRate  = targetRate;
+				int sixteenthNoteMs = gs.player[p].scrollRate > 0 ? 15000 / gs.player[p].scrollRate : BPM_UPDATE_LENGTH;
+				gs.player[p].oldScrollRate       = gs.player[p].scrollRate;
+				gs.player[p].bpmAnimationLength  = sixteenthNoteMs;
+				gs.player[p].bpmUpdateTimer      = sixteenthNoteMs;
+				gs.player[p].newScrollRate       = targetRate;
 			}
-			// else: look-ahead already seeded the animation; leave bpmUpdateTimer counting down
 		}
 		if ( gs.player[p].currentChart[n].type == SCROLL_STOP )
 		{
@@ -1307,9 +1310,12 @@ void loadNextSong()
 		{
 			if ( gs.player[p].currentChart[i].type == BPM_CHANGE )
 			{
-				gs.player[p].baseBPM     = gs.player[p].currentChart[i].color;
-				gs.player[p].scrollRate    = gs.player[p].baseBPM;
-				gs.player[p].newScrollRate = gs.player[p].baseBPM;
+				gs.player[p].baseBPM             = gs.player[p].currentChart[i].color;
+				gs.player[p].scrollRate          = gs.player[p].baseBPM;
+				gs.player[p].newScrollRate       = gs.player[p].baseBPM;
+				gs.player[p].oldScrollRate       = gs.player[p].baseBPM;
+				gs.player[p].committedScrollRate = gs.player[p].baseBPM;
+				gs.player[p].bpmAnimationLength  = BPM_UPDATE_LENGTH;
 				break;
 			}
 		}
