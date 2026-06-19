@@ -734,15 +734,15 @@ void SettingsMenu::handleInput(UTIME dt)
 				// snapshot savedValues for the rebuilt list
 				for ( int i = 0; i < m_itemCount; i++ )
 					m_items[i].savedValue = *m_items[i].value;
-				// audio offset special case: seed display from bgmGap if not custom
+				// audio offset special case: seed display at 0 (delta from bgmGap) if not custom
 				for ( int i = 0; i < m_itemCount; i++ )
 				{
 					if ( m_items[i].flagToSetOnChange == &sm.player[m_playerData].hasCustomAudioOffset )
 					{
 						if ( !sm.player[m_playerData].hasCustomAudioOffset )
 						{
-							m_items[i].savedValue = gs.bgmGap;
-							*m_items[i].value     = gs.bgmGap;
+							m_items[i].savedValue = 0;
+							*m_items[i].value     = 0;
 						}
 						break;
 					}

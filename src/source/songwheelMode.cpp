@@ -567,7 +567,9 @@ void mainSongwheelLoop(UTIME dt)
 
 			// copy updated settings to gs.player so they take effect next song
 			int p = settingsPlayerSlot[side];
+			int savedChartMod = gs.player[p].chartMod;
 			applyProfileToCredit(p);
+			gs.player[p].chartMod = savedChartMod;
 
 			if ( sm.player[p].isLoggedIn )
 			{
@@ -1021,7 +1023,9 @@ void mainSongwheelLoop(UTIME dt)
 			settingsWaitForRelease[side] = false;
 
 			int p = settingsPlayerSlot[side];
+			int savedChartMod = gs.player[p].chartMod;
 			applyProfileToCredit(p);
+			gs.player[p].chartMod = savedChartMod;
 			if ( sm.player[p].isLoggedIn )
 				sm.savePlayersToDisk();
 		}
