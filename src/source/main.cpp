@@ -207,9 +207,13 @@ static void* F_CALLBACKAPI dspSyncCallback(void* /*originalbuffer*/, void* newbu
 //////////////////////////////////////////////////////////////////////////////
 int main()
 {
-	_mkdir("conf");
-	_mkdir("backup");
-
+	// init directories used by game
+	_mkdir("CONF");
+	_mkdir("BACKUP");
+	_mkdir("UPDATE");
+	_mkdir("PLAYERS");
+	_mkdir("DATA");
+	
 	// setup the Allegro library
 	allegro_init();
 	srand(time(0));
@@ -331,15 +335,6 @@ int main()
 		beginInitialInstall = true; // a special flag that prevents gameplay and just downloads files
 		NUM_SONGS = 0;
 
-		// do this once at the very start
-		if ( !fileExists("DATA/etc/white_font.bmp") )
-		{
-			system("mkdir backup");
-			system("mkdir conf");
-			system("mkdir update");
-			system("mkdir PLAYERS");
-			system("mkdir DATA");
-		}
 		rm.Initialize(true, chosenWidth, chosenHeight, pillarBoxMode); // flag to skip loading fonts while the initial install is happening
 		checkForUpdates();
 	}
@@ -2057,8 +2052,8 @@ void renderGameOptions()
 	textprintf(rm.m_backbuf, font, 50, 130, testMenuSubIndex == 1 ? RED : WHITE, "DISABLE MENU TIMER");
 	textprintf(rm.m_backbuf, font, 50, 160, testMenuSubIndex == 2 ? RED : WHITE, "ENDLESS PLAY MODE");
 	textprintf(rm.m_backbuf, font, 50, 190, testMenuSubIndex == 3 ? RED : WHITE, "EXTRA TRACK SETTINGS");
-	textprintf(rm.m_backbuf, font, 50, 220, testMenuSubIndex == 4 ? RED : WHITE, "FACTORY SETTINGS");
-	textprintf(rm.m_backbuf, font, 50, 250, testMenuSubIndex == 5 ? RED : WHITE, "SAVE AND EXIT");
+	textprintf(rm.m_backbuf, font, 50, 310, testMenuSubIndex == 4 ? RED : WHITE, "FACTORY SETTINGS");
+	textprintf(rm.m_backbuf, font, 50, 340, testMenuSubIndex == 5 ? RED : WHITE, "SAVE AND EXIT");
 
 	textprintf(rm.m_backbuf, font, 236, 100, gs.numSongsPerSet == DEFAULT_SONGS_PER_SET ? GREEN : RED, "%d", gs.numSongsPerSet );
 	textprintf(rm.m_backbuf, font, 236, 130, GREEN, GET_ON_OFF(gs.isEventMode));
