@@ -1382,7 +1382,7 @@ void loadNextSong()
 	}
 
 	// extra stage battery: Classic and Bonus use 4-miss battery, applied here so it doesn't show during song 3 results
-	if ( gs.currentStage == gs.numSongsPerSet && (gs.extraTrackMode == 0 || gs.extraTrackMode == 1) )
+	if ( !gs.isFreestyleMode && gs.currentStage == gs.numSongsPerSet && (gs.extraTrackMode == 0 || gs.extraTrackMode == 1) )
 	{
 		for ( int i = 0; i < 2; i++ )
 		{
@@ -1589,6 +1589,9 @@ void arrangeChart(std::vector<struct ARROW> *chart, std::vector<struct FREEZE> *
 
 int checkForExtraStages()
 {
+	if ( gs.isFreestyleMode )
+		return 0;
+
 	bool awardedExtra = gs.player[0].stagesPlayed[gs.numSongsPerSet] > 0; // extra stage was already awarded
 	bool awardedEncore = gs.player[0].stagesPlayed[gs.numSongsPerSet+1] > 0; // encore stage was already awarded
 
@@ -1764,14 +1767,14 @@ int checkForExtraStages()
 	}
 
 	// check for permanently unlocking an extra stage by scoring 90% while on the extra stage
-	if ( awardedExtra )
+	if ( gs.player[0].stagesPlayed[gs.numSongsPerSet] > 0 )
 	{
 		int songIndex = songID_to_listID(gs.player[0].stagesPlayed[gs.numSongsPerSet]);
 		if ( songIndex == -1 )
 		{
 			songIndexError(gs.player[0].stagesPlayed[gs.numSongsPerSet]);
 		}
-		if ( awardedExtra && songs[songIndex].specialFlag & SPECIAL_FLAG_UNLOCK_METHOD_EXTRA_STAGE )
+		if ( awardedExtra && songIndex != -1 && songs[songIndex].specialFlag & SPECIAL_FLAG_UNLOCK_METHOD_EXTRA_STAGE )
 		{
 			if ( sm.player[0].currentSet[gs.numSongsPerSet].getScore() >= 900000 )
 			{
