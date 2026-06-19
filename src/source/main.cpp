@@ -2056,14 +2056,14 @@ void renderGameOptions()
 	textprintf(rm.m_backbuf, font, 50, 100, testMenuSubIndex == 0 ? RED : WHITE, "SONGS PER CREDIT");
 	textprintf(rm.m_backbuf, font, 50, 130, testMenuSubIndex == 1 ? RED : WHITE, "DISABLE MENU TIMER");
 	textprintf(rm.m_backbuf, font, 50, 160, testMenuSubIndex == 2 ? RED : WHITE, "ENDLESS PLAY MODE");
-	textprintf(rm.m_backbuf, font, 50, 190, testMenuSubIndex == 3 ? RED : WHITE, "EXTRA TRACK SETTINGS:");
-	textprintf(rm.m_backbuf, font, 50, 340, testMenuSubIndex == 4 ? RED : WHITE, "FACTORY SETTINGS");
-	textprintf(rm.m_backbuf, font, 50, 370, testMenuSubIndex == 5 ? RED : WHITE, "SAVE AND EXIT");
+	textprintf(rm.m_backbuf, font, 50, 190, testMenuSubIndex == 3 ? RED : WHITE, "EXTRA TRACK SETTINGS");
+	textprintf(rm.m_backbuf, font, 50, 220, testMenuSubIndex == 4 ? RED : WHITE, "FACTORY SETTINGS");
+	textprintf(rm.m_backbuf, font, 50, 250, testMenuSubIndex == 5 ? RED : WHITE, "SAVE AND EXIT");
 
 	textprintf(rm.m_backbuf, font, 236, 100, gs.numSongsPerSet == DEFAULT_SONGS_PER_SET ? GREEN : RED, "%d", gs.numSongsPerSet );
 	textprintf(rm.m_backbuf, font, 236, 130, GREEN, GET_ON_OFF(gs.isEventMode));
 	textprintf(rm.m_backbuf, font, 236, 160, GREEN, GET_ON_OFF(gs.isFreestyleMode));
-	textprintf(rm.m_backbuf, font, 280, 190, GREEN, extraTrackModeLabels[gs.extraTrackMode]);
+	textprintf(rm.m_backbuf, font, 236, 190, GREEN, extraTrackModeLabels[gs.extraTrackMode]);
 
 	textprintf(rm.m_backbuf, font, 50, 400, makecol(196, 255, 255), "PRESS 1P LEFT / RIGHT = select item");
 	textprintf(rm.m_backbuf, font, 50, 420, makecol(196, 255, 255), "PRESS 2P LEFT / RIGHT = modify setting");
