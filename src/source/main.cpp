@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <process.h>
 #include <string>
+#include <direct.h>
 
 #include "hidapi.h"
 
@@ -206,6 +207,9 @@ static void* F_CALLBACKAPI dspSyncCallback(void* /*originalbuffer*/, void* newbu
 //////////////////////////////////////////////////////////////////////////////
 int main()
 {
+	_mkdir("conf");
+	_mkdir("backup");
+
 	// setup the Allegro library
 	allegro_init();
 	srand(time(0));
