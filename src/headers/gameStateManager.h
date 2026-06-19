@@ -91,13 +91,16 @@ public:
 		// scroll rate
 		int   scrollRate;         // the current BPM
 		int   newScrollRate;      // what the BPM is changing to
+		int   oldScrollRate;      // scrollRate at the start of the current BPM transition
 		UTIME stopTime;           // the timeElapsed that the tempo stop happened at
 		UTIME stopLength;         // the milliseconds that the current tempo stop lasts for
 		UTIME bpmUpdateTimer;     // allows the BPM to change smoothly from scrollRate to newScrollRate
+		UTIME bpmAnimationLength; // denominator for blend — duration of the current transition
 		int   speedMod;           // the current speed mod times 10 (for 1.5, 2.5, etc)
 		int   scrollMode;         // 0=Classic, 1=Fixed
 		int   fixedScrollPPS;     // Fixed mode: pixels/sec
 		int   baseBPM;            // BPM at song start, used for fixed scroll pps ratio
+		int   committedScrollRate; // scrollRate as of the last confirmed BPM_CHANGE event
 		int   visualOffset;       // ms, shifts note Y only (not judgement windows)
 
 		// animation timers and states (mostly timers)
@@ -208,10 +211,13 @@ public:
 			// scroll rate
 			scrollRate = 150;
 			newScrollRate = 150;
+			oldScrollRate = 150;
+			bpmAnimationLength = 400;
 			speedMod = 10;
 			scrollMode = 0;
 			fixedScrollPPS = 200;
 			baseBPM = 0;
+			committedScrollRate = 150;
 			visualOffset = 0;
 
 			// player's score

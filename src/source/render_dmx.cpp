@@ -171,24 +171,48 @@ void renderDMXChart(int player)
 	}
 	//al_trace("Num holds processed: %d\r\n", countHoldsProcessed);
 
-	int y = (int(gs.player[player].currentChart[n].timing) - int(time)) * pps / 1000;
-	while ( y - (pausedTime * pps / 1000) < SCREEN_HEIGHT )
+	// Per-segment rendering: each BPM section scrolls at its own speed so note
+	// spacing is preserved across BPM changes. scrollRate (animated) is intentionally
+	// not used here — it drives the step zone only and is the soflan pathway.
+	int segPps;
+	if ( gs.player[player].scrollMode == 1 && gs.player[player].baseBPM > 0 )
+		segPps = gs.player[player].fixedScrollPPS * gs.player[player].committedScrollRate / gs.player[player].baseBPM;
+	else
+		segPps = gs.player[player].committedScrollRate * gs.player[player].speedMod / 10;
+	long long segBasePixels = 0;
+	int segStartTime = (int)time + pausedTime;
+	int visualOffsetPixels = gs.player[player].visualOffset * segPps / 1000;
+
+	int y;
+	while ( true )
 	{
-		y = (int(gs.player[player].currentChart[n].timing) - int(time) - pausedTime - gs.player[player].visualOffset) * pps / 1000;
+		if ( n >= (int)gs.player[player].currentChart.size() ) break;
+
+		int noteTime = (int)gs.player[player].currentChart[n].timing;
+		y = (int)(segBasePixels + (long long)(noteTime - segStartTime) * segPps / 1000) - visualOffsetPixels;
+		if ( y >= SCREEN_HEIGHT ) break;
+
 		renderDMXNote(player, gs.player[player].currentChart[n], y + DMX_STEP_ZONE_Y);
 
-		// implement the correct calculation of the distance between notes due to tempo stops
 		if ( gs.player[player].currentChart[n].type == SCROLL_STOP )
 		{
-			pausedTime += gs.player[player].currentChart[n].color;
+			int stopLen = gs.player[player].currentChart[n].color;
+			pausedTime  += stopLen;
+			segStartTime += stopLen;
 		}
 
-		// next item in the list
-		n++;
-		if ( n == (int)gs.player[player].currentChart.size() )
+		if ( gs.player[player].currentChart[n].type == BPM_CHANGE )
 		{
-			break;
+			int newBpm = gs.player[player].currentChart[n].color;
+			segBasePixels += (long long)(noteTime - segStartTime) * segPps / 1000;
+			segStartTime   = noteTime;
+			if ( gs.player[player].scrollMode == 1 && gs.player[player].baseBPM > 0 )
+				segPps = gs.player[player].fixedScrollPPS * newBpm / gs.player[player].baseBPM;
+			else
+				segPps = newBpm * gs.player[player].speedMod / 10;
 		}
+
+		n++;
 	}
 
 	// render the late notes - TODO: fix the optimization here to work for reverse
@@ -259,7 +283,7 @@ void renderDMXNote(int player, struct ARROW n, int y)
 		//renderEndSongMarker(leftX, rightX, (gs.player[player].reverseModifier != 0 ? y+74 : y));
 		break;
 	case BPM_CHANGE:
-		if ( ABS(n.color - gs.player[player].scrollRate) >= 5 && n.timing > 0 )
+		if ( ABS(n.color - gs.player[player].committedScrollRate) >= 5 && n.timing > 0 && (int)n.timing > (int)gs.player[player].timeElapsed )
 		{
 			renderBPMMarker(leftX, rightX, (gs.player[player].reverseModifier != 0 ? y+74 : y), n.color);
 		}
