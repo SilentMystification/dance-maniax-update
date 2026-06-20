@@ -594,7 +594,7 @@ void renderSpeedMod(int player, int scrollRate, int speedMod, bool isTemp, int s
 	{
 		char buf[16];
 		sprintf_s(buf, sizeof(buf), "%d", fixedScrollPPS);
-		renderOutlinedColoredString(buf, x, y + 6, isTemp ? TEXT_COLOR_WHITE : TEXT_COLOR_GREEN);
+		renderOutlinedColoredString(buf, x, y + 6, isTemp ? TEXT_COLOR_WHITE : TEXT_COLOR_FGREEN);
 	}
 	else // Classic: sprite icon
 	{
