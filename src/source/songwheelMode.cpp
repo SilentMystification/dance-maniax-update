@@ -138,6 +138,8 @@ int previewSongID = 0;
 bool isInSubmenu = false;
 char currentSubmenu = 0;            // only used for one player
 char separateSubmenu[2] = {0,0};    // only used for versus mode
+bool submenuMildLocked = false;
+bool submenuWildLocked = false;
 
 SettingsMenu playerSettingsMenu[2];
 bool isInSettings[2] = { false, false };
@@ -224,6 +226,14 @@ bool isSongAvailable(int index)
 	}
 
 	return songs[index].version != 0 && songs[index].version < 100 && (earnedIt || allsongsDebug);
+}
+
+// returns the next submenu position when moving by delta (-1 or +1), skipping locked wild (position 1)
+static int nextSubmenuPosition(int current, int delta)
+{
+	int next = current + delta;
+	if ( next == 1 && submenuWildLocked ) next += delta;
+	return next;
 }
 
 bool isManiaxChartAvailableHere()
@@ -701,70 +711,82 @@ void mainSongwheelLoop(UTIME dt)
 		{
 			if ( im.getKeyState(MENU_LEFT_1P) == JUST_DOWN && !submenuDone[0] )
 			{
-				separateSubmenu[0] = separateSubmenu[0] == 0 ? 0 : separateSubmenu[0] - 1;
-				em.playSample(SFX_DIFFICULTY_MOVE);
-				maniaxSelect[0] = 0;
+				int next = nextSubmenuPosition(separateSubmenu[0], -1);
+				if ( next < 0 || (next == 0 && submenuMildLocked) )
+					em.playSample(SFX_MENU_STUCK);
+				else
+					{ separateSubmenu[0] = next; em.playSample(SFX_DIFFICULTY_MOVE); maniaxSelect[0] = 0; }
 			}
 			else if ( im.getKeyState(MENU_RIGHT_1P) == JUST_DOWN && !submenuDone[0] )
 			{
-				separateSubmenu[0] = separateSubmenu[0] >= 2 ? separateSubmenu[0] : separateSubmenu[0] + 1;
-				em.playSample(SFX_DIFFICULTY_MOVE);
-				maniaxSelect[0] = separateSubmenu[0] == 2 ? maniaxSelect[0]+1 : 0;
-
-				if ( maniaxSelect[0] >= 11 )
+				int next = nextSubmenuPosition(separateSubmenu[0], 1);
+				if ( next <= 2 )
 				{
-					if ( isManiaxChartAvailableHere() )
+					separateSubmenu[0] = next;
+					em.playSample(SFX_DIFFICULTY_MOVE);
+					maniaxSelect[0] = separateSubmenu[0] == 2 ? maniaxSelect[0]+1 : 0;
+
+					if ( maniaxSelect[0] >= 11 )
 					{
-						separateSubmenu[0] = 1;
-						submenuDone[0] = true;
-						gs.player[0].stagesPlayed[gs.currentStage] = gs.player[1].stagesPlayed[gs.currentStage] = songlist[songwheelIndex].songID;
-						gs.player[0].stagesLevels[gs.currentStage] = SINGLE_ANOTHER;
-						if ( submenuDone[0] && submenuDone[1] )
+						if ( isManiaxChartAvailableHere() )
 						{
-							skippingSubmenu = true;
+							separateSubmenu[0] = 1;
+							submenuDone[0] = true;
+							gs.player[0].stagesPlayed[gs.currentStage] = gs.player[1].stagesPlayed[gs.currentStage] = songlist[songwheelIndex].songID;
+							gs.player[0].stagesLevels[gs.currentStage] = SINGLE_ANOTHER;
+							if ( submenuDone[0] && submenuDone[1] )
+							{
+								skippingSubmenu = true;
+							}
+							em.playSample(SFX_MENU_PICK);
+							em.playSample(GUY_MANIAX);
 						}
-						em.playSample(SFX_MENU_PICK);
-						em.playSample(GUY_MANIAX);
-					}
-					else
-					{
-						maniaxSelect[0] = 0;
-						em.playSample(SFX_MENU_STUCK);
+						else
+						{
+							maniaxSelect[0] = 0;
+							em.playSample(SFX_MENU_STUCK);
+						}
 					}
 				}
 			}
 
 			if ( im.getKeyState(MENU_LEFT_2P) == JUST_DOWN && !submenuDone[1] )
 			{
-				separateSubmenu[1] = separateSubmenu[1] == 0 ? 0 : separateSubmenu[1] - 1;
-				em.playSample(SFX_DIFFICULTY_MOVE);
-				maniaxSelect[1] = 0;
+				int next = nextSubmenuPosition(separateSubmenu[1], -1);
+				if ( next < 0 || (next == 0 && submenuMildLocked) )
+					em.playSample(SFX_MENU_STUCK);
+				else
+					{ separateSubmenu[1] = next; em.playSample(SFX_DIFFICULTY_MOVE); maniaxSelect[1] = 0; }
 			}
 			else if ( im.getKeyState(MENU_RIGHT_2P) == JUST_DOWN && !submenuDone[1] )
 			{
-				separateSubmenu[1] = separateSubmenu[1] >= 2 ? separateSubmenu[1] : separateSubmenu[1] + 1;
-				em.playSample(SFX_DIFFICULTY_MOVE);
-				maniaxSelect[1] = separateSubmenu[1] == 2 ? maniaxSelect[1]+1 : 0;
-
-				if ( maniaxSelect[1] >= 11 )
+				int next = nextSubmenuPosition(separateSubmenu[1], 1);
+				if ( next <= 2 )
 				{
-					if ( isManiaxChartAvailableHere() )
+					separateSubmenu[1] = next;
+					em.playSample(SFX_DIFFICULTY_MOVE);
+					maniaxSelect[1] = separateSubmenu[1] == 2 ? maniaxSelect[1]+1 : 0;
+
+					if ( maniaxSelect[1] >= 11 )
 					{
-						separateSubmenu[1] = 1;
-						submenuDone[1] = true;
-						gs.player[0].stagesPlayed[gs.currentStage] = gs.player[1].stagesPlayed[gs.currentStage] = songlist[songwheelIndex].songID;
-						gs.player[1].stagesLevels[gs.currentStage] = SINGLE_ANOTHER;
-						if ( submenuDone[0] && submenuDone[1] )
+						if ( isManiaxChartAvailableHere() )
 						{
-							skippingSubmenu = true;
+							separateSubmenu[1] = 1;
+							submenuDone[1] = true;
+							gs.player[0].stagesPlayed[gs.currentStage] = gs.player[1].stagesPlayed[gs.currentStage] = songlist[songwheelIndex].songID;
+							gs.player[1].stagesLevels[gs.currentStage] = SINGLE_ANOTHER;
+							if ( submenuDone[0] && submenuDone[1] )
+							{
+								skippingSubmenu = true;
+							}
+							em.announcerQuip(GUY_MANIAX);
+							em.playSample(SFX_MENU_PICK);
 						}
-						em.announcerQuip(GUY_MANIAX);
-						em.playSample(SFX_MENU_PICK);
-					}
-					else
-					{
-						maniaxSelect[1] = 0;
-						em.playSample(SFX_MENU_STUCK);
+						else
+						{
+							maniaxSelect[1] = 0;
+							em.playSample(SFX_MENU_STUCK);
+						}
 					}
 				}
 			}
@@ -773,33 +795,39 @@ void mainSongwheelLoop(UTIME dt)
 		{
 			if ( im.getKeyState(MENU_LEFT_1P) == JUST_DOWN || im.getKeyState(MENU_LEFT_2P) == JUST_DOWN )
 			{
-				currentSubmenu = currentSubmenu == 0 ? 0 : currentSubmenu - 1;
-				em.playSample(SFX_DIFFICULTY_MOVE);
-				maniaxSelect[0] = 0;
+				int next = nextSubmenuPosition(currentSubmenu, -1);
+				if ( next < 0 || (next == 0 && submenuMildLocked) )
+					em.playSample(SFX_MENU_STUCK);
+				else
+					{ currentSubmenu = next; em.playSample(SFX_DIFFICULTY_MOVE); maniaxSelect[0] = 0; }
 			}
 			else if ( im.getKeyState(MENU_RIGHT_1P) == JUST_DOWN || im.getKeyState(MENU_RIGHT_2P) == JUST_DOWN )
 			{
-				currentSubmenu = currentSubmenu >= 2 ? currentSubmenu : currentSubmenu + 1;
-				em.playSample(SFX_DIFFICULTY_MOVE);
-				maniaxSelect[0] = currentSubmenu == 2 ? maniaxSelect[0]+1 : 0;
-
-				if ( maniaxSelect[0] >= 11 )
+				int next = nextSubmenuPosition(currentSubmenu, 1);
+				if ( next <= 2 )
 				{
-					if ( isManiaxChartAvailableHere() )
+					currentSubmenu = next;
+					em.playSample(SFX_DIFFICULTY_MOVE);
+					maniaxSelect[0] = currentSubmenu == 2 ? maniaxSelect[0]+1 : 0;
+
+					if ( maniaxSelect[0] >= 11 )
 					{
-						currentSubmenu = 1;
-						submenuDone[0] = true;
-						skippingSubmenu = true;
-						gs.player[0].stagesPlayed[gs.currentStage] = songlist[songwheelIndex].songID;
-						gs.player[0].stagesLevels[gs.currentStage] = gs.isDoubles ? DOUBLE_ANOTHER : SINGLE_ANOTHER;
-						maniaxSelect[0] = maniaxSelect[1] = 0;
-						em.announcerQuip(GUY_MANIAX);
-						em.playSample(SFX_MENU_PICK);
-					}
-					else
-					{
-						maniaxSelect[0] = 0;
-						em.playSample(SFX_MENU_STUCK);
+						if ( isManiaxChartAvailableHere() )
+						{
+							currentSubmenu = 1;
+							submenuDone[0] = true;
+							skippingSubmenu = true;
+							gs.player[0].stagesPlayed[gs.currentStage] = songlist[songwheelIndex].songID;
+							gs.player[0].stagesLevels[gs.currentStage] = gs.isDoubles ? DOUBLE_ANOTHER : SINGLE_ANOTHER;
+							maniaxSelect[0] = maniaxSelect[1] = 0;
+							em.announcerQuip(GUY_MANIAX);
+							em.playSample(SFX_MENU_PICK);
+						}
+						else
+						{
+							maniaxSelect[0] = 0;
+							em.playSample(SFX_MENU_STUCK);
+						}
 					}
 				}
 			}
@@ -917,35 +945,22 @@ void mainSongwheelLoop(UTIME dt)
 		}
 		else if ( im.getKeyState(MENU_START_1P) == JUST_DOWN || im.getKeyState(MENU_START_2P) == JUST_DOWN )
 		{
-			isInSubmenu = true;
-			submenuDone[0] = submenuDone[1] = !gs.isVersus;
-			em.playSample(SFX_SONGWHEEL_PICK);
-			isRandomSelect = false;
-
-			// check for songs with a locked chart and skip the difficulty selection submenu
-			if ( gs.isDoubles && songlist[songwheelIndex].wildDouble == 0 )
+			submenuMildLocked = gs.isDoubles ? songlist[songwheelIndex].mildDouble == 0 : songlist[songwheelIndex].mildSingle == 0;
+			submenuWildLocked = gs.isDoubles ? songlist[songwheelIndex].wildDouble == 0 : songlist[songwheelIndex].wildSingle == 0;
+			if ( submenuMildLocked && submenuWildLocked )
 			{
-				isInSubmenu = skippingSubmenu = true;
-				gs.player[0].stagesPlayed[gs.currentStage] = gs.player[1].stagesPlayed[gs.currentStage] = songlist[songwheelIndex].songID;
-				gs.player[0].stagesLevels[gs.currentStage] = gs.player[1].stagesLevels[gs.currentStage] = DOUBLE_MILD;
+				em.playSample(SFX_MENU_STUCK);
 			}
-			if ( gs.isDoubles && songlist[songwheelIndex].mildDouble == 0 )
+			else
 			{
-				isInSubmenu = skippingSubmenu = true;
-				gs.player[0].stagesPlayed[gs.currentStage] = gs.player[1].stagesPlayed[gs.currentStage] = songlist[songwheelIndex].songID;
-				gs.player[0].stagesLevels[gs.currentStage] = gs.player[1].stagesLevels[gs.currentStage] = DOUBLE_WILD;
-			}
-			if ( !gs.isDoubles && songlist[songwheelIndex].wildSingle == 0 )
-			{
-				isInSubmenu = skippingSubmenu = true;
-				gs.player[0].stagesPlayed[gs.currentStage] = gs.player[1].stagesPlayed[gs.currentStage] = songlist[songwheelIndex].songID;
-				gs.player[0].stagesLevels[gs.currentStage] = gs.player[1].stagesLevels[gs.currentStage] = SINGLE_MILD;
-			}
-			if ( !gs.isDoubles && songlist[songwheelIndex].mildSingle == 0 )
-			{
-				isInSubmenu = skippingSubmenu = true;
-				gs.player[0].stagesPlayed[gs.currentStage] = gs.player[1].stagesPlayed[gs.currentStage] = songlist[songwheelIndex].songID;
-				gs.player[0].stagesLevels[gs.currentStage] = gs.player[1].stagesLevels[gs.currentStage] = SINGLE_WILD;
+				isInSubmenu = true;
+				submenuDone[0] = submenuDone[1] = !gs.isVersus;
+				em.playSample(SFX_SONGWHEEL_PICK);
+				isRandomSelect = false;
+				if ( submenuMildLocked )
+					currentSubmenu = separateSubmenu[0] = separateSubmenu[1] = 1;
+				else if ( submenuWildLocked )
+					currentSubmenu = separateSubmenu[0] = separateSubmenu[1] = 0;
 			}
 		}
 
