@@ -1599,7 +1599,7 @@ void renderLoginStats(int x, int side)
 {
 	int mildIndex = gs.isDoubles ? getChartIndexFromType(DOUBLE_MILD) : getChartIndexFromType(SINGLE_MILD);
 	int wildIndex = gs.isDoubles ? getChartIndexFromType(DOUBLE_WILD) : getChartIndexFromType(SINGLE_WILD);
-	char buffer[10] = "";
+	char buffer[32] = "";
 
 	if ( !sm.player[side].isLoggedIn )
 	{
@@ -1635,9 +1635,18 @@ void renderLoginStats(int x, int side)
 	}
 
 	// render MILD
-	_itoa_s(sm.player[side].allTime[allTimeIndex][mildIndex].getScore(), buffer, 9, 10);
-	addLeadingZeros(buffer, 7);
-	renderBoldString((unsigned char *)buffer, x+5, 440, 320, false, 1);
+	if ( sm.player[side].scoreDisplay == 1 )
+	{
+		SONG_RECORD& rec = sm.player[side].allTime[allTimeIndex][mildIndex];
+		int pct = rec.maxExScore > 0 ? (int)((long long)rec.exScore * 10000 / rec.maxExScore) : 0;
+		sprintf_s(buffer, 32, "%04d/%02d.%02d%%", rec.exScore, pct / 100, pct % 100);
+	}
+	else
+	{
+		_itoa_s(sm.player[side].allTime[allTimeIndex][mildIndex].getScore(), buffer, 9, 10);
+		addLeadingZeros(buffer, 7);
+	}
+	renderBoldString(buffer, x+5, 440, 320, false, 1);
 	//masked_blit(m_miniStatus, rm.m_backbuf, 0, sm.player[side].allTime[allTimeIndex][mildIndex].status * 32, x+120, 433, 40, 32);
 	if ( sm.player[side].allTime[allTimeIndex][mildIndex].status >= STATUS_CLEARED )
 	{
@@ -1646,9 +1655,18 @@ void renderLoginStats(int x, int side)
 	masked_blit(m_statusStars, rm.m_backbuf, whichFrame * 40, mildColor * 32, x+105+20, 433, 40, 32);
 
 	// render WILD
-	_itoa_s(sm.player[side].allTime[allTimeIndex][wildIndex].getScore(), buffer, 9, 10);
-	addLeadingZeros(buffer, 7);
-	renderBoldString((unsigned char *)buffer, x+165, 440, 320, false, 2);
+	if ( sm.player[side].scoreDisplay == 1 )
+	{
+		SONG_RECORD& rec = sm.player[side].allTime[allTimeIndex][wildIndex];
+		int pct = rec.maxExScore > 0 ? (int)((long long)rec.exScore * 10000 / rec.maxExScore) : 0;
+		sprintf_s(buffer, 32, "%04d/%02d.%02d%%", rec.exScore, pct / 100, pct % 100);
+	}
+	else
+	{
+		_itoa_s(sm.player[side].allTime[allTimeIndex][wildIndex].getScore(), buffer, 9, 10);
+		addLeadingZeros(buffer, 7);
+	}
+	renderBoldString(buffer, x+165, 440, 320, false, 2);
 	//masked_blit(m_miniStatus, rm.m_backbuf, 0, sm.player[side].allTime[allTimeIndex][wildIndex].status * 32, x+280, 433, 40, 32);
 	if ( sm.player[side].allTime[allTimeIndex][wildIndex].status >= STATUS_CLEARED )
 	{
