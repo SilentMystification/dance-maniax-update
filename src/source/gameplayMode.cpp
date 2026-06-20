@@ -81,7 +81,7 @@ int rememberedCurrentStage = 1;
 
 // input
 bool autoplay = false;
-bool useAssistClap = false;
+bool useDebugAssistClap = false;
 bool debugCheats = false;
 extern InputManager im;
 int retireTimer = 0; // for ending the game early when there is a lack of input
@@ -176,7 +176,7 @@ void firstGameplayLoop()
 	if ( isTestingChart )
 	{
 		autoplay = true;
-		useAssistClap = true;
+		useDebugAssistClap = true;
 	}
 
 	if ( isTestingChart )
@@ -549,7 +549,7 @@ void mainGameplayLoop(UTIME dt)
 		}
 		if ( k == KEY_F11 )
 		{
-			useAssistClap = !useAssistClap;
+			useDebugAssistClap = !useDebugAssistClap;
 		}
 		if ( k == KEY_V )
 		{
@@ -631,7 +631,7 @@ void doChartLogic(UTIME dt, int p)
 				gs.player[p].laneFlareColors[gs.player[p].currentChart[n].columns[0]] = 0;
 			}
 		}
-		if ( useAssistClap && assistClap && ISNOTE(gs.player[p].currentChart[n].type) )
+		if ( useDebugAssistClap && assistClap && ISNOTE(gs.player[p].currentChart[n].type) )
 		{
 			playSFXOnce(assistClap); 
 		}
@@ -837,6 +837,10 @@ void doChartLogic(UTIME dt, int p)
 					gs.player[p].lastJudgementDiff = diff;
 					gs.player[p].lastJudgementEarly = gs.player[p].currentChart[closestNote].timing > gs.player[p].timeElapsed;
 					scoreNote(p,judgement, col1);
+					if ( sm.player[p].hitSound && assistClap && (judgement == MARVELLOUS || judgement == PERFECT || judgement == GREAT || judgement == GOOD) )
+					{
+						playSFXOnce(assistClap);
+					}
 					if ( judgement == MARVELLOUS || judgement == PERFECT || judgement == GREAT )
 					{
 						gs.player[p].laneFlareTimers[col1] = HIT_FLASH_DISPLAY_TIME;

@@ -8,6 +8,7 @@
 #include "../headers/lightsManager.h"
 #include "../headers/scoreManager.h"
 #include "../headers/songwheelMode.h"
+#include "../headers/gameplayRendering.h"
 
 extern RenderingManager rm;
 extern GameStateManager gs;
@@ -397,8 +398,8 @@ void renderResultAdvanced(int which, int player)
 {
 	SONG_RECORD& rec = sm.player[player].currentSet[which];
 
-	// album art — left side, vertically centered on screen
-	const int ART_X  = 20;
+	// album art — horizontally centered between left edge and text block, vertically centered on screen
+	const int ART_X  = 52;                         // center of [0, LABEL_X=232] minus half art width
 	const int ART_Y  = (SCREEN_HEIGHT - 128) / 2;  // = 176, center at 240
 	const int ART_CY = ART_Y + 64;                 // = 240
 
@@ -464,11 +465,13 @@ void renderResultAdvanced(int which, int player)
 	int marvColor = (totalGameTime / 50) % 3;
 	masked_blit(m_marvLabel[marvColor], rm.m_backbuf, 0, 0, LABEL_X - 16, Y_MARV + LABEL_BMP_Y, 192, 32);
 	renderScoreNumber(marvCount,  COUNT_X, Y_MARV  + SCORE_Y_OFF, marvCount  >= 1000 ? 4 : 3);
-	renderOutlinedColoredString("EXP:", SEC_LABEL_X, Y_MARV, TEXT_COLOR_GOLD);
+	double exPct = rec.maxExScore > 0 ? (double)rec.exScore / rec.maxExScore * 100.0 : 0.0;
+	static const int exMarvColors[3] = { TEXT_COLOR_RED, TEXT_COLOR_GREEN, TEXT_COLOR_BLUE };
+	int labelColor = exPct >= 90.0 ? exMarvColors[(totalGameTime / 50) % 3] : TEXT_COLOR_GOLD;
+	renderOutlinedColoredString("EXP:", SEC_LABEL_X, Y_MARV, labelColor);
 	sprintf_s(buf, 32, "%d", rec.exScore);
 	renderOutlinedColoredString(buf, SEC_VALUE_X, Y_MARV, TEXT_COLOR_GOLD);
-	renderOutlinedColoredString("MAX:", SEC_LABEL_X, Y_MARV + LINE2, TEXT_COLOR_GOLD);
-	double exPct = rec.maxExScore > 0 ? (double)rec.exScore / rec.maxExScore * 100.0 : 0.0;
+	renderOutlinedColoredString("MAX:", SEC_LABEL_X, Y_MARV + LINE2, labelColor);
 	sprintf_s(buf, 32, "%.2f%%", exPct);
 	renderOutlinedColoredString(buf, SEC_VALUE_X, Y_MARV + LINE2, TEXT_COLOR_GOLD);
 
@@ -514,6 +517,25 @@ void renderResultAdvanced(int which, int player)
 	int urColor = rec.unstableRate < 200.0 ? TEXT_COLOR_GREEN : TEXT_COLOR_WHITE;
 	renderOutlinedColoredString(buf, SEC_VALUE_X, Y_MISS + LINE2, urColor);
 
-	// score — original renderResult position
+	// grade — horizontally centered with album art, vertically centered with score row
+	const int SCORE_CY   = 357 + 16;                    // center of the 32px score glyph
+	const int GRADE_X    = ART_X + 64 - 24;             // album center x minus half grade width
+	const int GRADE_Y    = SCORE_CY - 24;               // center of 48px grade glyph
+	if ( sm.player[player].scoreDisplay != 1 )
+	{
+		renderGrade(rec.calculateGrade(), GRADE_X, GRADE_Y);
+	}
+
+	// score + high score diff
 	renderScoreNumber(rec.getScore(), 230, 357, 7);
+	int songIndex  = songID_to_listID(rec.songID);
+	int chartIndex = getChartIndexFromType(rec.chartID);
+	if ( songIndex >= 0 && chartIndex >= 0 )
+	{
+		int highScore = sm.player[player].allTime[songIndex][chartIndex].getScore();
+		int diff      = rec.getScore() - highScore;
+		sprintf_s(buf, 32, "(%+07d)", diff);
+		int diffColor = diff >= 0 ? TEXT_COLOR_GREEN : TEXT_COLOR_GREY;
+		renderOutlinedColoredString(buf, 390, 361, diffColor);
+	}
 }

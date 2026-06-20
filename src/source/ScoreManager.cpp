@@ -93,6 +93,7 @@ bool ScoreManager::loadPlayerFromDisk(char* name, char side)
 	if ( vnum >= 2 )
 	{
 		fread(&p.scoreDisplay, sizeof(int), 1, fp); // graceful EOF on files lacking this field
+		fread(&p.hitSound,     sizeof(int), 1, fp); // graceful EOF on files lacking this field
 	}
 
 	fclose(fp);
@@ -377,6 +378,7 @@ void ScoreManager::savePlayerToDisk(PLAYER_DATA &p)
 	int savedPosition = (p.playPosition == 0) ? 0 : -1;
 	fwrite(&savedPosition,            sizeof(int),  1, fp);
 	fwrite(&p.scoreDisplay,           sizeof(int),  1, fp);
+	fwrite(&p.hitSound,               sizeof(int),  1, fp);
 
 	safeCloseFile(fp, prefsFilename);
 

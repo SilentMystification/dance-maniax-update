@@ -76,8 +76,11 @@ void applyProfileToCredit(int p)
 static const char* s_scoreModeOptions[]       = { "Classic", "Expert" };
 static const int   s_scoreModeValues[]        = { 0, 1 };
 
-static const char* s_scoreDisplayOptions[]    = { "Standard", "Expert" };
+static const char* s_scoreDisplayOptions[]    = { "Standard", "EX-SCORE" };
 static const int   s_scoreDisplayValues[]     = { 0, 1 };
+
+static const char* s_hitSoundOptions[]     = { "Off", "On" };
+static const int   s_hitSoundValues[]      = { 0, 1 };
 
 static const char* s_scrollModeOptions[]   = { "Classic", "Fixed" };
 static const int   s_scrollModeValues[]    = { 0, 1 };
@@ -359,12 +362,23 @@ void SettingsMenu::buildItemList(int player)
 		m_items[m_itemCount].flagToSetOnChange= NULL;
 		m_itemCount++;
 
-		// 11. Visual Offset
+		// 11. Hit Sound
+		m_items[m_itemCount].name             = "Hit Sound";
+		m_items[m_itemCount].type             = SETTINGS_LIST;
+		m_items[m_itemCount].dependency       = DEP_NONE;
+		m_items[m_itemCount].options          = s_hitSoundOptions;
+		m_items[m_itemCount].optionValues     = s_hitSoundValues;
+		m_items[m_itemCount].optionCount      = 2;
+		m_items[m_itemCount].value            = &p.hitSound;
+		m_items[m_itemCount].flagToSetOnChange= NULL;
+		m_itemCount++;
+
+		// 12. Visual Offset
 		m_items[m_itemCount].name             = "Visual Offset (ms)";
 		m_items[m_itemCount].type             = SETTINGS_RANGE;
 		m_items[m_itemCount].dependency       = DEP_NONE;
-		m_items[m_itemCount].minVal           = -100;
-		m_items[m_itemCount].maxVal           = 100;
+		m_items[m_itemCount].minVal           = -256;
+		m_items[m_itemCount].maxVal           = 256;
 		m_items[m_itemCount].step             = 1;
 		m_items[m_itemCount].value            = &p.visualOffset;
 		m_items[m_itemCount].flagToSetOnChange= NULL;
@@ -382,7 +396,7 @@ void SettingsMenu::buildItemList(int player)
 		m_itemCount++;
 
 		// 13. Score Mode
-		m_items[m_itemCount].name             = "Score Mode";
+		m_items[m_itemCount].name             = "Results Mode";
 		m_items[m_itemCount].type             = SETTINGS_LIST;
 		m_items[m_itemCount].dependency       = DEP_NONE;
 		m_items[m_itemCount].options          = s_scoreModeOptions;
@@ -399,6 +413,7 @@ void SettingsMenu::buildItemList(int player)
 		m_items[m_itemCount].options          = s_scoreDisplayOptions;
 		m_items[m_itemCount].optionValues     = s_scoreDisplayValues;
 		m_items[m_itemCount].optionCount      = 2;
+		m_items[m_itemCount].optionSlotW      = 110;
 		m_items[m_itemCount].value            = &p.scoreDisplay;
 		m_items[m_itemCount].flagToSetOnChange= NULL;
 		m_itemCount++;
@@ -413,6 +428,7 @@ void SettingsMenu::buildItemList(int player)
 		m_items[m_itemCount].value            = &p.scrollMode;
 		m_items[m_itemCount].flagToSetOnChange= NULL;
 		m_itemCount++;
+
 	}
 }
 
@@ -808,7 +824,7 @@ void SettingsMenu::handleInput(UTIME dt)
 		{
 			int holdAge  = MAX(0, m_holdTime - HOLD_INITIAL_DELAY);
 			int rampT    = MIN(holdAge, HOLD_RAMP_DURATION);
-			int volume   = 100 - rampT * 50 / HOLD_RAMP_DURATION; // 100 on first tap, 50 at full speed
+			int volume   = 255 - rampT * 127 / HOLD_RAMP_DURATION; // 255 on first tap, 128 at full speed
 			em.playSample(SFX_DIFFICULTY_MOVE, volume);
 			if ( item.flagToSetOnChange != NULL )
 			{

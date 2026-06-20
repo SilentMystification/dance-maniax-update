@@ -189,6 +189,7 @@ struct PLAYER_DATA
 	int playPosition;           // -1=Unset(login side), 0=Center, 1=Left, 2=Right
 	int useExpertMenu;          // 0=Simple (default), 1=Expert/Advanced
 	int scoreDisplay;           // 0=Standard, 1=Expert
+	int hitSound;               // 0=Off, 1=On
 	int lastSinglesSongID;      // songID of last manually selected singles song; 0 if none
 	int lastDoublesSongID;      // songID of last manually selected doubles song; 0 if none
 
@@ -247,6 +248,7 @@ struct PLAYER_DATA
 		playPosition           = -1;
 		useExpertMenu          = 0;
 		scoreDisplay           = 0;   // Standard
+		hitSound               = 0;   // Off
 		lastSinglesSongID      = 0;
 		lastDoublesSongID      = 0;
 	}
