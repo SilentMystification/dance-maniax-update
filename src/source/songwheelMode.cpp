@@ -668,7 +668,7 @@ void mainSongwheelLoop(UTIME dt)
 	if ( !(isInSettings[0] || isInSettings[1]) )
 	{
 
-	if ( gs.isFreestyleMode && im.getKeyState(MENU_START_2P) == JUST_DOWN )
+	if ( gs.isFreestyleMode && !isInSubmenu && im.getKeyState(MENU_START_2P) == JUST_DOWN )
 	{
 		gs.isDoubles = !gs.isDoubles;
 		int p = (gs.rightPlayerPresent && !gs.leftPlayerPresent) ? 1 : 0;
@@ -719,7 +719,7 @@ void mainSongwheelLoop(UTIME dt)
 			}
 			else if ( im.getKeyState(MENU_RIGHT_1P) == JUST_DOWN && !submenuDone[0] )
 			{
-				int next = nextSubmenuPosition(separateSubmenu[0], 1);
+				int next = separateSubmenu[0] >= 2 ? 2 : nextSubmenuPosition(separateSubmenu[0], 1);
 				if ( next <= 2 )
 				{
 					separateSubmenu[0] = next;
@@ -760,7 +760,7 @@ void mainSongwheelLoop(UTIME dt)
 			}
 			else if ( im.getKeyState(MENU_RIGHT_2P) == JUST_DOWN && !submenuDone[1] )
 			{
-				int next = nextSubmenuPosition(separateSubmenu[1], 1);
+				int next = separateSubmenu[1] >= 2 ? 2 : nextSubmenuPosition(separateSubmenu[1], 1);
 				if ( next <= 2 )
 				{
 					separateSubmenu[1] = next;
@@ -803,7 +803,7 @@ void mainSongwheelLoop(UTIME dt)
 			}
 			else if ( im.getKeyState(MENU_RIGHT_1P) == JUST_DOWN || im.getKeyState(MENU_RIGHT_2P) == JUST_DOWN )
 			{
-				int next = nextSubmenuPosition(currentSubmenu, 1);
+				int next = currentSubmenu >= 2 ? 2 : nextSubmenuPosition(currentSubmenu, 1);
 				if ( next <= 2 )
 				{
 					currentSubmenu = next;
