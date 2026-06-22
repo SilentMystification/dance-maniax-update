@@ -51,21 +51,9 @@ public:
 	// precondition: dt is in milliseconds, the video script should already be loaded
 	// postcondition: advances the movie script
 
-	void reset()
-	{
-		currentTime = currentStep = 0;
-		isStopped = true;
-	}
-
-	void play()
-	{
-		isStopped = false;
-	}
-
-	void stop()
-	{
-		isStopped = true;
-	}
+	void reset();
+	void play() { isStopped = false; }
+	void stop();
 
 	void renderToSurface(BITMAP* surface, int x, int y);
 	void renderToSurfaceStretched(BITMAP* surface, int x, int y, int width, int height);
@@ -82,24 +70,18 @@ private:
 	int currentStep;   // which script step we're on
 	bool isStopped;    // pause movie playback
 
-	bool haxLowerFramerate; // option for less stressful video loading
-	bool haxNoVideos;       // option for computers which just cannot handle it
-	BITMAP* m_noVideo;		// used with haxNoVideos
+	bool haxNoVideos; // option for computers which just cannot handle it
 
-	BITMAP* frameData; // the pixel contents of the current frame
-	APEG_STREAM* cmov; // the current file on disk being streamed
-	void* videoBuffer; // holds the ENTIRE video in memory while it is loaded
+	BITMAP* frameData;  // the pixel contents of the current frame
+	APEG_STREAM* cmov;  // the current stream being played
+	void* videoBuffer;  // holds the current video file in memory
+
+	APEG_STREAM* nextCmov;  // preloaded next stream (first frame already decoded)
+	void* nextVideoBuffer;  // holds the next video file in memory
+	int nextPreloadedStep;  // which script step is preloaded (-1 if none)
 
 	void loadVideoAtCurrentStep();
-	// precondition: loadScript() loaded a video script, currentStep is within the number of steps
-	// postcondition: replaces cmov or stops the movie when there is an error
-
-	void loadVideo(char* filename);
-	// NOTE: helper function for loadVideoAtCurrentStep()
-	// postcondition: replaces cmov or stops the movie when there is an error
-
-	void unloadVideo();
-	// postcondition: unloads cmov and is safe to call at any time, even if cmov is NULL
+	void preloadNextStep();
 };
 
 #endif // end include guard

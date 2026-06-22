@@ -1,25 +1,91 @@
 // videoManager.cpp implements a class which implements the background videos
 // source file created by Allen Seitz 6/27/2012
 
-#include <string>
 #include "../headers/videoManager.h"
 
-// include ffmpeg
-//#include <libavcodec/avcodec.h>
-//#include <libavformat/avformat.h>
-
-// include apeg
 #include <apeg.h>
+
+static void resolveStepFilename(const struct MOVIE_SEQ_STEP* script, int step, char* out, size_t outSize)
+{
+	strcpy_s(out, outSize, "DATA/video/");
+	const char* name = (script[step].filename[0] == '*') ? script[step-1].filename : script[step].filename;
+	strcat_s(out, outSize, name);
+	strcat_s(out, outSize, ".ogg");
+}
+
+static APEG_STREAM* openVideoStream(const char* filename, void** bufOut)
+{
+	*bufOut = NULL;
+	FILE* fp = NULL;
+	if ( fopen_s(&fp, filename, "rb") != 0 )
+	{
+		al_trace("Movie %s is missing.\r\n", filename);
+		return NULL;
+	}
+	fseek(fp, 0, SEEK_END);
+	long fsize = ftell(fp);
+	fseek(fp, 0, SEEK_SET);
+	void* buf = malloc(fsize);
+	fread(buf, fsize, 1, fp);
+	fclose(fp);
+
+	if ( ((char*)buf)[0] != 'O' || ((char*)buf)[1] != 'g' || ((char*)buf)[2] != 'g' || ((char*)buf)[3] != 'S' )
+	{
+		al_trace("Video stream did not seem to contain Ogg data.\r\n");
+		free(buf);
+		return NULL;
+	}
+	APEG_STREAM* stream = apeg_open_memory_stream(buf, fsize);
+	if ( stream == NULL )
+	{
+		free(buf);
+		return NULL;
+	}
+	*bufOut = buf;
+	return stream;
+}
+
+static void closeVideoStream(APEG_STREAM*& stream, void*& buf)
+{
+	if ( stream != NULL )
+	{
+		apeg_reset_stream(stream);
+		apeg_close_stream(stream);
+		stream = NULL;
+	}
+	if ( buf != NULL )
+	{
+		free(buf);
+		buf = NULL;
+	}
+}
+
+static void advanceToFirstFrame(APEG_STREAM* stream)
+{
+	for ( int i = 0; i < 8; i++ )
+	{
+		apeg_advance_stream(stream, true);
+		if ( stream->frame_updated > 0 && stream->bitmap != NULL )
+			break;
+	}
+}
+
+void VideoManager::stop()
+{
+	closeVideoStream(nextCmov, nextVideoBuffer);
+	nextPreloadedStep = -1;
+	isStopped = true;
+}
+
+void VideoManager::reset()
+{
+	stop();
+	currentTime = currentStep = 0;
+}
 
 VideoManager::VideoManager()
 {
-	haxLowerFramerate = haxNoVideos = false;
-	m_noVideo = loadImage("DATA/gameplay/no_video.png");
-
-	if ( fileExists("novideo") )
-	{
-		haxNoVideos = true;
-	}
+	haxNoVideos = fileExists("novideo");
 }
 
 void VideoManager::initialize()
@@ -29,7 +95,7 @@ void VideoManager::initialize()
 
 	frameData = create_bitmap_ex(32, 320, 192);
 	clear_to_color(frameData, 0);
-	videoBuffer = NULL;
+	cmov = NULL; videoBuffer = NULL;
 }
 
 void VideoManager::update(UTIME dt)
@@ -134,78 +200,52 @@ void VideoManager::loadScript(const char* filename)
 
 void VideoManager::loadVideoAtCurrentStep()
 {
-	char filename[256] = "DATA/video/";
-	if ( script[currentStep].filename[0] == '*' )
+	if ( nextCmov != NULL && nextPreloadedStep == currentStep )
 	{
-		strcat_s(filename, 256, script[currentStep-1].filename); // check for videos named '*'. I think the original game used this to denote "play that video again"
+		// swap preloaded stream in — no file I/O, first frame already decoded
+		closeVideoStream(cmov, videoBuffer);
+		cmov = nextCmov;         videoBuffer = nextVideoBuffer;
+		nextCmov = NULL;         nextVideoBuffer = NULL;   nextPreloadedStep = -1;
 	}
 	else
 	{
-		strcat_s(filename, 256, script[currentStep].filename);
+		char filename[256];
+		resolveStepFilename(script, currentStep, filename, sizeof(filename));
+		closeVideoStream(cmov, videoBuffer);
+		cmov = openVideoStream(filename, &videoBuffer);
+
+		if ( cmov == NULL )
+		{
+			clear_to_color(frameData, makecol(255, 255, 255));
+			textprintf_centre(frameData, font, 160, 90, makecol(0, 0, 0), "%s", script[currentStep].filename);
+			return;
+		}
+		advanceToFirstFrame(cmov);
 	}
-	strcat_s(filename, 256, ".ogg");
 
-	// default case: show a placeholder texture
-	unloadVideo();
-	clear_to_color(frameData, makecol(255,255,255));
-	textprintf_centre(frameData, font, 160, 90, makecol(0,0,0), "%s", script[currentStep].filename);
+	if ( cmov->frame_updated > 0 && cmov->bitmap != NULL )
+		blit(cmov->bitmap, frameData, 0, 0, 0, 0, 320, 192);
 
-	loadVideo(filename);
-	if ( cmov == NULL )
-	{
-		al_trace("Movie %s did not open for whatever reason.\r\n", filename);
+	preloadNextStep();
+}
+
+void VideoManager::preloadNextStep()
+{
+	closeVideoStream(nextCmov, nextVideoBuffer);
+	nextPreloadedStep = -1;
+
+	// preload the next sequential step, or step 1 if the script is about to loop
+	int step = (script[currentStep + 1].timing == -1) ? 1 : currentStep + 1;
+	if ( step >= 100 || script[step].timing == -1 )
 		return;
-	}
 
-	if ( apeg_advance_stream(cmov, true) != APEG_OK)
-	{
-		al_trace("Video problem! Breakpoint!\r\n"); // doesn't really matter if it fails
-	}
-	blit(cmov->bitmap, frameData, 0, 0, 0, 0, 320, 192);
-}
+	char filename[256];
+	resolveStepFilename(script, step, filename, sizeof(filename));
+	nextCmov = openVideoStream(filename, &nextVideoBuffer);
+	if ( nextCmov == NULL )
+		return;
 
-void VideoManager::loadVideo(char* filename)
-{
-	FILE* fp = NULL;
-	if ( fopen_s(&fp, filename, "rb") != 0 )
-	{
-		al_trace("Movie %s is missing.\r\n", filename);
-		return; // do NOT summon error mode for this because the application might in debugging/lite mode
-	}
-
-	// get the length of the video
-	fseek(fp, 0, SEEK_END);
-    long fsize = ftell(fp);
-	fseek(fp, 0, SEEK_SET);
-	
-	// load the entire video into an unreasonably large memory buffer!
-	videoBuffer = malloc(fsize);
-	fread(videoBuffer, fsize, 1, fp);
-	fclose(fp);
-
-	// sanity check the buffer contents or else APEG may hang
-	if ( ((char*)videoBuffer)[0] == 'O' && ((char*)videoBuffer)[1] == 'g' && ((char*)videoBuffer)[2] == 'g' && ((char*)videoBuffer)[3] == 'S' )
-	{
-		cmov = apeg_open_memory_stream(videoBuffer, fsize);
-	}
-	else
-	{
-		al_trace("Video stream did not seem to contain Ogg data.\r\n");
-		unloadVideo();
-	}
-}
-
-void VideoManager::unloadVideo()
-{
-	if ( cmov != NULL )
-	{
-		apeg_reset_stream(cmov);
-		apeg_close_stream(cmov);
-	}
-	if ( videoBuffer != NULL )
-	{
-		free(videoBuffer);
-	}
-	videoBuffer = NULL;
-	cmov = NULL;
+	advanceToFirstFrame(nextCmov);
+	nextPreloadedStep = step;
+	al_trace("Preloaded video step %d (%s).\r\n", step, script[step].filename);
 }
