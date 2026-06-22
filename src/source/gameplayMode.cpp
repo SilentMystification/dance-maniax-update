@@ -1410,32 +1410,47 @@ static void shuffleInts(int* arr, int count)
 	}
 }
 
+static bool isPermForbidden(const int* perm, bool isDoubles, bool isCenter, bool isRightSide)
+{
+	static const int identity[8]      = { 0, 1, 2, 3, 4, 5, 6, 7 };
+	static const int mirrorLeft[8]    = { 3, 2, 1, 0, 4, 5, 6, 7 };
+	static const int invertLeft[8]    = { 1, 0, 3, 2, 4, 5, 6, 7 };
+	static const int mirrorCenter[8]  = { 0, 1, 5, 4, 3, 2, 6, 7 };
+	static const int invertCenter[8]  = { 0, 1, 3, 2, 5, 4, 6, 7 };
+	static const int mirrorRight[8]   = { 0, 1, 2, 3, 7, 6, 5, 4 };
+	static const int invertRight[8]   = { 0, 1, 2, 3, 5, 4, 7, 6 };
+	static const int mirrorDoubles[8] = { 3, 2, 1, 0, 7, 6, 5, 4 };
+	static const int invertDoubles[8] = { 1, 0, 3, 2, 5, 4, 7, 6 };
+
+	auto eq = [&](const int* p) { for (int i = 0; i < 8; i++) if (perm[i] != p[i]) return false; return true; };
+
+	if ( eq(identity)   ) return true;
+	if ( isDoubles      ) return eq(mirrorDoubles)  || eq(invertDoubles);
+	if ( isCenter       ) return eq(mirrorCenter)   || eq(invertCenter);
+	if ( isRightSide    ) return eq(mirrorRight)    || eq(invertRight);
+	return eq(mirrorLeft) || eq(invertLeft);
+}
+
 static void applyColumnRandom(std::vector<struct ARROW>* chart, std::vector<struct FREEZE>* holds, bool isDoubles, bool isDRandom, bool isCenter, bool isRightSide)
 {
-	int perm[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
-
-	if ( isDoubles )
+	int perm[8];
+	do
 	{
-		if ( isDRandom )
+		for ( int i = 0; i < 8; i++ ) perm[i] = i;
+		if ( isDoubles )
 		{
-			shuffleInts(perm + 2, 4); // scramble center 4 first so they can cross sides
-			shuffleInts(perm, 4);     // then scramble each half independently
-			shuffleInts(perm + 4, 4);
+			if ( isDRandom )
+			{
+				shuffleInts(perm + 2, 4); // scramble center 4 first so they can cross sides
+				shuffleInts(perm, 4);     // then scramble each half independently
+				shuffleInts(perm + 4, 4);
+			}
+			else { shuffleInts(perm, 4); shuffleInts(perm + 4, 4); }
 		}
-		else { shuffleInts(perm, 4); shuffleInts(perm + 4, 4); }
-	}
-	else if ( isCenter )
-	{
-		shuffleInts(perm + 2, 4); // active columns are 2-5
-	}
-	else if ( isRightSide )
-	{
-		shuffleInts(perm + 4, 4); // active columns are 4-7
-	}
-	else
-	{
-		shuffleInts(perm, 4); // active columns are 0-3
-	}
+		else if ( isCenter  ) { shuffleInts(perm + 2, 4); }
+		else if ( isRightSide ) { shuffleInts(perm + 4, 4); }
+		else                  { shuffleInts(perm, 4); }
+	} while ( isPermForbidden(perm, isDoubles, isCenter, isRightSide) );
 
 	for ( std::vector<struct ARROW>::iterator c = chart->begin(); c != chart->end(); c++ )
 	{
@@ -1459,20 +1474,63 @@ static void applyColumnRandom(std::vector<struct ARROW>* chart, std::vector<stru
 static void applySRandom(std::vector<struct ARROW>* chart, std::vector<struct FREEZE>* holds, bool isDoubles, bool isCenter, bool isRightSide)
 {
 	int poolSize = isDoubles ? 8 : 4;
-	int i = 0;
+	int poolBase = isCenter ? 2 : (isRightSide ? 4 : 0);
+	int N = (int)chart->size();
 
-	while ( i < (int)chart->size() )
+	// pass 1: detect swipe pairs (adjacent same-color notes at 32nd or 24th note intervals)
+	// followerLeader[i*4+s] = flat index of the leader note, or -1
+	std::vector<int> followerLeader(N * 4, -1);
+	std::vector<int> placedCol(N * 4, -1);
+
+	int poolEnd = poolBase + poolSize;
+	float timePerBeat = 400.0f;
+	for ( int i = 0; i < N; i++ )
+	{
+		if ( (*chart)[i].type == BPM_CHANGE )
+		{
+			timePerBeat = (float)BPM_TO_MSEC((*chart)[i].color);
+			continue;
+		}
+		if ( (*chart)[i].type != TAP ) continue;
+
+		float interval32 = timePerBeat / 8.0f;
+		float interval24 = timePerBeat / 6.0f;
+		const float tol = 3.0f;
+
+		for ( int j = i + 1; j < N; j++ )
+		{
+			if ( (*chart)[j].type != TAP ) continue;
+			float dt = (float)((*chart)[j].timing - (*chart)[i].timing);
+			if ( dt > interval24 + tol ) break;
+			if ( fabsf(dt - interval32) > tol && fabsf(dt - interval24) > tol ) continue;
+
+			for ( int si = 0; si < 4; si++ )
+			{
+				int ci = (*chart)[i].columns[si];
+				if ( ci < poolBase || ci >= poolEnd ) continue;
+				for ( int sj = 0; sj < 4; sj++ )
+				{
+					int cj = (*chart)[j].columns[sj];
+					if ( cj < poolBase || cj >= poolEnd ) continue;
+					if ( (ci ^ cj) == 1 )
+						followerLeader[j * 4 + sj] = i * 4 + si;
+				}
+			}
+			break;
+		}
+	}
+
+	// pass 2: S-Random with swipe-aware placement
+	int i = 0;
+	while ( i < N )
 	{
 		UTIME t = (*chart)[i].timing;
 
-		// collect all active column slots sharing this timing
-		int refArrows[32];
-		int refSlots[32];
-		int oldCols[32];
+		int refArrows[32], refSlots[32], oldCols[32];
 		int refCount = 0;
 
 		int j = i;
-		while ( j < (int)chart->size() && (*chart)[j].timing == t )
+		while ( j < N && (*chart)[j].timing == t )
 		{
 			for ( int s = 0; s < 4; s++ )
 			{
@@ -1489,36 +1547,54 @@ static void applySRandom(std::vector<struct ARROW>* chart, std::vector<struct FR
 
 		if ( refCount > 0 )
 		{
-			int poolBase = isCenter ? 2 : (isRightSide ? 4 : 0);
-			int pool[8];
-			for ( int k = 0; k < poolSize; k++ ) pool[k] = poolBase + k;
-			int n = refCount < poolSize ? refCount : poolSize;
-			for ( int k = 0; k < n; k++ )
-			{
-				int r = k + rand() % (poolSize - k);
-				int tmp = pool[k]; pool[k] = pool[r]; pool[r] = tmp;
-			}
-			for ( int k = 0; k < n; k++ )
-			{
-				(*chart)[refArrows[k]].columns[refSlots[k]] = (char)pool[k];
-			}
-
-			// build old->new mapping and apply to freeze arrows that start at this timing
-			int remap[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
-			for ( int k = 0; k < n; k++ )
-				remap[oldCols[k]] = pool[k];
-
-			for ( std::vector<struct FREEZE>::iterator h = holds->begin(); h != holds->end(); h++ )
-			{
-				if ( h->startTime == t )
-				{
+			// columns blocked by active or ending holds
+			bool blocked[8] = {};
+			for ( auto& h : *holds )
+				if ( h.startTime < t )
 					for ( int ci = 0; ci < 2; ci++ )
-					{
-						if ( h->columns[ci] >= 0 && h->columns[ci] <= 7 )
-							h->columns[ci] = (char)remap[h->columns[ci]];
-					}
+						if ( h.columns[ci] >= 0 && h.columns[ci] <= 7 && (h.endTime1 >= t || h.endTime2 >= t) )
+							blocked[h.columns[ci]] = true;
+
+			// assign swipe followers first so their columns are reserved
+			bool usedInGroup[8] = {};
+			for ( int k = 0; k < refCount; k++ )
+			{
+				int leaderFlat = followerLeader[refArrows[k] * 4 + refSlots[k]];
+				if ( leaderFlat < 0 || placedCol[leaderFlat] < 0 ) continue;
+				int adjacent = placedCol[leaderFlat] ^ 1;
+				if ( !blocked[adjacent] && !usedInGroup[adjacent] )
+				{
+					placedCol[refArrows[k] * 4 + refSlots[k]] = adjacent;
+					usedInGroup[adjacent] = true;
 				}
 			}
+
+			// build filtered pool: unblocked columns not reserved by followers
+			int pool[8], filteredSize = 0;
+			for ( int k = 0; k < poolSize; k++ )
+			{
+				int col = poolBase + k;
+				if ( !blocked[col] && !usedInGroup[col] ) pool[filteredSize++] = col;
+			}
+			shuffleInts(pool, filteredSize);
+
+			// assign remaining notes from pool and apply to chart
+			int poolIdx = 0;
+			int remap[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+			for ( int k = 0; k < refCount; k++ )
+			{
+				int flat = refArrows[k] * 4 + refSlots[k];
+				if ( placedCol[flat] < 0 )
+					placedCol[flat] = (poolIdx < filteredSize) ? pool[poolIdx++] : oldCols[k];
+				(*chart)[refArrows[k]].columns[refSlots[k]] = (char)placedCol[flat];
+				remap[oldCols[k]] = placedCol[flat];
+			}
+
+			for ( auto& h : *holds )
+				if ( h.startTime == t )
+					for ( int ci = 0; ci < 2; ci++ )
+						if ( h.columns[ci] >= 0 && h.columns[ci] <= 7 )
+							h.columns[ci] = (char)remap[h.columns[ci]];
 		}
 
 		i = j;
