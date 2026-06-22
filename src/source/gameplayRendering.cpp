@@ -588,13 +588,16 @@ void renderSpeedMod(int player, int scrollRate, int speedMod, bool isTemp, int s
 		y = 84;
 	}
 
-	UNUSED(scrollRate);
+	int baseRate = gs.player[player].baseBPM;
+	int bpmColor = (baseRate > 0 && scrollRate > baseRate) ? TEXT_COLOR_HRED :
+	               (baseRate > 0 && scrollRate < baseRate) ? TEXT_COLOR_HBLUE :
+	               (isTemp ? TEXT_COLOR_WHITE : TEXT_COLOR_FGREEN);
 
 	if ( scrollMode == 1 ) // Fixed: render numeric pps value
 	{
 		char buf[16];
 		sprintf_s(buf, sizeof(buf), "%d", fixedScrollPPS);
-		renderOutlinedColoredString(buf, x, y + 6, isTemp ? TEXT_COLOR_WHITE : TEXT_COLOR_FGREEN);
+		renderOutlinedColoredString(buf, x, y + 6, bpmColor);
 	}
 	else // Classic: sprite icon
 	{
@@ -909,8 +912,7 @@ void renderGameplay()
 	}
 
 	{
-		bool isTemp = speedChangeTimer[p] > 0 &&
-			(gs.player[p].speedMod != sm.player[p].speedMod || gs.player[p].fixedScrollPPS != sm.player[p].fixedScrollPPS);
+		bool isTemp = gs.player[p].speedMod != sm.player[p].speedMod || gs.player[p].fixedScrollPPS != sm.player[p].fixedScrollPPS;
 		renderSpeedMod(p, gs.player[p].scrollRate, gs.player[p].speedMod, isTemp, gs.player[p].scrollMode, gs.player[p].fixedScrollPPS);
 	}
 
