@@ -1663,7 +1663,7 @@ void renderLoginStats(int x, int side)
 	}
 	renderBoldString(buffer, x+5, 440, 320, false, 1);
 	//masked_blit(m_miniStatus, rm.m_backbuf, 0, sm.player[side].allTime[allTimeIndex][mildIndex].status * 32, x+120, 433, 40, 32);
-	if ( sm.player[side].allTime[allTimeIndex][mildIndex].status >= STATUS_CLEARED )
+	if ( sm.player[side].allTime[allTimeIndex][mildIndex].status >= STATUS_CLEARED && sm.player[side].scoreDisplay != 1 )
 	{
 		renderGrade(sm.player[side].allTime[allTimeIndex][mildIndex].grade, x+105, 433-8);
 	}
@@ -1683,7 +1683,7 @@ void renderLoginStats(int x, int side)
 	}
 	renderBoldString(buffer, x+165, 440, 320, false, 2);
 	//masked_blit(m_miniStatus, rm.m_backbuf, 0, sm.player[side].allTime[allTimeIndex][wildIndex].status * 32, x+280, 433, 40, 32);
-	if ( sm.player[side].allTime[allTimeIndex][wildIndex].status >= STATUS_CLEARED )
+	if ( sm.player[side].allTime[allTimeIndex][wildIndex].status >= STATUS_CLEARED && sm.player[side].scoreDisplay != 1 )
 	{
 		renderGrade(sm.player[side].allTime[allTimeIndex][wildIndex].grade, x+265, 433-8);
 	}

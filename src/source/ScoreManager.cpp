@@ -273,21 +273,24 @@ void ScoreManager::mergeCurrentScores(PLAYER_DATA &p, int side)
 			p.allTime[songindex][chartindex].maxCombo = p.currentSet[i].maxCombo;
 			changedSomething = true;
 		}
-		if ( p.allTime[songindex][chartindex].points < p.currentSet[i].points || p.allTime[songindex][chartindex].maxPoints != p.currentSet[i].maxPoints )
+		if ( p.currentSet[i].status != STATUS_FAILED )
 		{
-			p.allTime[songindex][chartindex].maxPoints = p.currentSet[i].maxPoints;
-			p.allTime[songindex][chartindex].points = p.currentSet[i].points;
-			p.allTime[songindex][chartindex].perfects = p.currentSet[i].perfects;
-			p.allTime[songindex][chartindex].greats = p.currentSet[i].greats;
-			p.allTime[songindex][chartindex].goods = p.currentSet[i].goods;
-			p.allTime[songindex][chartindex].misses = p.currentSet[i].misses;
-			changedSomething = true;
-		}
-		if ( p.allTime[songindex][chartindex].exScore < p.currentSet[i].exScore )
-		{
-			p.allTime[songindex][chartindex].exScore    = p.currentSet[i].exScore;
-			p.allTime[songindex][chartindex].maxExScore = p.currentSet[i].maxExScore;
-			changedSomething = true;
+			if ( p.allTime[songindex][chartindex].points < p.currentSet[i].points )
+			{
+				p.allTime[songindex][chartindex].maxPoints = p.currentSet[i].maxPoints;
+				p.allTime[songindex][chartindex].points    = p.currentSet[i].points;
+				p.allTime[songindex][chartindex].perfects  = p.currentSet[i].perfects;
+				p.allTime[songindex][chartindex].greats    = p.currentSet[i].greats;
+				p.allTime[songindex][chartindex].goods     = p.currentSet[i].goods;
+				p.allTime[songindex][chartindex].misses    = p.currentSet[i].misses;
+				changedSomething = true;
+			}
+			if ( p.allTime[songindex][chartindex].exScore < p.currentSet[i].exScore )
+			{
+				p.allTime[songindex][chartindex].exScore    = p.currentSet[i].exScore;
+				p.allTime[songindex][chartindex].maxExScore = p.currentSet[i].maxExScore;
+				changedSomething = true;
+			}
 		}
 		if ( changedSomething )
 		{

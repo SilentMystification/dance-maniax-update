@@ -521,10 +521,7 @@ void renderResultAdvanced(int which, int player)
 	const int SCORE_CY   = 357 + 16;                    // center of the 32px score glyph
 	const int GRADE_X    = ART_X + 64 - 24;             // album center x minus half grade width
 	const int GRADE_Y    = SCORE_CY - 24;               // center of 48px grade glyph
-	if ( sm.player[player].scoreDisplay != 1 )
-	{
-		renderGrade(rec.calculateGrade(), GRADE_X, GRADE_Y);
-	}
+	renderGrade(rec.calculateGrade(), GRADE_X, GRADE_Y);
 
 	// score + high score diff
 	renderScoreNumber(rec.getScore(), 230, 357, 7);
@@ -536,6 +533,6 @@ void renderResultAdvanced(int which, int player)
 		int diff      = rec.getScore() - highScore;
 		sprintf_s(buf, 32, "(%+07d)", diff);
 		int diffColor = diff >= 0 ? TEXT_COLOR_GREEN : TEXT_COLOR_GREY;
-		renderOutlinedColoredString(buf, 390, 361, diffColor);
+		renderOutlinedColoredString(buf, 424, 367, diffColor);
 	}
 }
