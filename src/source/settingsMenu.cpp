@@ -109,10 +109,10 @@ static const int   s_invertNoteColorsValues[]  = { 0, 1 };
 static const char* s_positionOptions[]     = { "Left", "Center", "Right" };
 static const int   s_positionValues[]      = { 1, 0, 2 };
 
-static const char* s_chartModOptionsSingles[] = { "Off", "Random", "S-Random", "Inverted" };
-static const int   s_chartModValuesSingles[]  = { 0, 1, 2, 4 };
-static const char* s_chartModOptionsDoubles[] = { "Off", "Random", "S-Random", "D-Random", "Inverted" };
-static const int   s_chartModValuesDoubles[]  = { 0, 1, 2, 3, 4 };
+static const char* s_chartModOptionsSingles[] = { "Off", "Random", "S-Random", "R-Random", "Inverted" };
+static const int   s_chartModValuesSingles[]  = { 0, 1, 2, 5, 4 };
+static const char* s_chartModOptionsDoubles[] = { "Off", "Random", "S-Random", "D-Random", "R-Random", "Inverted" };
+static const int   s_chartModValuesDoubles[]  = { 0, 1, 2, 3, 5, 4 };
 
 //////////////////////////////////////////////////////////////////////////////
 // SettingsMenu implementation
@@ -350,13 +350,13 @@ void SettingsMenu::buildItemList(int player)
 		{
 			m_items[m_itemCount].options      = s_chartModOptionsDoubles;
 			m_items[m_itemCount].optionValues = s_chartModValuesDoubles;
-			m_items[m_itemCount].optionCount  = 5;
+			m_items[m_itemCount].optionCount  = 6;
 		}
 		else
 		{
 			m_items[m_itemCount].options      = s_chartModOptionsSingles;
 			m_items[m_itemCount].optionValues = s_chartModValuesSingles;
-			m_items[m_itemCount].optionCount  = 4;
+			m_items[m_itemCount].optionCount  = 5;
 		}
 		m_items[m_itemCount].value            = &gs.player[player].chartMod;
 		m_items[m_itemCount].flagToSetOnChange= NULL;

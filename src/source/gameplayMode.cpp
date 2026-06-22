@@ -1629,7 +1629,28 @@ static void applyInverted(std::vector<struct ARROW>* chart, std::vector<struct F
 	}
 }
 
-// mod: 1=Random, 2=S-Random, 3=D-Random (all 8 cols; acts as Random in singles), 4=Inverted
+static void applyRotateRandom(std::vector<struct ARROW>* chart, std::vector<struct FREEZE>* holds, bool isDoubles, bool isCenter, bool isRightSide)
+{
+	int poolSize = isDoubles ? 8 : 4;
+	int poolBase = isCenter ? 2 : (isRightSide ? 4 : 0);
+	int shift = 1 + rand() % (poolSize - 1);
+
+	int perm[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+	for ( int i = 0; i < poolSize; i++ )
+		perm[poolBase + i] = poolBase + (i + shift) % poolSize;
+
+	for ( std::vector<struct ARROW>::iterator c = chart->begin(); c != chart->end(); c++ )
+		for ( int i = 0; i < 4; i++ )
+			if ( c->columns[i] >= 0 && c->columns[i] <= 7 )
+				c->columns[i] = (char)perm[c->columns[i]];
+
+	for ( std::vector<struct FREEZE>::iterator h = holds->begin(); h != holds->end(); h++ )
+		for ( int i = 0; i < 2; i++ )
+			if ( h->columns[i] >= 0 && h->columns[i] <= 7 )
+				h->columns[i] = (char)perm[h->columns[i]];
+}
+
+// mod: 1=Random, 2=S-Random, 3=D-Random (all 8 cols; acts as Random in singles), 4=Inverted, 5=R-Random
 void applyChartMod(std::vector<struct ARROW>* chart, std::vector<struct FREEZE>* holds, int mod, bool isDoubles, bool isCenter, bool isRightSide)
 {
 	switch ( mod )
@@ -1638,6 +1659,7 @@ void applyChartMod(std::vector<struct ARROW>* chart, std::vector<struct FREEZE>*
 	case 2: applySRandom(chart, holds, isDoubles, isCenter, isRightSide);             break;
 	case 3: applyColumnRandom(chart, holds, isDoubles, true,  isCenter, isRightSide); break;
 	case 4: applyInverted(chart, holds, isDoubles, isCenter, isRightSide);            break;
+	case 5: applyRotateRandom(chart, holds, isDoubles, isCenter, isRightSide);        break;
 	}
 }
 

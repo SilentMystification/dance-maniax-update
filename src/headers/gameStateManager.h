@@ -148,7 +148,7 @@ public:
 		unsigned char hiddenModifier;   // 8 bits for which columns are on hidden
 		bool stealthModifier;           // special rendering mode
 		char arrangeModifier;           // 1 = mirror, 2 = v-flip
-		int  chartMod;                  // 0=Off, 1=Random, 2=S-Random, 3=D-Random, 4=Inverted
+		int  chartMod;                  // 0=Off, 1=Random, 2=S-Random, 3=D-Random, 4=Inverted, 5=R-Random
 		bool invertNoteColors;          // swap red/blue lane colors on the playfield
 		bool centerLeft;				// play singles on the left side
 		bool centerRight;				// play singles on the right side
