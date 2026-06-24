@@ -1,5 +1,5 @@
-# Build-only CI: feature/** pushes, main/master, and all PRs.
-# Push to main-update triggers release.yml (build + GitHub pre-release).
+# Build-only CI: feature/** pushes, main/master/develop/main-update, and all PRs.
+# Push to main, develop, or main-update triggers release.yml (build + GitHub release, v3.0.0-beta.N tags).
 
 name: Build
 
@@ -8,6 +8,8 @@ on:
     branches:
       - main
       - master
+      - develop
+      - main-update
       - 'feature/**'
     paths-ignore:
       - '**.md'

@@ -1,6 +1,6 @@
-# Build + GitHub release on push to main-update (beta) or manual stable dispatch.
-# Push to main-update: auto-tags v3.0.0-beta.N (pre-release).
-# workflow_dispatch with version: tags vX.Y.Z (regular release, not pre-release).
+# Build + GitHub release on push to main, develop, or main-update, or manual dispatch.
+# Push: auto-tags v3.0.0-beta.N (regular release, not marked pre-release).
+# workflow_dispatch with version: tags vX.Y.Z (regular release).
 # Release assets: DMX.exe, DMX.zip (deploy/ contents at zip root), InitialSetup.zip.
 
 name: Release
@@ -8,6 +8,8 @@ name: Release
 on:
   push:
     branches:
+      - main
+      - develop
       - main-update
     paths-ignore:
       - '**.md'
@@ -89,7 +91,7 @@ jobs:
               }
             } while ($existingBeta)
             $prevTag = if ($nextN -gt 1) { "v3.0.0-beta.$($nextN - 1)" } else { "" }
-            $prerelease = 'true'
+            $prerelease = 'false'
           }
           "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
@@ -184,9 +186,9 @@ jobs:
             if [ -n "$PREV_TAG" ] && git rev-parse --verify "${PREV_TAG}^{commit}" >/dev/null 2>&1; then
               echo "Changes since \`${PREV_TAG}\`:"
             elif echo "$NEW_TAG" | grep -q '\-beta'; then
-              echo "First v3.0.0-beta pre-release."
+              echo "First v3.0.0-beta release."
             else
-              echo "First stable release in this series."
+              echo "First release in this series."
             fi
             echo ""
             if [ -n "$PREV_TAG" ] && git rev-parse --verify "${PREV_TAG}^{commit}" >/dev/null 2>&1; then
@@ -202,7 +204,7 @@ jobs:
             {
               echo "### Merged pull requests"
               echo ""
-              PRS=$(gh api "repos/${GITHUB_REPOSITORY}/pulls?state=closed&base=main-update&per_page=100" \
+              PRS=$(gh api "repos/${GITHUB_REPOSITORY}/pulls?state=closed&base=${GITHUB_REF_NAME}&per_page=100" \
                 --jq '.[] | select(.merged_at != null) | "\(.merged_at) \(.number) \(.title)"' 2>/dev/null || true)
               if [ -n "$PREV_TAG" ] && git rev-parse --verify "${PREV_TAG}^{commit}" >/dev/null 2>&1 && [ -n "$PRS" ]; then
                 PREV_DATE=$(git log -1 --format=%aI "${PREV_TAG}")
