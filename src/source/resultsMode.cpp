@@ -94,8 +94,6 @@ void firstResultsLoop()
 	scrollX = originalX = 740; // offscreen, gotta scroll in
 	targetScrollX = 64;
 	scrollTweenTime = 0;
-	blit(rm.m_backbuf, rm.m_backbuf1, 0, 0, 0, 0, 640, 480); // prepare for the animation
-	blit(rm.m_backbuf, rm.m_backbuf2, 0, 0, 0, 0, 640, 480);
 
 	if ( gs.returningToSongwheel )
 	{
