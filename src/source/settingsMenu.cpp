@@ -1071,10 +1071,7 @@ void SettingsMenu::render(UTIME dt)
 		}
 		else // SETTINGS_RANGE
 		{
-			bool isAudioOffset = (m_items[i].flagToSetOnChange != NULL);
 			int dispVal = *m_items[i].value;
-			if ( isAudioOffset && !(*m_items[i].flagToSetOnChange) )
-				dispVal = gs.bgmGap;
 
 			// compute slot width from the widest possible label in this range
 			char tmpBuf[16];
@@ -1096,8 +1093,7 @@ void SettingsMenu::render(UTIME dt)
 
 			// helper to pick color for a given range value (neighbors use outlined colored string)
 			#define RANGE_COLOR(v) \
-				((isAudioOffset && (v) == gs.bgmGap) ? TEXT_COLOR_BLUE  : \
-				 ((v) == m_items[i].savedValue        ? TEXT_COLOR_GREEN : TEXT_COLOR_WHITE))
+				((v) == m_items[i].savedValue ? TEXT_COLOR_GREEN : TEXT_COLOR_WHITE)
 
 			// center value
 			{

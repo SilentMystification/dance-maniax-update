@@ -90,6 +90,9 @@ extern volatile UTIME g_dspLastChunkWall;  // wall time of last FMOD DSP chunk b
 extern volatile UTIME g_dspChunkCount;     // total DSP chunks fired since FMOD init (main.cpp)
 extern volatile UTIME g_dspSongStartChunk; // g_dspChunkCount at the moment playSong() was called (main.cpp)
 extern UTIME g_songStartWall;              // timeGetTime() at the moment playSong() was called (main.cpp)
+#ifdef DMXDEBUG
+static bool s_syncDiagTraced = false;
+#endif
 
 // in-song speed adjustment
 static const int SPEED_CHANGE_DISPLAY_MS = 3000;
@@ -263,6 +266,16 @@ void mainGameplayLoop(UTIME dt)
 		int gap1 = gs.bgmGap + sm.player[1].audioOffset;
 		gs.player[0].timeElapsed = (UTIME)MAX(0, syncedBase + gap0);
 		gs.player[1].timeElapsed = (UTIME)MAX(0, syncedBase + gap1);
+#ifdef DMXDEBUG
+		if (!s_syncDiagTraced)
+		{
+			s_syncDiagTraced = true;
+			al_trace("bgmSync OK: freq=%d bufLen=%d bgmGap=%d audioOffset0=%d audioOffset1=%d timeElapsed0=%lu\r\n",
+				FSOUND_GetOutputRate(), FSOUND_DSP_GetBufferLength(),
+				gs.bgmGap, sm.player[0].audioOffset, sm.player[1].audioOffset,
+				(unsigned long)gs.player[0].timeElapsed);
+		}
+#endif
 
 #ifdef DMXDEBUG
 		static UTIME lastDriftTrace = 0;
@@ -286,6 +299,15 @@ void mainGameplayLoop(UTIME dt)
 	{
 		gs.player[0].timeElapsed += dt;
 		gs.player[1].timeElapsed += dt;
+#ifdef DMXDEBUG
+		if (!s_syncDiagTraced && gs.player[0].timeElapsed > 3000)
+		{
+			s_syncDiagTraced = true;
+			al_trace("bgmSync FALLBACK after 3s: dspChunkCount=%lu songStartChunk=%lu bgmGap=%d audioOffset0=%d\r\n",
+				(unsigned long)g_dspChunkCount, (unsigned long)g_dspSongStartChunk,
+				gs.bgmGap, sm.player[0].audioOffset);
+		}
+#endif
 	}
 
 	int p = 0;
@@ -1374,6 +1396,9 @@ void loadNextSong()
 	gs.bgmAnchorFmodMs    = 0;
 	gs.bgmLastChunkCount  = 0;
 	g_dspLastChunkWall    = 0; // reset so a stale value from the previous song is not used
+#ifdef DMXDEBUG
+	s_syncDiagTraced      = false;
+#endif
 	vm.play();
 	isMidTransition = true;
 	songTransitionTime = BANNER_ANIM_LENGTH;

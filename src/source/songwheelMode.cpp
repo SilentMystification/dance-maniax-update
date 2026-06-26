@@ -628,7 +628,7 @@ void mainSongwheelLoop(UTIME dt)
 				isInSettings[1] = true;
 				settingsWaitForRelease[1] = true;
 				settingsPlayerSlot[1] = 0;
-				playerSettingsMenu[1].open(0, 1);
+				playerSettingsMenu[1].open(0, 0); // playerData=0: doubles is one player, gameplay always reads slot 0
 			}
 		}
 		else
@@ -651,7 +651,7 @@ void mainSongwheelLoop(UTIME dt)
 				isInSettings[1] = true;
 				settingsWaitForRelease[1] = true;
 				settingsPlayerSlot[1] = loginSide;
-				playerSettingsMenu[1].open(loginSide, 1);
+				playerSettingsMenu[1].open(loginSide, 0); // playerData=0: singles is one player, gameplay always reads slot 0
 			}
 		}
 	}

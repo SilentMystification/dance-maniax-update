@@ -281,7 +281,9 @@ int main()
 		al_trace("Ensure your hardware supports ASIO with a 32bit driver and that it is configured properly, or disable the enableasio option.\r\n");
 		al_trace("Falling back to Direct Sound.\r\n");
 	}
-	FSOUND_DSP_Create(&dspSyncCallback, FSOUND_DSP_DEFAULTPRIORITY_USER, NULL);
+	FSOUND_DSPUNIT* dspSyncUnit = FSOUND_DSP_Create(&dspSyncCallback, FSOUND_DSP_DEFAULTPRIORITY_USER, NULL);
+	if (dspSyncUnit != NULL)
+		FSOUND_DSP_SetActive(dspSyncUnit, TRUE);
 	//*/
 
 	// initialize graphics resources
