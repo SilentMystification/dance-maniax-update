@@ -53,7 +53,7 @@ bool ScoreManager::loadPlayerFromDisk(char* name, char side)
 	// load the preferences
 	if ( (fp = safeLoadFile(prefsFilename)) == NULL )
 	{
-#ifdef _DEBUG
+#ifdef DMXDEBUG
 		allegro_message("Error reading: %s", prefsFilename);
 #endif
 		globalError(PLAYER_PREFS_LOST, prefsFilename);
@@ -101,7 +101,7 @@ bool ScoreManager::loadPlayerFromDisk(char* name, char side)
 	// then read all the scores to the scores file
 	if ( (fp = safeLoadFile(scoreFilename)) == NULL )
 	{
-#ifdef _DEBUG
+#ifdef DMXDEBUG
 		allegro_message("Error reading: %s", scoreFilename);
 #endif
 		globalError(PLAYER_SCORES_LOST, scoreFilename);

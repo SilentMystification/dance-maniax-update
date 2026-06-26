@@ -75,7 +75,7 @@ int readDMXSQ(std::vector<struct ARROW> *chart, std::vector<struct FREEZE> *hold
 		else if ( _strcmpi(token, "#GAP") == 0 )
 		{
 			gap = atoi(next);
-#ifdef _DEBUG
+#ifdef DMXDEBUG
 			al_trace("gap = %d\r\n", gap);
 #endif
 		}
