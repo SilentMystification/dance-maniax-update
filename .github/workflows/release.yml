@@ -2,6 +2,10 @@
 # Push: auto-tags v3.0.0-beta.N (regular release, not marked pre-release).
 # workflow_dispatch with version: tags vX.Y.Z (regular release).
 # Release assets: DMX.exe, DMX.zip (deploy/ contents at zip root), InitialSetup.zip.
+#
+# Job graph:
+#   prepare ──┬── build ──────────┐
+#             └── release-notes ──┴── create-release
 
 name: Release
 
@@ -24,20 +28,20 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  prepare:
     if: github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[skip release]')
-    runs-on: windows-latest
-
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      prev_tag: ${{ steps.version.outputs.prev_tag }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
           fetch-tags: true
-
-      - name: Fetch tags for version
-        shell: bash
-        run: git fetch --tags --force
 
       - name: Compute release version
         id: version
@@ -119,31 +123,39 @@ jobs:
           fi
           echo "Tag ${TAG} is available for ${RELEASE_SHA}"
 
+  build:
+    needs: prepare
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Cache Release build objects
+      - name: Cache Production build objects
         uses: actions/cache@v4
         with:
-          path: src/DMX_Remake/Release
-          key: ${{ runner.os }}-msbuild-release-${{ hashFiles('src/**/*.cpp', 'src/**/*.h', 'src/DMX_Remake.vcxproj') }}
+          path: src/DMX_Remake/Production
+          key: ${{ runner.os }}-msbuild-production-${{ hashFiles('src/**/*.cpp', 'src/**/*.h', 'src/DMX_Remake.vcxproj') }}
           restore-keys: |
-            ${{ runner.os }}-msbuild-release-
+            ${{ runner.os }}-msbuild-production-
 
-      - name: Build Release
+      - name: Build Production
         run: >
           msbuild src/DMX_Remake.vcxproj
           /m
-          /p:Configuration=Release
+          /p:Configuration=Production
           /p:Platform=Win32
           /p:PlatformToolset=v145
           /t:Build
           /v:minimal
 
-      - name: Remove debug symbols from deploy
+      - name: Rename DMX_PROD.exe to DMX.exe for release
         shell: pwsh
-        run: |
-          Get-ChildItem -Path deploy -Filter *.pdb -ErrorAction SilentlyContinue | Remove-Item -Force
+        run: Rename-Item -Path deploy/DMX_PROD.exe -NewName DMX.exe
 
       - name: Package DMX.zip
         shell: pwsh
@@ -161,11 +173,48 @@ jobs:
           if (Test-Path $zip) { Remove-Item $zip -Force }
           Compress-Archive -Path "$staging/*" -DestinationPath $zip
 
+      - name: Package InitialSetup.zip
+        shell: pwsh
+        run: |
+          $staging = Join-Path $env:RUNNER_TEMP "InitialSetup"
+          if (Test-Path $staging) { Remove-Item $staging -Recurse -Force }
+          New-Item -ItemType Directory -Path $staging | Out-Null
+
+          New-Item -ItemType Directory -Path "$staging/deploy" | Out-Null
+          robocopy deploy "$staging/deploy" /E /XD DATA /XF *.pdb /NFL /NDL /NJH /NJS /nc /ns /np
+          if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE }
+          $global:LASTEXITCODE = 0
+
+          Copy-Item -Path firmware -Destination "$staging/firmware" -Recurse
+          Copy-Item -Path README.md, install.ps1, run_once_win_xp.bat -Destination $staging
+
+          $zip = Join-Path $env:GITHUB_WORKSPACE "InitialSetup.zip"
+          if (Test-Path $zip) { Remove-Item $zip -Force }
+          Compress-Archive -Path "$staging/*" -DestinationPath $zip
+
+      - name: Upload release assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets
+          path: |
+            deploy/DMX.exe
+            DMX.zip
+            InitialSetup.zip
+
+  release-notes:
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          fetch-tags: true
+
       - name: Fetch full git history for release notes
         shell: bash
         run: |
           set -euo pipefail
-          git fetch --tags --force
           if git rev-parse --is-shallow-repository | grep -qi true; then
             git fetch --unshallow
           fi
@@ -174,8 +223,8 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          NEW_TAG: ${{ steps.version.outputs.tag }}
-          PREV_TAG: ${{ steps.version.outputs.prev_tag }}
+          NEW_TAG: ${{ needs.prepare.outputs.tag }}
+          PREV_TAG: ${{ needs.prepare.outputs.prev_tag }}
           RELEASE_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
@@ -233,31 +282,38 @@ jobs:
 
           cat release_notes.md
 
-      - name: Package InitialSetup.zip
-        shell: pwsh
-        run: |
-          $staging = Join-Path $env:RUNNER_TEMP "InitialSetup"
-          if (Test-Path $staging) { Remove-Item $staging -Recurse -Force }
-          New-Item -ItemType Directory -Path $staging | Out-Null
+      - name: Upload release notes
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: release_notes.md
 
-          New-Item -ItemType Directory -Path "$staging/deploy" | Out-Null
-          robocopy deploy "$staging/deploy" /E /XD DATA /XF *.pdb /NFL /NDL /NJH /NJS /nc /ns /np
-          if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE }
-          $global:LASTEXITCODE = 0
+  create-release:
+    needs: [prepare, build, release-notes]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
-          Copy-Item -Path firmware -Destination "$staging/firmware" -Recurse
-          Copy-Item -Path README.md, install.ps1, run_once_win_xp.bat -Destination $staging
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: assets
 
-          $zip = Join-Path $env:GITHUB_WORKSPACE "InitialSetup.zip"
-          if (Test-Path $zip) { Remove-Item $zip -Force }
-          Compress-Archive -Path "$staging/*" -DestinationPath $zip
+      - name: Download release notes
+        uses: actions/download-artifact@v4
+        with:
+          name: release-notes
 
       - name: Create GitHub Release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.version.outputs.tag }}
-          PRERELEASE: ${{ steps.version.outputs.prerelease }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
           RELEASE_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
@@ -288,9 +344,9 @@ jobs:
             --title "$TAG" \
             --notes-file release_notes.md \
             $PRERELEASE_FLAG \
-            deploy/DMX.exe \
-            DMX.zip \
-            InitialSetup.zip
+            assets/deploy/DMX.exe \
+            assets/DMX.zip \
+            assets/InitialSetup.zip
 
           CREATED_SHA=$(gh release view "$TAG" --json targetCommitish -q .targetCommitish)
           if [ "$CREATED_SHA" != "$RELEASE_SHA" ]; then

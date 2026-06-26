@@ -38,9 +38,22 @@ the program will prompt you to change the default settings for the cab.
 If you want to build from source, pull the latest main-update or master branch 
 and fork off of it.  
 
-
 Build requirements:
-VS Build Tools 2022 or 2026 (earlier might work)
+Visual Studio or VS Build Tools 2022 / 2026 (earlier will probably work too)
+
+There are 3 types of builds that can be generated:
+* Debug
+ * Compiler optimizations disabled
+ * Game runs in Debug Mode with special overlays and performance metrics
+* Development
+ * Most optimizations enabled
+ * Frame pointers still enabled so traces are readable
+ * PDB files generated 
+ * Should be used to diagnose crashes
+* Production
+ * All optimizations enabled including: MaxSpeed + FavorSpeed + OmitFramePointers + whole-program/link-time code generation.
+ * No PDB files generated
+ * What should actually be deployed to a machine
 
 
 # System Requirements
