@@ -145,6 +145,10 @@ jobs:
         run: |
           Get-ChildItem -Path deploy -Filter *.pdb -ErrorAction SilentlyContinue | Remove-Item -Force
 
+      - name: Rename DMX_PROD.exe to DMX.exe for release
+        shell: pwsh
+        run: Rename-Item deploy/DMX_PROD.exe deploy/DMX.exe
+
       - name: Package DMX.zip
         shell: pwsh
         run: |

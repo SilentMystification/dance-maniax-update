@@ -5,12 +5,12 @@
       <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|Win32">
-      <Configuration>Release</Configuration>
+    <ProjectConfiguration Include="Dev|Win32">
+      <Configuration>Dev</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Both|Win32">
-      <Configuration>Both</Configuration>
+    <ProjectConfiguration Include="All|Win32">
+      <Configuration>All</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="DeployToCab|Win32">
@@ -35,7 +35,7 @@
     <PlatformToolset>v145</PlatformToolset>
     <PreferredToolArchitecture>x86</PreferredToolArchitecture>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Dev|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>false</WholeProgramOptimization>
@@ -43,7 +43,7 @@
     <PlatformToolset>v145</PlatformToolset>
     <PreferredToolArchitecture>x86</PreferredToolArchitecture>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Both|Win32'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='All|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>false</WholeProgramOptimization>
@@ -73,10 +73,10 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Dev|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Both|Win32'">
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='All|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='DeployToCab|Win32'">
@@ -95,8 +95,8 @@
     </PublicIncludeDirectories>
     <OutDir>..\deploy\</OutDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <TargetName>DMX</TargetName>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Dev|Win32'">
+    <TargetName>DMX_DEV</TargetName>
     <IncludePath>lib\allegro-4.4.2-msvc-10.0\include;lib\fmodapi375win\api\inc;lib\libpng\include\libpng12;lib\libpng\include;lib\loadpng;lib\apeg\include;lib\pacdrive\include;lib\hidapi\include;lib\libcurl\\include;$(IncludePath)</IncludePath>
     <LibraryPath>lib\allegro-4.4.2-msvc-10.0\lib;lib\fmodapi375win\api\lib;lib\libpng\lib;lib\apeg\lib\release;lib\pacdrive\lib;lib\hidapi\lib;lib\libcurl\lib;$(LibraryPath)</LibraryPath>
     <IgnoreImportLibrary>false</IgnoreImportLibrary>
@@ -104,8 +104,8 @@
     </PublicIncludeDirectories>
     <OutDir>..\deploy\</OutDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Both|Win32'">
-    <TargetName>DMX</TargetName>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='All|Win32'">
+    <TargetName>DMX_DEV</TargetName>
     <IncludePath>lib\allegro-4.4.2-msvc-10.0\include;lib\fmodapi375win\api\inc;lib\libpng\include\libpng12;lib\libpng\include;lib\loadpng;lib\apeg\include;lib\pacdrive\include;lib\hidapi\include;lib\libcurl\\include;$(IncludePath)</IncludePath>
     <LibraryPath>lib\allegro-4.4.2-msvc-10.0\lib;lib\fmodapi375win\api\lib;lib\libpng\lib;lib\apeg\lib\release;lib\pacdrive\lib;lib\hidapi\lib;lib\libcurl\lib;$(LibraryPath)</LibraryPath>
     <IgnoreImportLibrary>false</IgnoreImportLibrary>
@@ -114,7 +114,7 @@
     <OutDir>..\deploy\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DeployToCab|Win32'">
-    <TargetName>DMX</TargetName>
+    <TargetName>DMX_DEV</TargetName>
     <IncludePath>lib\allegro-4.4.2-msvc-10.0\include;lib\fmodapi375win\api\inc;lib\libpng\include\libpng12;lib\libpng\include;lib\loadpng;lib\apeg\include;lib\pacdrive\include;lib\hidapi\include;lib\libcurl\\include;$(IncludePath)</IncludePath>
     <LibraryPath>lib\allegro-4.4.2-msvc-10.0\lib;lib\fmodapi375win\api\lib;lib\libpng\lib;lib\apeg\lib\release;lib\pacdrive\lib;lib\hidapi\lib;lib\libcurl\lib;$(LibraryPath)</LibraryPath>
     <IgnoreImportLibrary>false</IgnoreImportLibrary>
@@ -123,7 +123,7 @@
     <OutDir>..\deploy\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Production|Win32'">
-    <TargetName>DMX</TargetName>
+    <TargetName>DMX_PROD</TargetName>
     <IncludePath>lib\allegro-4.4.2-msvc-10.0\include;lib\fmodapi375win\api\inc;lib\libpng\include\libpng12;lib\libpng\include;lib\loadpng;lib\apeg\include;lib\pacdrive\include;lib\hidapi\include;lib\libcurl\\include;$(IncludePath)</IncludePath>
     <LibraryPath>lib\allegro-4.4.2-msvc-10.0\lib;lib\fmodapi375win\api\lib;lib\libpng\lib;lib\apeg\lib\release;lib\pacdrive\lib;lib\hidapi\lib;lib\libcurl\lib;$(LibraryPath)</LibraryPath>
     <IgnoreImportLibrary>false</IgnoreImportLibrary>
@@ -172,7 +172,7 @@
       <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
     </ProjectReference>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Dev|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
@@ -213,7 +213,7 @@
       <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
     </ProjectReference>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Both|Win32'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='All|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
@@ -251,8 +251,9 @@
       <Message>touch the attract mode to update the __DATE__</Message>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>msbuild "$(ProjectPath)" /p:Configuration=Debug /p:Platform=Win32 /t:Build /v:minimal</Command>
-      <Message>Building Debug configuration...</Message>
+      <Command>msbuild "$(ProjectPath)" /p:Configuration=Debug /p:Platform=Win32 /t:Build /v:minimal
+msbuild "$(ProjectPath)" /p:Configuration=Production /p:Platform=Win32 /t:Build /v:minimal</Command>
+      <Message>Building all configurations...</Message>
     </PostBuildEvent>
     <ProjectReference>
       <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
@@ -297,9 +298,11 @@
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>msbuild "$(ProjectPath)" /p:Configuration=Debug /p:Platform=Win32 /p:PlatformToolset=v143 /t:Build /v:minimal
-copy /Y "..\deploy\DMX.exe" "V:\DMX_DEV\DMX.exe"
-copy /Y "..\deploy\DMX_DEBUG.exe" "V:\DMX_DEV\DMX_DEBUG.exe"</Command>
-      <Message>Building Debug and deploying to cab...</Message>
+msbuild "$(ProjectPath)" /p:Configuration=Production /p:Platform=Win32 /t:Build /v:minimal
+copy /Y "..\deploy\DMX_DEV.exe" "V:\DMX_DEV\DMX_DEV.exe"
+copy /Y "..\deploy\DMX_DEBUG.exe" "V:\DMX_DEV\DMX_DEBUG.exe"
+copy /Y "..\deploy\DMX_PROD.exe" "V:\DMX_DEV\DMX_PROD.exe"</Command>
+      <Message>Building all configurations and deploying to cab...</Message>
     </PostBuildEvent>
     <ProjectReference>
       <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>

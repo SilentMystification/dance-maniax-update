@@ -48,9 +48,9 @@ jobs:
           /t:Build
           /v:minimal
 
-      - name: Upload DMX.exe
+      - name: Upload DMX_PROD.exe
         if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/heads/feature/')
         uses: actions/upload-artifact@v4
         with:
-          name: DMX.exe
-          path: deploy/DMX.exe
+          name: DMX_PROD.exe
+          path: deploy/DMX_PROD.exe
