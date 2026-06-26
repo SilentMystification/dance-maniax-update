@@ -4,9 +4,9 @@
 #ifndef _VIDEOMANAGER_H_
 #define _VIDEOMANAGER_H_
 
-#include "../lib/apeg/include/apeg.h"
-
 #include "../headers/common.h"
+
+#include "../lib/apeg/include/apeg.h"
 
 // this structure is borrowed from DMX2ja directly and has not been fully reverse engineered
 struct MOVIE_SEQ_STEP
@@ -66,10 +66,11 @@ public:
 
 private:
 	struct MOVIE_SEQ_STEP script[100]; // nothing will ever be larger, probably
-	int currentTime;   // counts milliseconds as they pass
-	int currentStep;   // which script step we're on
-	bool isStopped;    // pause movie playback
-
+	int currentTime;    // counts milliseconds as they pass
+	int currentStep;    // which script step we're on
+	bool isStopped;     // pause movie playback
+	int decodeAccum;
+	int frameMs;
 	bool haxNoVideos; // option for computers which just cannot handle it
 
 	BITMAP* frameData;  // the pixel contents of the current frame

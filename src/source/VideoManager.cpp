@@ -80,7 +80,8 @@ void VideoManager::stop()
 void VideoManager::reset()
 {
 	stop();
-	currentTime = currentStep = 0;
+	currentTime = currentStep = decodeAccum = 0;
+	frameMs = 33;
 }
 
 VideoManager::VideoManager()
@@ -123,14 +124,19 @@ void VideoManager::update(UTIME dt)
 
 	if ( cmov != NULL )
 	{
-		if ( apeg_advance_stream(cmov, true) != APEG_OK)
+		decodeAccum += dt;
+		if ( decodeAccum >= frameMs )
 		{
-			al_trace("Video problem! Breakpoint!\r\n"); // doesn't really matter if it fails
-		}
-		if( cmov->frame_updated > 0 && cmov->bitmap != NULL )
-		{
-			//stretch_blit(cmov->bitmap, frameData, 0, 0, cmov->w, cmov->h, 0, 0, 320, 192);
-			blit(cmov->bitmap, frameData, 0, 0, 0, 0, 320, 192);
+			decodeAccum -= frameMs;
+			if ( apeg_advance_stream(cmov, true) != APEG_OK)
+			{
+				al_trace("Video problem! Breakpoint!\r\n"); // doesn't really matter if it fails
+			}
+			if( cmov->frame_updated > 0 && cmov->bitmap != NULL )
+			{
+				//stretch_blit(cmov->bitmap, frameData, 0, 0, cmov->w, cmov->h, 0, 0, 320, 192);
+				blit(cmov->bitmap, frameData, 0, 0, 0, 0, 320, 192);
+			}
 		}
 	}
 }
@@ -222,6 +228,10 @@ void VideoManager::loadVideoAtCurrentStep()
 		}
 		advanceToFirstFrame(cmov);
 	}
+
+	int displayRate = get_refresh_rate();
+	int displayMs  = (displayRate > 0) ? (1000 / displayRate) : 33;
+	frameMs = (cmov->frame_rate > 0.0) ? (int)(1000.0 / cmov->frame_rate) : displayMs;
 
 	if ( cmov->frame_updated > 0 && cmov->bitmap != NULL )
 		blit(cmov->bitmap, frameData, 0, 0, 0, 0, 320, 192);
