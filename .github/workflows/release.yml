@@ -43,10 +43,6 @@ jobs:
           fetch-depth: 1
           fetch-tags: true
 
-      - name: Fetch tags for version
-        shell: bash
-        run: git fetch --tags --force
-
       - name: Compute release version
         id: version
         shell: pwsh
@@ -164,7 +160,7 @@ jobs:
 
       - name: Rename DMX_PROD.exe to DMX.exe for release
         shell: pwsh
-        run: Rename-Item deploy/DMX_PROD.exe deploy/DMX.exe
+        run: Rename-Item -Path deploy/DMX_PROD.exe -NewName DMX.exe
 
       - name: Package DMX.zip
         shell: pwsh
@@ -224,7 +220,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git fetch --tags --force
           if git rev-parse --is-shallow-repository | grep -qi true; then
             git fetch --unshallow
           fi
