@@ -118,7 +118,6 @@ void VideoManager::update(UTIME dt)
 	{
 		currentStep = 1;
 		currentTime = 0;
-		al_trace("Restarting video script.\r\n");
 		loadVideoAtCurrentStep();
 	}
 
@@ -257,5 +256,4 @@ void VideoManager::preloadNextStep()
 
 	advanceToFirstFrame(nextCmov);
 	nextPreloadedStep = step;
-	al_trace("Preloaded video step %d (%s).\r\n", step, script[step].filename);
 }

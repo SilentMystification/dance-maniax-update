@@ -23,6 +23,10 @@
 
 #define UNUSED(var) (void)(var)
 
+#if defined(DMXDEBUG) || defined(DMXDEV)
+#define DMX_LOGGING
+#endif
+
 // use this while developing the game to disable most types of audio
 #ifdef DMXDEBUG
 #define DONT_WANNA_HEAR_IT 0

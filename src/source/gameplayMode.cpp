@@ -90,9 +90,7 @@ extern volatile UTIME g_dspLastChunkWall;  // wall time of last FMOD DSP chunk b
 extern volatile UTIME g_dspChunkCount;     // total DSP chunks fired since FMOD init (main.cpp)
 extern volatile UTIME g_dspSongStartChunk; // g_dspChunkCount at the moment playSong() was called (main.cpp)
 extern UTIME g_songStartWall;              // timeGetTime() at the moment playSong() was called (main.cpp)
-#ifdef DMXDEBUG
 static bool s_syncDiagTraced = false;
-#endif
 
 // in-song speed adjustment
 static const int SPEED_CHANGE_DISPLAY_MS = 3000;
@@ -266,7 +264,7 @@ void mainGameplayLoop(UTIME dt)
 		int gap1 = gs.bgmGap + sm.player[1].audioOffset;
 		gs.player[0].timeElapsed = (UTIME)MAX(0, syncedBase + gap0);
 		gs.player[1].timeElapsed = (UTIME)MAX(0, syncedBase + gap1);
-#ifdef DMXDEBUG
+#ifdef DMX_LOGGING
 		if (!s_syncDiagTraced)
 		{
 			s_syncDiagTraced = true;
@@ -277,7 +275,7 @@ void mainGameplayLoop(UTIME dt)
 		}
 #endif
 
-#ifdef DMXDEBUG
+#ifdef DMX_LOGGING
 		static UTIME lastDriftTrace = 0;
 		if (gs.player[0].timeElapsed - lastDriftTrace >= 5000)
 		{
@@ -299,7 +297,6 @@ void mainGameplayLoop(UTIME dt)
 	{
 		gs.player[0].timeElapsed += dt;
 		gs.player[1].timeElapsed += dt;
-#ifdef DMXDEBUG
 		if (!s_syncDiagTraced && gs.player[0].timeElapsed > 3000)
 		{
 			s_syncDiagTraced = true;
@@ -307,7 +304,6 @@ void mainGameplayLoop(UTIME dt)
 				(unsigned long)g_dspChunkCount, (unsigned long)g_dspSongStartChunk,
 				gs.bgmGap, sm.player[0].audioOffset);
 		}
-#endif
 	}
 
 	int p = 0;
@@ -323,8 +319,10 @@ void mainGameplayLoop(UTIME dt)
 		gs.player[p].scrollRate = WEIGHTED_AVERAGE(gs.player[p].oldScrollRate, gs.player[p].newScrollRate, gs.player[p].bpmUpdateTimer, gs.player[p].bpmAnimationLength);
 		if ( prevBpmTimer > 0 && gs.player[p].bpmUpdateTimer == 0 )
 		{
+#ifdef DMX_LOGGING
 			al_trace("BPM transition complete p%d: scrollRate=%d newScrollRate=%d timeElapsed=%d\r\n",
 				p, gs.player[p].scrollRate, gs.player[p].newScrollRate, gs.player[p].timeElapsed);
+#endif
 		}
 	}
 
@@ -660,9 +658,11 @@ void doChartLogic(UTIME dt, int p)
 		if ( gs.player[p].currentChart[n].type == BPM_CHANGE )
 		{
 			int targetRate = gs.player[p].currentChart[n].color;
+#ifdef DMX_LOGGING
 			al_trace("BPM_CHANGE p%d: timing=%d timeElapsed=%d color=%d scrollRate=%d newScrollRate=%d\r\n",
 				p, gs.player[p].currentChart[n].timing, gs.player[p].timeElapsed,
 				targetRate, gs.player[p].scrollRate, gs.player[p].newScrollRate);
+#endif
 			gs.player[p].committedScrollRate = targetRate;
 			if ( gs.player[p].newScrollRate != targetRate )
 			{
@@ -1348,10 +1348,12 @@ void loadNextSong()
 				break;
 			}
 		}
+#ifdef DMX_LOGGING
 		al_trace("loadNextSong p%d: songID=%d baseBPM=%d scrollRate=%d newScrollRate=%d speedMod=%d scrollMode=%d fixedScrollPPS=%d\r\n",
 			p, gs.player[p].stagesPlayed[gs.currentStage],
 			gs.player[p].baseBPM, gs.player[p].scrollRate, gs.player[p].newScrollRate,
 			gs.player[p].speedMod, gs.player[p].scrollMode, gs.player[p].fixedScrollPPS);
+#endif
 
 		sm.player[p].currentSet[gs.currentStage].resetData();
 		sm.player[p].currentSet[gs.currentStage].time = time(NULL);
@@ -1396,9 +1398,7 @@ void loadNextSong()
 	gs.bgmAnchorFmodMs    = 0;
 	gs.bgmLastChunkCount  = 0;
 	g_dspLastChunkWall    = 0; // reset so a stale value from the previous song is not used
-#ifdef DMXDEBUG
 	s_syncDiagTraced      = false;
-#endif
 	vm.play();
 	isMidTransition = true;
 	songTransitionTime = BANNER_ANIM_LENGTH;
@@ -1936,9 +1936,13 @@ void generateTimingReport()
 		diffs.push_back(diff);
 		if ( i > 0 )
 		{
+#ifdef DMX_LOGGING
 			al_trace("diff: %d (%d)\r\n", diff, diff - diffs[i-1]);
+#endif
 		}
 	}
 
+#ifdef DMX_LOGGING
 	al_trace("Report complete. %d/%d\r\n", diffs[1], diffs[diffs.size()-2]);
+#endif
 }
