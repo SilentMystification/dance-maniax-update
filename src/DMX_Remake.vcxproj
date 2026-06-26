@@ -62,7 +62,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Production|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
     <PlatformToolset>v145</PlatformToolset>
     <PreferredToolArchitecture>x86</PreferredToolArchitecture>
@@ -327,7 +327,7 @@ copy /Y "..\deploy\DMX_PROD.exe" "V:\DMX_DEV\DMX_PROD.exe"</Command>
       </UndefinePreprocessorDefinitions>
       <UseStandardPreprocessor>false</UseStandardPreprocessor>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
       <DebugInformationFormat>None</DebugInformationFormat>
       <SupportJustMyCode>false</SupportJustMyCode>
       <DisableSpecificWarnings>4701;4099;%(DisableSpecificWarnings)</DisableSpecificWarnings>
@@ -340,7 +340,6 @@ copy /Y "..\deploy\DMX_PROD.exe" "V:\DMX_DEV\DMX_PROD.exe"</Command>
       <SubSystem>Windows</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <IgnoreSpecificDefaultLibraries>libcmt.lib</IgnoreSpecificDefaultLibraries>
-      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <AdditionalOptions>/IGNORE:4099</AdditionalOptions>
     </Link>
     <PreBuildEvent>
