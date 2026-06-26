@@ -265,7 +265,7 @@ int main()
 		FSOUND_SetOutput(FSOUND_OUTPUT_ASIO);
 		FSOUND_GetNumDrivers(); // triggers internal ASIO COM initialization; return value is unreliable for modern drivers but the call is required
 		signed char driverResult = FSOUND_SetDriver(0);
-#ifdef _DEBUG
+#ifdef DMXDEBUG
 		al_trace("ASIO: SetDriver(0)=%d err=%d\r\n", driverResult, FSOUND_GetError());
 #endif
 		FSOUND_SetMixer(FSOUND_MIXER_QUALITY_FPU);

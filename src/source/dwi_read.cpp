@@ -470,7 +470,7 @@ int readDWI(std::vector<struct ARROW> *chart, std::vector<struct FREEZE> *holds,
 		if ( _strcmpi("GAP", tagName) == 0 )
 		{
 			gap = atoi(tagValue);
-#ifdef _DEBUG
+#ifdef DMXDEBUG
 			al_trace("gap = %d\r\n", gap);
 #endif
 		}
@@ -549,7 +549,7 @@ int readDWI(std::vector<struct ARROW> *chart, std::vector<struct FREEZE> *holds,
 		{
 			continue; // uh-oh;
 		}
-#ifdef _DEBUG
+#ifdef DMXDEBUG
 		al_trace("%f\r\n", currentTime);
 #endif
 
