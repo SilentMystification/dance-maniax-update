@@ -1,15 +1,12 @@
-# Build-only CI: feature/** pushes, main/master/develop/main-update, and all PRs.
-# Push to main, develop, or main-update triggers release.yml (build + GitHub release, v3.0.0-beta.N tags).
+# Build-only CI: feature/** and master pushes, and all PRs.
+# Pushes to main, develop, and main-update are handled by release.yml (which also builds).
 
 name: Build
 
 on:
   push:
     branches:
-      - main
       - master
-      - develop
-      - main-update
       - 'feature/**'
     paths-ignore:
       - '**.md'
