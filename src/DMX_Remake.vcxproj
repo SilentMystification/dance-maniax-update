@@ -181,7 +181,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <StructMemberAlignment>Default</StructMemberAlignment>
-      <PreprocessorDefinitions>_MBCS;CURL_STATICLIB;CURL_STATICLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_MBCS;CURL_STATICLIB;DMXDEV;CURL_STATICLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
@@ -223,7 +223,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <StructMemberAlignment>Default</StructMemberAlignment>
-      <PreprocessorDefinitions>_MBCS;CURL_STATICLIB;CURL_STATICLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_MBCS;CURL_STATICLIB;DMXDEV;CURL_STATICLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
@@ -254,8 +254,7 @@
       <Message>touch the attract mode to update the __DATE__</Message>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>msbuild "$(ProjectPath)" /p:Configuration=Debug /p:Platform=Win32 /t:Build /v:minimal
-msbuild "$(ProjectPath)" /p:Configuration=Production /p:Platform=Win32 /t:Build /v:minimal</Command>
+      <Command>powershell -NoProfile -NonInteractive -Command "$j1 = Start-Process '$(MSBuildBinPath)\MSBuild.exe' -ArgumentList '$(ProjectPath) /p:Configuration=Debug /p:Platform=Win32 /p:PlatformToolset=v145 /t:Build /v:minimal' -PassThru -NoNewWindow; $j2 = Start-Process '$(MSBuildBinPath)\MSBuild.exe' -ArgumentList '$(ProjectPath) /p:Configuration=Production /p:Platform=Win32 /p:PlatformToolset=v145 /t:Build /v:minimal' -PassThru -NoNewWindow; $j1,$j2 | Wait-Process; exit ($j1.ExitCode -bor $j2.ExitCode)"</Command>
       <Message>Building all configurations...</Message>
     </PostBuildEvent>
     <ProjectReference>
@@ -270,7 +269,7 @@ msbuild "$(ProjectPath)" /p:Configuration=Production /p:Platform=Win32 /t:Build 
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <StructMemberAlignment>Default</StructMemberAlignment>
-      <PreprocessorDefinitions>_MBCS;CURL_STATICLIB;CURL_STATICLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_MBCS;CURL_STATICLIB;DMXDEV;CURL_STATICLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
@@ -301,8 +300,7 @@ msbuild "$(ProjectPath)" /p:Configuration=Production /p:Platform=Win32 /t:Build 
       <Message>touch the attract mode to update the __DATE__</Message>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>msbuild "$(ProjectPath)" /p:Configuration=Debug /p:Platform=Win32 /p:PlatformToolset=v143 /t:Build /v:minimal
-msbuild "$(ProjectPath)" /p:Configuration=Production /p:Platform=Win32 /t:Build /v:minimal
+      <Command>powershell -NoProfile -NonInteractive -Command "$j1 = Start-Process '$(MSBuildBinPath)\MSBuild.exe' -ArgumentList '$(ProjectPath) /p:Configuration=Debug /p:Platform=Win32 /p:PlatformToolset=v145 /t:Build /v:minimal' -PassThru -NoNewWindow; $j2 = Start-Process '$(MSBuildBinPath)\MSBuild.exe' -ArgumentList '$(ProjectPath) /p:Configuration=Production /p:Platform=Win32 /p:PlatformToolset=v145 /t:Build /v:minimal' -PassThru -NoNewWindow; $j1,$j2 | Wait-Process; exit ($j1.ExitCode -bor $j2.ExitCode)"
 copy /Y "..\deploy\DMX_DEV.exe" "V:\DMX_DEV\DMX_DEV.exe"
 copy /Y "..\deploy\DMX_DEBUG.exe" "V:\DMX_DEV\DMX_DEBUG.exe"
 copy /Y "..\deploy\DMX_PROD.exe" "V:\DMX_DEV\DMX_PROD.exe"</Command>

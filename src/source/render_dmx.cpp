@@ -126,10 +126,12 @@ void renderDMXChart(int player)
 	static int lastPps[2] = { -1, -1 };
 	if ( pps != lastPps[player] )
 	{
+#ifdef DMX_LOGGING
 		al_trace("renderDMX p%d: pps changed %d->%d scrollRate=%d baseBPM=%d fixedScrollPPS=%d timeElapsed=%d\r\n",
 			player, lastPps[player], pps,
 			gs.player[player].scrollRate, gs.player[player].baseBPM,
 			gs.player[player].fixedScrollPPS, gs.player[player].timeElapsed);
+#endif
 		lastPps[player] = pps;
 	}
 

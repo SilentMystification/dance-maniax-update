@@ -265,7 +265,7 @@ int main()
 		FSOUND_SetOutput(FSOUND_OUTPUT_ASIO);
 		FSOUND_GetNumDrivers(); // triggers internal ASIO COM initialization; return value is unreliable for modern drivers but the call is required
 		signed char driverResult = FSOUND_SetDriver(0);
-#ifdef DMXDEBUG
+#ifdef DMX_LOGGING
 		al_trace("ASIO: SetDriver(0)=%d err=%d\r\n", driverResult, FSOUND_GetError());
 #endif
 		FSOUND_SetMixer(FSOUND_MIXER_QUALITY_FPU);
@@ -281,7 +281,12 @@ int main()
 		al_trace("Ensure your hardware supports ASIO with a 32bit driver and that it is configured properly, or disable the enableasio option.\r\n");
 		al_trace("Falling back to Direct Sound.\r\n");
 	}
-	FSOUND_DSP_Create(&dspSyncCallback, FSOUND_DSP_DEFAULTPRIORITY_USER, NULL);
+	al_trace("FMOD audio backend: %s (rate=%d Hz)\r\n",
+		FSOUND_GetOutput() == FSOUND_OUTPUT_ASIO ? "ASIO" : "DirectSound",
+		FSOUND_GetOutputRate());
+	FSOUND_DSPUNIT* dspSyncUnit = FSOUND_DSP_Create(&dspSyncCallback, FSOUND_DSP_DEFAULTPRIORITY_USER, NULL);
+	if (dspSyncUnit != NULL)
+		FSOUND_DSP_SetActive(dspSyncUnit, TRUE);
 	//*/
 
 	// initialize graphics resources
@@ -479,7 +484,9 @@ int main()
 			if ( gs.g_gameModeTransition == 2 )
 			{
 				gs.g_gameModeTransition = 0;
+#ifdef DMX_LOGGING
 				al_trace("%ld msec were eaten by load times.\r\n", dt);
+#endif
 				continue;
 			}
 
@@ -1028,7 +1035,9 @@ void mainOperatorLoop(UTIME dt)
 						lm.setGroupColor(i, (testMenuSubIndex-1)%3, -1);
 						if ( i == 9 )
 						{
+#ifdef DMX_LOGGING
 							al_trace("setting group 9 to color=%d\n", (testMenuSubIndex-1)%3);
+#endif
 						}
 					}
 					else

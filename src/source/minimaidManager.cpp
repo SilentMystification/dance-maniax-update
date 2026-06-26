@@ -51,7 +51,7 @@ void minimaidManager::initialize()
 	int numDevice = 1;
 	while ( p != NULL )
 	{
-#ifdef DMXDEBUG
+#ifdef DMX_LOGGING
 		al_trace("---------------------------------------------------------\n");
 		al_trace("DEVICE #%d = %ls\n", numDevice, p->product_string);
 		al_trace("VID: %d, PID: %d\n", p->vendor_id, p->product_id);
