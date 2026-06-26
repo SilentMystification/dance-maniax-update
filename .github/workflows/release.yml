@@ -153,11 +153,6 @@ jobs:
           /t:Build
           /v:minimal
 
-      - name: Remove debug symbols from deploy
-        shell: pwsh
-        run: |
-          Get-ChildItem -Path deploy -Filter *.pdb -ErrorAction SilentlyContinue | Remove-Item -Force
-
       - name: Rename DMX_PROD.exe to DMX.exe for release
         shell: pwsh
         run: Rename-Item -Path deploy/DMX_PROD.exe -NewName DMX.exe

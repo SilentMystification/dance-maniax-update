@@ -135,6 +135,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PreprocessorDefinitions>_MBCS;CURL_STATICLIB;DMXDEBUG;CURL_STATICLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DisableSpecificWarnings>4701;4099;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <StructMemberAlignment>Default</StructMemberAlignment>
@@ -176,6 +177,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <StructMemberAlignment>Default</StructMemberAlignment>
@@ -217,6 +219,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <StructMemberAlignment>Default</StructMemberAlignment>
@@ -263,6 +266,7 @@ msbuild "$(ProjectPath)" /p:Configuration=Production /p:Platform=Win32 /t:Build 
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <StructMemberAlignment>Default</StructMemberAlignment>
@@ -312,6 +316,7 @@ copy /Y "..\deploy\DMX_PROD.exe" "V:\DMX_DEV\DMX_PROD.exe"</Command>
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
