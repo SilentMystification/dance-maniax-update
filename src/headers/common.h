@@ -215,6 +215,7 @@ public:
 	BITMAP* m_backbuf;
 	BITMAP* m_backbuf1;
 	BITMAP* m_backbuf2;
+	BITMAP* m_backbuf3;
 
 	BITMAP* m_whiteFont;
 	BITMAP* m_colorFont[16];
@@ -229,13 +230,12 @@ public:
 
 	bool useAlphaLanes;
 
-	int currentPage;
-
 	int screenWidth;
 	int screenHeight;
 	bool pillarboxMode;
 
 	void flip();
+	void shutdown();
 	void screenshot();
 	void renderWipeAnim(int frame); // frame must be 0-14
 	void dimScreen(int percent); // must be 0-100

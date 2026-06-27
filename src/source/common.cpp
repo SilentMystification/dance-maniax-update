@@ -19,6 +19,40 @@ extern std::string* songTitles;
 extern std::string* songArtists;
 extern std::string* movieScripts;
 
+static HANDLE           s_renderThread        = NULL;
+static CRITICAL_SECTION s_cs;
+static BITMAP*          s_bufs[3]             = {};
+static int              s_writeIdx            = 0;
+static int              s_pendingIdx          = 1;
+static int              s_displayIdx          = 2;
+static bool             s_pendingFresh        = false;
+static volatile bool    s_renderThreadRunning = false;
+
+static DWORD WINAPI renderThreadProc(LPVOID)
+{
+	while ( s_renderThreadRunning )
+	{
+		vsync();
+
+		EnterCriticalSection(&s_cs);
+		if ( s_pendingFresh )
+		{
+			int tmp      = s_displayIdx;
+			s_displayIdx = s_pendingIdx;
+			s_pendingIdx = tmp;
+			s_pendingFresh = false;
+		}
+		BITMAP* toBlit = s_bufs[s_displayIdx];
+		LeaveCriticalSection(&s_cs);
+
+		blit(toBlit, screen, 0, 0,
+			(rm.screenWidth  - SCREEN_WIDTH)  / 2,
+			(rm.screenHeight - SCREEN_HEIGHT) / 2,
+			rm.screenWidth, rm.screenHeight);
+	}
+	return 0;
+}
+
 void RenderingManager::Initialize(bool installMode, int windowWidth, int windowHeight, bool widescreenPillars)
 {
 	useAlphaLanes = true;
@@ -27,15 +61,31 @@ void RenderingManager::Initialize(bool installMode, int windowWidth, int windowH
 	screenHeight = windowHeight;
 	pillarboxMode = widescreenPillars;
 
-	// set up double buffering
-	m_backbuf1 = create_system_bitmap(SCREEN_WIDTH, SCREEN_HEIGHT); // source material is still 640x480, so use the old constants
-	m_backbuf2 = create_system_bitmap(SCREEN_WIDTH, SCREEN_HEIGHT);
+	// set up triple buffering
+	m_backbuf1 = create_bitmap(SCREEN_WIDTH, SCREEN_HEIGHT);
+	m_backbuf2 = create_bitmap(SCREEN_WIDTH, SCREEN_HEIGHT);
+	m_backbuf3 = create_bitmap(SCREEN_WIDTH, SCREEN_HEIGHT);
 	clear_to_color(m_backbuf1, 0);
 	clear_to_color(m_backbuf2, 0);
+	clear_to_color(m_backbuf3, 0);
 
 	m_temp64 = create_bitmap(64, 64);
-	currentPage = 1;
-	m_backbuf = rm.m_backbuf1;
+	s_bufs[0]      = m_backbuf1;
+	s_bufs[1]      = m_backbuf2;
+	s_bufs[2]      = m_backbuf3;
+	s_writeIdx     = 0;
+	s_pendingIdx   = 1;
+	s_displayIdx   = 2;
+	s_pendingFresh = false;
+	m_backbuf      = s_bufs[s_writeIdx];
+
+	if ( vsyncEnabled )
+	{
+		InitializeCriticalSection(&s_cs);
+		s_renderThreadRunning = true;
+		s_renderThread        = CreateThread(NULL, 0, renderThreadProc, NULL, 0, NULL);
+		SetThreadPriority(s_renderThread, THREAD_PRIORITY_ABOVE_NORMAL);
+	}
 
 	// load other stuff - these can be NULL during the install process!
 	if ( !installMode )
@@ -394,20 +444,36 @@ void RenderingManager::flip()
 {
 	if ( vsyncEnabled )
 	{
-		vsync();
-	}
-	// center the X and Y (parameters 4 and 5 become 0 in 640x480 original mode)
-	blit(m_backbuf, screen, 0, 0,  (screenWidth-SCREEN_WIDTH)/2 , (screenHeight - SCREEN_HEIGHT) / 2, rm.screenWidth, rm.screenHeight);
-	
-	if ( currentPage == 1 )
-	{
-		m_backbuf = m_backbuf2;	
-		currentPage = 2;
+		EnterCriticalSection(&s_cs);
+		int tmp      = s_writeIdx;
+		s_writeIdx   = s_pendingIdx;
+		s_pendingIdx = tmp;
+		s_pendingFresh = true;
+		m_backbuf    = s_bufs[s_writeIdx];
+		LeaveCriticalSection(&s_cs);
 	}
 	else
 	{
-		m_backbuf = m_backbuf1;
-		currentPage = 1;
+		blit(m_backbuf, screen, 0, 0,
+			(screenWidth  - SCREEN_WIDTH)  / 2,
+			(screenHeight - SCREEN_HEIGHT) / 2,
+			screenWidth, screenHeight);
+		int tmp      = s_writeIdx;
+		s_writeIdx   = s_pendingIdx;
+		s_pendingIdx = tmp;
+		m_backbuf    = s_bufs[s_writeIdx];
+	}
+}
+
+void RenderingManager::shutdown()
+{
+	if ( s_renderThread != NULL )
+	{
+		s_renderThreadRunning = false;
+		WaitForSingleObject(s_renderThread, 2000);
+		CloseHandle(s_renderThread);
+		DeleteCriticalSection(&s_cs);
+		s_renderThread = NULL;
 	}
 }
 

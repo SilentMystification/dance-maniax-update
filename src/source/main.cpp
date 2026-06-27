@@ -709,6 +709,7 @@ int main()
 	// clean up
 	gs.killSong();
 	hid_exit();
+	rm.shutdown();
 	timeEndPeriod(1);
 
 	return EXIT_SUCCESS;
