@@ -1,7 +1,7 @@
 # Build + GitHub release on push to main, develop, or main-update, or manual dispatch.
 # Push: auto-tags v3.0.0-beta.N (regular release, not marked pre-release).
 # workflow_dispatch with version: tags vX.Y.Z (regular release).
-# Release assets: DMX_DEBUG.exe, DMX_DEV.exe, DMX_PROD.exe (All profile), DMX.zip, InitialSetup.zip.
+# Release assets: DMX.exe (Production build), DMX.zip, InitialSetup.zip.
 #
 # Job graph:
 #   prepare ──┬── build ──────────┐
@@ -167,9 +167,18 @@ jobs:
             Write-Host "OK: $path"
           }
 
-      - name: Prepare deploy for release zips
+      - name: Prepare DMX.exe for release
         shell: pwsh
-        run: Copy-Item -Path deploy/DMX_PROD.exe -Destination deploy/DMX.exe -Force
+        run: |
+          if (-not (Test-Path deploy/DMX_PROD.exe)) {
+            Write-Error 'Missing deploy/DMX_PROD.exe'
+          }
+          Copy-Item -Path deploy/DMX_PROD.exe -Destination deploy/DMX.exe -Force
+          Remove-Item deploy/DMX_PROD.exe, deploy/DMX_DEBUG.exe, deploy/DMX_DEV.exe -Force -ErrorAction SilentlyContinue
+          if (-not (Test-Path deploy/DMX.exe)) {
+            Write-Error 'Missing deploy/DMX.exe after prepare step'
+          }
+          Write-Host 'OK: deploy/DMX.exe (from Production build)'
 
       - name: Package DMX.zip
         shell: pwsh
@@ -211,9 +220,7 @@ jobs:
         with:
           name: release-assets
           path: |
-            deploy/DMX_DEBUG.exe
-            deploy/DMX_DEV.exe
-            deploy/DMX_PROD.exe
+            deploy/DMX.exe
             DMX.zip
             InitialSetup.zip
 
@@ -360,9 +367,7 @@ jobs:
             --title "$TAG" \
             --notes-file release_notes.md \
             $PRERELEASE_FLAG \
-            assets/deploy/DMX_DEBUG.exe \
-            assets/deploy/DMX_DEV.exe \
-            assets/deploy/DMX_PROD.exe \
+            assets/deploy/DMX.exe \
             assets/DMX.zip \
             assets/InitialSetup.zip
 
