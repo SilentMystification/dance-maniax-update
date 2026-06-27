@@ -1,5 +1,6 @@
 # Build-only CI: feature/** and master pushes, and all PRs.
-# Pushes to main, develop, and main-update are handled by release.yml (which also builds).
+# Pushes to main, develop, and main-update are handled by release.yml (Production build).
+# Local all-config builds: scripts/build-all.ps1 or VS configurations All / DeployToCab.
 
 name: Build
 
@@ -27,37 +28,20 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Cache All-profile build objects
+      - name: Cache build objects
         uses: actions/cache@v4
         with:
           path: |
-            src/DMX_Remake/All
+            src/DMX_Remake/Dev
             src/DMX_Remake/Debug
             src/DMX_Remake/Production
           key: ${{ runner.os }}-msbuild-all-${{ hashFiles('src/**/*.cpp', 'src/**/*.h', 'src/DMX_Remake.vcxproj') }}
           restore-keys: |
             ${{ runner.os }}-msbuild-all-
 
-      - name: Build All
-        run: >
-          msbuild src/DMX_Remake.vcxproj
-          /m
-          /p:Configuration=All
-          /p:Platform=Win32
-          /p:PlatformToolset=v145
-          /t:Build
-          /v:minimal
-
-      - name: Verify All-profile outputs
+      - name: Build Dev, Debug, and Production (parallel)
         shell: pwsh
-        run: |
-          foreach ($exe in @('DMX_DEBUG.exe', 'DMX_DEV.exe', 'DMX_PROD.exe')) {
-            $path = Join-Path deploy $exe
-            if (-not (Test-Path $path)) {
-              Write-Error "Missing expected output: $path"
-            }
-            Write-Host "OK: $path"
-          }
+        run: ./scripts/build-all.ps1
 
       - name: Upload All-profile executables
         if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/heads/feature/')

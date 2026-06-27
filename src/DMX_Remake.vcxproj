@@ -144,6 +144,7 @@
       <LanguageStandard_C>stdc11</LanguageStandard_C>
       <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
       <UndefinePreprocessorDefinitions>
       </UndefinePreprocessorDefinitions>
@@ -154,7 +155,6 @@
       <AdditionalDependencies>allegro-4.4.2-mt.lib;loadpng-1.5-mt.lib;logg-1.0-mt.lib;zlib-1.2.5-static-mt.lib;fmodvc.lib;apeg_r.lib;ogg_static.lib;vorbis_static.lib;libtheora.lib;winmm.lib;urlmon.lib;hidapi.lib;libcurl.lib;Ws2_32.lib;wldap32.lib;legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
       <IgnoreSpecificDefaultLibraries>libcmt.lib</IgnoreSpecificDefaultLibraries>
-      <LinkTimeCodeGeneration>UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
@@ -165,10 +165,6 @@
       <TargetMachine>MachineX86</TargetMachine>
       <AdditionalOptions>/IGNORE:4099</AdditionalOptions>
     </Link>
-    <PreBuildEvent>
-      <Command>if exist "$(IntDir)version.obj" del "$(IntDir)version.obj"</Command>
-      <Message>touch the attract mode to update the __DATE__</Message>
-    </PreBuildEvent>
     <ProjectReference>
       <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
     </ProjectReference>
@@ -192,25 +188,20 @@
       <UseStandardPreprocessor>false</UseStandardPreprocessor>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <DebugInformationFormat>None</DebugInformationFormat>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <SupportJustMyCode>true</SupportJustMyCode>
       <DisableSpecificWarnings>4701;4099;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>false</EnableCOMDATFolding>
+      <OptimizeReferences>false</OptimizeReferences>
       <AdditionalDependencies>allegro-4.4.2-mt.lib;loadpng-1.5-mt.lib;logg-1.0-mt.lib;zlib-1.2.5-static-mt.lib;fmodvc.lib;apeg_r.lib;ogg_static.lib;vorbis_static.lib;libtheora.lib;winmm.lib;urlmon.lib;hidapi.lib;libcurl.lib;Ws2_32.lib;wldap32.lib;legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <IgnoreSpecificDefaultLibraries>libcmt.lib</IgnoreSpecificDefaultLibraries>
-      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <AdditionalOptions>/IGNORE:4099</AdditionalOptions>
     </Link>
-    <PreBuildEvent>
-      <Command>if exist "$(IntDir)versionManager.obj" del "$(IntDir)versionManager.obj"</Command>
-      <Message>touch the attract mode to update the __DATE__</Message>
-    </PreBuildEvent>
     <ProjectReference>
       <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
     </ProjectReference>
@@ -234,27 +225,22 @@
       <UseStandardPreprocessor>false</UseStandardPreprocessor>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <DebugInformationFormat>None</DebugInformationFormat>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <SupportJustMyCode>true</SupportJustMyCode>
       <DisableSpecificWarnings>4701;4099;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>false</EnableCOMDATFolding>
+      <OptimizeReferences>false</OptimizeReferences>
       <AdditionalDependencies>allegro-4.4.2-mt.lib;loadpng-1.5-mt.lib;logg-1.0-mt.lib;zlib-1.2.5-static-mt.lib;fmodvc.lib;apeg_r.lib;ogg_static.lib;vorbis_static.lib;libtheora.lib;winmm.lib;urlmon.lib;hidapi.lib;libcurl.lib;Ws2_32.lib;wldap32.lib;legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <IgnoreSpecificDefaultLibraries>libcmt.lib</IgnoreSpecificDefaultLibraries>
-      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <AdditionalOptions>/IGNORE:4099</AdditionalOptions>
     </Link>
-    <PreBuildEvent>
-      <Command>if exist "$(IntDir)versionManager.obj" del "$(IntDir)versionManager.obj"</Command>
-      <Message>touch the attract mode to update the __DATE__</Message>
-    </PreBuildEvent>
     <PostBuildEvent>
-      <Command>powershell -NoProfile -NonInteractive -Command "$j1 = Start-Process '$(MSBuildBinPath)\MSBuild.exe' -ArgumentList '$(ProjectPath) /p:Configuration=Debug /p:Platform=Win32 /p:PlatformToolset=v145 /t:Build /v:minimal' -PassThru -NoNewWindow; $j2 = Start-Process '$(MSBuildBinPath)\MSBuild.exe' -ArgumentList '$(ProjectPath) /p:Configuration=Production /p:Platform=Win32 /p:PlatformToolset=v145 /t:Build /v:minimal' -PassThru -NoNewWindow; $j1,$j2 | Wait-Process; exit ($j1.ExitCode -bor $j2.ExitCode)"</Command>
+      <Command>powershell -NoProfile -NonInteractive -Command "$j1 = Start-Process '$(MSBuildBinPath)\MSBuild.exe' -ArgumentList '$(ProjectPath) /m /p:Configuration=Debug /p:Platform=Win32 /p:PlatformToolset=v145 /t:Build /v:minimal' -PassThru -NoNewWindow; $j2 = Start-Process '$(MSBuildBinPath)\MSBuild.exe' -ArgumentList '$(ProjectPath) /m /p:Configuration=Production /p:Platform=Win32 /p:PlatformToolset=v145 /t:Build /v:minimal' -PassThru -NoNewWindow; $j1,$j2 | Wait-Process; exit ($j1.ExitCode -bor $j2.ExitCode)"</Command>
       <Message>Building all configurations...</Message>
     </PostBuildEvent>
     <ProjectReference>
@@ -280,27 +266,22 @@
       <UseStandardPreprocessor>false</UseStandardPreprocessor>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <DebugInformationFormat>None</DebugInformationFormat>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <SupportJustMyCode>true</SupportJustMyCode>
       <DisableSpecificWarnings>4701;4099;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>false</EnableCOMDATFolding>
+      <OptimizeReferences>false</OptimizeReferences>
       <AdditionalDependencies>allegro-4.4.2-mt.lib;loadpng-1.5-mt.lib;logg-1.0-mt.lib;zlib-1.2.5-static-mt.lib;fmodvc.lib;apeg_r.lib;ogg_static.lib;vorbis_static.lib;libtheora.lib;winmm.lib;urlmon.lib;hidapi.lib;libcurl.lib;Ws2_32.lib;wldap32.lib;legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <IgnoreSpecificDefaultLibraries>libcmt.lib</IgnoreSpecificDefaultLibraries>
-      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <AdditionalOptions>/IGNORE:4099</AdditionalOptions>
     </Link>
-    <PreBuildEvent>
-      <Command>if exist "$(IntDir)versionManager.obj" del "$(IntDir)versionManager.obj"</Command>
-      <Message>touch the attract mode to update the __DATE__</Message>
-    </PreBuildEvent>
     <PostBuildEvent>
-      <Command>powershell -NoProfile -NonInteractive -Command "$j1 = Start-Process '$(MSBuildBinPath)\MSBuild.exe' -ArgumentList '$(ProjectPath) /p:Configuration=Debug /p:Platform=Win32 /p:PlatformToolset=v145 /t:Build /v:minimal' -PassThru -NoNewWindow; $j2 = Start-Process '$(MSBuildBinPath)\MSBuild.exe' -ArgumentList '$(ProjectPath) /p:Configuration=Production /p:Platform=Win32 /p:PlatformToolset=v145 /t:Build /v:minimal' -PassThru -NoNewWindow; $j1,$j2 | Wait-Process; exit ($j1.ExitCode -bor $j2.ExitCode)"
+      <Command>powershell -NoProfile -NonInteractive -Command "$j1 = Start-Process '$(MSBuildBinPath)\MSBuild.exe' -ArgumentList '$(ProjectPath) /m /p:Configuration=Debug /p:Platform=Win32 /p:PlatformToolset=v145 /t:Build /v:minimal' -PassThru -NoNewWindow; $j2 = Start-Process '$(MSBuildBinPath)\MSBuild.exe' -ArgumentList '$(ProjectPath) /m /p:Configuration=Production /p:Platform=Win32 /p:PlatformToolset=v145 /t:Build /v:minimal' -PassThru -NoNewWindow; $j1,$j2 | Wait-Process; exit ($j1.ExitCode -bor $j2.ExitCode)"
 copy /Y "..\deploy\DMX_DEV.exe" "V:\DMX_DEV\DMX_DEV.exe"
 copy /Y "..\deploy\DMX_DEBUG.exe" "V:\DMX_DEV\DMX_DEBUG.exe"
 copy /Y "..\deploy\DMX_PROD.exe" "V:\DMX_DEV\DMX_PROD.exe"</Command>

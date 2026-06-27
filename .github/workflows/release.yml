@@ -2,6 +2,7 @@
 # Push: auto-tags v3.0.0-beta.N (regular release, not marked pre-release).
 # workflow_dispatch with version: tags vX.Y.Z (regular release).
 # Release assets: DMX.exe (Production build), DMX.zip, InitialSetup.zip.
+# Release CI builds Production only; use scripts/build-all.ps1 or VS All/DeployToCab locally for all three exes.
 #
 # Job graph:
 #   prepare ──┬── build ──────────┐
@@ -135,37 +136,31 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Cache All-profile build objects
+      - name: Cache Production build objects
         uses: actions/cache@v4
         with:
-          path: |
-            src/DMX_Remake/All
-            src/DMX_Remake/Debug
-            src/DMX_Remake/Production
-          key: ${{ runner.os }}-msbuild-all-${{ hashFiles('src/**/*.cpp', 'src/**/*.h', 'src/DMX_Remake.vcxproj') }}
+          path: src/DMX_Remake/Production
+          key: ${{ runner.os }}-msbuild-production-${{ hashFiles('src/**/*.cpp', 'src/**/*.h', 'src/DMX_Remake.vcxproj') }}
           restore-keys: |
-            ${{ runner.os }}-msbuild-all-
+            ${{ runner.os }}-msbuild-production-
 
-      - name: Build All
+      - name: Build Production
         run: >
           msbuild src/DMX_Remake.vcxproj
           /m
-          /p:Configuration=All
+          /p:Configuration=Production
           /p:Platform=Win32
           /p:PlatformToolset=v145
           /t:Build
           /v:minimal
 
-      - name: Verify All-profile outputs
+      - name: Verify Production output
         shell: pwsh
         run: |
-          foreach ($exe in @('DMX_DEBUG.exe', 'DMX_DEV.exe', 'DMX_PROD.exe')) {
-            $path = Join-Path deploy $exe
-            if (-not (Test-Path $path)) {
-              Write-Error "Missing expected output: $path"
-            }
-            Write-Host "OK: $path"
+          if (-not (Test-Path deploy/DMX_PROD.exe)) {
+            Write-Error 'Missing deploy/DMX_PROD.exe'
           }
+          Write-Host 'OK: deploy/DMX_PROD.exe'
 
       - name: Prepare DMX.exe for release
         shell: pwsh
