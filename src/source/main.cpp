@@ -86,10 +86,12 @@ bool pillarBoxMode = false;
 bool vsyncEnabled = false;
 bool asioRequested = false;
 bool usePhoenixIO = false;
+LARGE_INTEGER g_qpcFreq = {};          // QueryPerformanceFrequency result, set once at startup
+UTIME getTimeMs() { LARGE_INTEGER c; QueryPerformanceCounter(&c); return (UTIME)(c.QuadPart * 1000 / g_qpcFreq.QuadPart); }
 volatile UTIME g_dspLastChunkWall = 0; // wall time of the last FMOD DSP chunk boundary (written by FMOD mixer thread)
 volatile UTIME g_dspChunkCount    = 0; // total DSP chunks fired since FMOD init (written by FMOD mixer thread)
 volatile UTIME g_dspSongStartChunk = 0; // g_dspChunkCount at the moment playSong() was called
-UTIME g_songStartWall = 0;             // timeGetTime() at the moment playSong() was called
+UTIME g_songStartWall = 0;             // getTimeMs() at the moment playSong() was called
 
 BITMAP** m_banners; // used globally
 BITMAP* m_caution;
@@ -197,7 +199,7 @@ void renderDataOptions();
 // Records the precise wall time so gameplayMode can anchor syncedBase without game-loop polling lag.
 static void* F_CALLBACKAPI dspSyncCallback(void* /*originalbuffer*/, void* newbuffer, int /*length*/, void* /*userdata*/)
 {
-    g_dspLastChunkWall = timeGetTime();
+    g_dspLastChunkWall = getTimeMs();
     g_dspChunkCount++;
     return newbuffer;
 }
@@ -250,7 +252,9 @@ int main()
 		allegro_message("Unable to initialize timer.");
 		return EXIT_FAILURE;
 	}
-	last_utime = timeGetTime();
+	QueryPerformanceFrequency(&g_qpcFreq);
+	last_utime = getTimeMs();
+	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
 
 	//* initialize the sound playback
 	// All SFX are now routed through FMOD to allow ASIO exclusive mode to function; Allegro audio is not used anymore.
@@ -456,7 +460,7 @@ int main()
 	// main game loop
 	while ( !key[KEY_ESC] )
 	{
-		UTIME time = timeGetTime();
+		UTIME time = getTimeMs();
 
 		UTIME dt = time - last_utime; // moving this outside of the loop prevents a crash that occurs if the game runs for ~50 days xD
 		if ( dt > 0 )

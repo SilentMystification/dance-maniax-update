@@ -86,10 +86,11 @@ bool debugCheats = false;
 extern InputManager im;
 int retireTimer = 0; // for ending the game early when there is a lack of input
 int lampCycle = 0;
+extern UTIME getTimeMs();                  // QPC-based millisecond clock (main.cpp)
 extern volatile UTIME g_dspLastChunkWall;  // wall time of last FMOD DSP chunk boundary (main.cpp)
 extern volatile UTIME g_dspChunkCount;     // total DSP chunks fired since FMOD init (main.cpp)
 extern volatile UTIME g_dspSongStartChunk; // g_dspChunkCount at the moment playSong() was called (main.cpp)
-extern UTIME g_songStartWall;              // timeGetTime() at the moment playSong() was called (main.cpp)
+extern UTIME g_songStartWall;              // getTimeMs() at the moment playSong() was called (main.cpp)
 static bool s_syncDiagTraced = false;
 
 // in-song speed adjustment
@@ -242,7 +243,7 @@ void mainGameplayLoop(UTIME dt)
 {
 	// Sync song clock before chart logic so timeElapsed is current when hits are judged.
 	// Re-anchor to FMOD's position each update; interpolate with wall clock between anchors.
-	UTIME now = timeGetTime();
+	UTIME now = getTimeMs();
 	if (g_dspChunkCount > g_dspSongStartChunk && g_dspChunkCount != gs.bgmLastChunkCount)
 	{
 		int freq = FSOUND_GetOutputRate();
