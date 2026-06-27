@@ -677,6 +677,11 @@ int main()
 				{
 					SHOW_LAMPS = !SHOW_LAMPS;
 				}
+#elif defined(DMXDEV)
+				if ( totalGameTime > 1000 )
+				{
+					renderWhiteNumber(frameCounter / (totalGameTime/1000), 0, 0);
+				}
 #endif
 				rm.flip();
 
