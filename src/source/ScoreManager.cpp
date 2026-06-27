@@ -439,8 +439,8 @@ void ScoreManager::runDataFixers()
 		sprintf_s(path, sizeof(path), "%s%s", PLAYERS_DIR, findData.cFileName);
 
 		// read version number from file header
-		FILE* fp = fopen(path, "rb");
-		if ( !fp ) continue;
+		FILE* fp = NULL;
+		if ( fopen_s(&fp, path, "rb") != 0 ) continue;
 		char magic[4] = {0};
 		long vnum = 0;
 		fread(magic, 1, 4, fp);
