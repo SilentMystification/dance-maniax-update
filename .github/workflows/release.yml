@@ -1,7 +1,7 @@
 # Build + GitHub release on push to main, develop, or main-update, or manual dispatch.
 # Push: auto-tags v3.0.0-beta.N (regular release, not marked pre-release).
 # workflow_dispatch with version: tags vX.Y.Z (regular release).
-# Release assets: DMX.exe, DMX.zip (deploy/ contents at zip root), InitialSetup.zip.
+# Release assets: DMX_DEBUG.exe, DMX_DEV.exe, DMX_PROD.exe (All profile), DMX.zip, InitialSetup.zip.
 #
 # Job graph:
 #   prepare ──┬── build ──────────┐
@@ -135,27 +135,41 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Cache Production build objects
+      - name: Cache All-profile build objects
         uses: actions/cache@v4
         with:
-          path: src/DMX_Remake/Production
-          key: ${{ runner.os }}-msbuild-production-${{ hashFiles('src/**/*.cpp', 'src/**/*.h', 'src/DMX_Remake.vcxproj') }}
+          path: |
+            src/DMX_Remake/All
+            src/DMX_Remake/Debug
+            src/DMX_Remake/Production
+          key: ${{ runner.os }}-msbuild-all-${{ hashFiles('src/**/*.cpp', 'src/**/*.h', 'src/DMX_Remake.vcxproj') }}
           restore-keys: |
-            ${{ runner.os }}-msbuild-production-
+            ${{ runner.os }}-msbuild-all-
 
-      - name: Build Production
+      - name: Build All
         run: >
           msbuild src/DMX_Remake.vcxproj
           /m
-          /p:Configuration=Production
+          /p:Configuration=All
           /p:Platform=Win32
           /p:PlatformToolset=v145
           /t:Build
           /v:minimal
 
-      - name: Rename DMX_PROD.exe to DMX.exe for release
+      - name: Verify All-profile outputs
         shell: pwsh
-        run: Rename-Item -Path deploy/DMX_PROD.exe -NewName DMX.exe
+        run: |
+          foreach ($exe in @('DMX_DEBUG.exe', 'DMX_DEV.exe', 'DMX_PROD.exe')) {
+            $path = Join-Path deploy $exe
+            if (-not (Test-Path $path)) {
+              Write-Error "Missing expected output: $path"
+            }
+            Write-Host "OK: $path"
+          }
+
+      - name: Prepare deploy for release zips
+        shell: pwsh
+        run: Copy-Item -Path deploy/DMX_PROD.exe -Destination deploy/DMX.exe -Force
 
       - name: Package DMX.zip
         shell: pwsh
@@ -197,7 +211,9 @@ jobs:
         with:
           name: release-assets
           path: |
-            deploy/DMX.exe
+            deploy/DMX_DEBUG.exe
+            deploy/DMX_DEV.exe
+            deploy/DMX_PROD.exe
             DMX.zip
             InitialSetup.zip
 
@@ -344,7 +360,9 @@ jobs:
             --title "$TAG" \
             --notes-file release_notes.md \
             $PRERELEASE_FLAG \
-            assets/deploy/DMX.exe \
+            assets/deploy/DMX_DEBUG.exe \
+            assets/deploy/DMX_DEV.exe \
+            assets/deploy/DMX_PROD.exe \
             assets/DMX.zip \
             assets/InitialSetup.zip
 
