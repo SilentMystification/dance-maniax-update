@@ -206,7 +206,7 @@ struct PLAYER_DATA
 
 			for ( int i = 0; i < NUM_SONGS; i++ )
 			{
-				allTime[i] = (SONG_RECORD *)malloc(NUM_SONGS * 6);
+				allTime[i] = (SONG_RECORD *)malloc(6 * sizeof(SONG_RECORD));
 			}
 		}
 	}
