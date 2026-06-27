@@ -149,12 +149,12 @@ void renderDMXChart(int player)
 	if ( gs.player[player].stopLength > 0 )
 	{
 		time = gs.player[player].stopTime;
-		pausedTime += gs.player[player].timeElapsed + gs.player[player].stopLength - gs.player[player].stopTime;
+		pausedTime += (int)(gs.player[player].stopEndTime - gs.player[player].stopTime);
 	}
 
 	// render the hold notes
 	int holdIndex = gs.player[player].currentFreeze;
-	int holdPausedTime = gs.player[player].stopLength > 0 ? gs.player[player].timeElapsed + gs.player[player].stopLength - gs.player[player].stopTime : 0;
+	int holdPausedTime = gs.player[player].stopLength > 0 ? (int)(gs.player[player].stopEndTime - gs.player[player].stopTime) : 0;
 
 	//int countHoldsProcessed = 0;
 	while ( holdIndex < (int)gs.player[player].freezeArrows.size() )

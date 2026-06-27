@@ -94,6 +94,7 @@ public:
 		int   oldScrollRate;      // scrollRate at the start of the current BPM transition
 		UTIME stopTime;           // the timeElapsed that the tempo stop happened at
 		UTIME stopLength;         // the milliseconds that the current tempo stop lasts for
+		UTIME stopEndTime;        // stopTime + initial stopLength — constant for the stop's duration, avoids jitter
 		UTIME bpmUpdateTimer;     // allows the BPM to change smoothly from scrollRate to newScrollRate
 		UTIME bpmAnimationLength; // denominator for blend — duration of the current transition
 		int   speedMod;           // the current speed mod times 10 (for 1.5, 2.5, etc)
@@ -171,6 +172,7 @@ public:
 
 			stopTime = 0;
 			stopLength = 0;
+			stopEndTime = 0;
 			bpmUpdateTimer = 0;
 
 			for ( int i = 0; i < 10; i++ )

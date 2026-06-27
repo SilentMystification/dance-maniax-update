@@ -408,8 +408,29 @@ void mainGameplayLoop(UTIME dt)
 			if ( gs.player[target].scrollMode == 1 ) // Fixed mode
 			{
 				int delta = start ? 5 : 50;
-				if ( left )  gs.player[target].fixedScrollPPS = MAX(25,  gs.player[target].fixedScrollPPS - delta);
-				if ( right ) gs.player[target].fixedScrollPPS = MIN(700, gs.player[target].fixedScrollPPS + delta);
+				int baseBPM = gs.player[target].baseBPM;
+				int curBPM  = gs.player[target].committedScrollRate;
+				if ( baseBPM > 0 && curBPM > 0 )
+				{
+					// Adjust effective PPS at current BPM, then back-calculate fixedScrollPPS.
+					// If effectivePPS is not a clean multiple of delta (e.g. after a back-calculation
+					// during a BPM gimmick), snap to the nearest multiple in the press direction first.
+					int effectivePPS = gs.player[target].fixedScrollPPS * curBPM / baseBPM;
+					int newEffective;
+					if ( right )
+						newEffective = (effectivePPS / delta + 1) * delta;
+					else
+						newEffective = (effectivePPS % delta == 0) ? effectivePPS - delta : (effectivePPS / delta) * delta;
+					newEffective = MAX(25, MIN(700, newEffective));
+					gs.player[target].fixedScrollPPS = MAX(25, MIN(700, newEffective * baseBPM / curBPM));
+				}
+				else
+				{
+					int cur = gs.player[target].fixedScrollPPS;
+					int next = right ? (cur / delta + 1) * delta
+					                 : (cur % delta == 0) ? cur - delta : (cur / delta) * delta;
+					gs.player[target].fixedScrollPPS = MAX(25, MIN(700, next));
+				}
 			}
 			else // Classic mode: cycle through discrete speed list
 			{
@@ -675,8 +696,9 @@ void doChartLogic(UTIME dt, int p)
 		}
 		if ( gs.player[p].currentChart[n].type == SCROLL_STOP )
 		{
-			gs.player[p].stopLength = gs.player[p].currentChart[n].color;
-			gs.player[p].stopTime = gs.player[p].timeElapsed;
+			gs.player[p].stopLength  = gs.player[p].currentChart[n].color;
+			gs.player[p].stopTime    = gs.player[p].timeElapsed;
+			gs.player[p].stopEndTime = gs.player[p].timeElapsed + gs.player[p].currentChart[n].color;
 		}
 		if ( gs.player[p].currentChart[n].type == NEW_SECTION )
 		{
@@ -1331,6 +1353,10 @@ void loadNextSong()
 	for ( int p = 0; p < (gs.isVersus ? 2 : 1); p++ )
 	{
 		gs.player[p].nextStage();
+
+		// restore saved speed settings — mid-song adjustments are temporary and must not carry over.
+		gs.player[p].fixedScrollPPS = sm.player[p].fixedScrollPPS;
+		gs.player[p].speedMod       = sm.player[p].speedMod;
 
 		// capture initial BPM for fixed scroll mode pps ratio, and pre-set scrollRate so the
 		// first render uses the correct pps regardless of the previous song's ending BPM.
