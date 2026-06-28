@@ -240,7 +240,7 @@
       <AdditionalOptions>/IGNORE:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
-      <Command>powershell -NoProfile -NonInteractive -Command "$j1 = Start-Process '$(MSBuildBinPath)\MSBuild.exe' -ArgumentList '$(ProjectPath) /m /p:Configuration=Debug /p:Platform=Win32 /p:PlatformToolset=v145 /t:Build /v:minimal' -PassThru -NoNewWindow; $j2 = Start-Process '$(MSBuildBinPath)\MSBuild.exe' -ArgumentList '$(ProjectPath) /m /p:Configuration=Production /p:Platform=Win32 /p:PlatformToolset=v145 /t:Build /v:minimal' -PassThru -NoNewWindow; $j1,$j2 | Wait-Process; exit ($j1.ExitCode -bor $j2.ExitCode)"</Command>
+      <Command>powershell -NoProfile -NonInteractive -Command "$j1 = Start-Process '$(MSBuildBinPath)\MSBuild.exe' -ArgumentList '$(ProjectPath) /m /p:Configuration=Debug /p:Platform=Win32 /p:PlatformToolset=$(PlatformToolset) /t:Build /v:minimal' -PassThru -NoNewWindow; $j2 = Start-Process '$(MSBuildBinPath)\MSBuild.exe' -ArgumentList '$(ProjectPath) /m /p:Configuration=Production /p:Platform=Win32 /p:PlatformToolset=$(PlatformToolset) /t:Build /v:minimal' -PassThru -NoNewWindow; $j1,$j2 | Wait-Process; exit ($j1.ExitCode -bor $j2.ExitCode)"</Command>
       <Message>Building all configurations...</Message>
     </PostBuildEvent>
     <ProjectReference>
@@ -281,7 +281,7 @@
       <AdditionalOptions>/IGNORE:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
-      <Command>powershell -NoProfile -NonInteractive -Command "$j1 = Start-Process '$(MSBuildBinPath)\MSBuild.exe' -ArgumentList '$(ProjectPath) /m /p:Configuration=Debug /p:Platform=Win32 /p:PlatformToolset=v145 /t:Build /v:minimal' -PassThru -NoNewWindow; $j2 = Start-Process '$(MSBuildBinPath)\MSBuild.exe' -ArgumentList '$(ProjectPath) /m /p:Configuration=Production /p:Platform=Win32 /p:PlatformToolset=v145 /t:Build /v:minimal' -PassThru -NoNewWindow; $j1,$j2 | Wait-Process; exit ($j1.ExitCode -bor $j2.ExitCode)"
+      <Command>powershell -NoProfile -NonInteractive -Command "$j1 = Start-Process '$(MSBuildBinPath)\MSBuild.exe' -ArgumentList '$(ProjectPath) /m /p:Configuration=Debug /p:Platform=Win32 /p:PlatformToolset=$(PlatformToolset) /t:Build /v:minimal' -PassThru -NoNewWindow; $j2 = Start-Process '$(MSBuildBinPath)\MSBuild.exe' -ArgumentList '$(ProjectPath) /m /p:Configuration=Production /p:Platform=Win32 /p:PlatformToolset=$(PlatformToolset) /t:Build /v:minimal' -PassThru -NoNewWindow; $j1,$j2 | Wait-Process; exit ($j1.ExitCode -bor $j2.ExitCode)"
 copy /Y "..\deploy\DMX_DEV.exe" "V:\DMX_DEV\DMX_DEV.exe"
 copy /Y "..\deploy\DMX_DEBUG.exe" "V:\DMX_DEV\DMX_DEBUG.exe"
 copy /Y "..\deploy\DMX_PROD.exe" "V:\DMX_DEV\DMX_PROD.exe"</Command>
