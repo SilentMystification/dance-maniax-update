@@ -60,7 +60,11 @@ bool ScoreManager::loadPlayerFromDisk(char* name, char side)
 		globalError(PLAYER_PREFS_LOST, "version number mismatch");
 	}
 
-	fread(&p.displayName, sizeof(char), 8, fp);
+	{
+		char storedName[8]; // read past the name stored in the file, but treat the name used to find this file (below) as authoritative
+		fread(&storedName, sizeof(char), 8, fp);
+	}
+	memcpy(p.displayName, name, 8); // guarantees the filename this profile loaded from and p.displayName always match on every future save
 	fread(&p.pinDigits, sizeof(char), 4, fp);
 	fread(&p.numPlaysSP, sizeof(long), 1, fp);
 	fread(&p.numPlaysDP, sizeof(long), 1, fp);
