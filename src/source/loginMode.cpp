@@ -587,6 +587,7 @@ void mainLoginLoop(UTIME dt)
 					if ( sm.isPinCorrect((pinNums[side][0]*1000)+(pinNums[side][1]*100)+(pinNums[side][2]*10)+(pinNums[side][3]), side) )
 					{
 						sm.player[side].isLoggedIn = true; // hooray! create a new save file
+						sm.savePlayersToDisk(); // write the new profile now so it exists even if the credit is later abandoned or times out
 						*pstatus = LOGIN_PIN_CORRECT;
 						em.playSample(SFX_CROWD_CHEERING);
 						em.announcerQuip(GUY_EVERYBODY_WAITING);
