@@ -213,11 +213,7 @@ int main()
 	_mkdir("CONF");
 	_mkdir("BACKUP");
 	_mkdir("UPDATE");
-#ifdef DMXDEBUG
-	_mkdir("PLAYERS_DEBUG");
-#else
-	_mkdir("PLAYERS");
-#endif
+	_mkdir(PLAYERS_DIR);
 	_mkdir("DATA");
 	
 	// setup the Allegro library

@@ -4,14 +4,6 @@
 #include <stdio.h>
 #include <string>
 
-#ifdef DMXDEBUG
-#define PLAYERS_DIR      "PLAYERS_DEBUG/"
-#define PLAYERS_DIR_GLOB "PLAYERS_DEBUG/*.prefs"
-#else
-#define PLAYERS_DIR      "PLAYERS/"
-#define PLAYERS_DIR_GLOB "PLAYERS/*.prefs"
-#endif
-
 #include "../headers/scoreManager.h"
 #include <windows.h>
 

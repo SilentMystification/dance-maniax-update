@@ -329,13 +329,13 @@ public:
 	// postcondition: for each player, if isLoggedIn is true, creates a new file on disk
 
 	void runDataFixers();
-	// precondition: PLAYERS/ directory exists
+	// precondition: PLAYER_EXPERIMENTAL/ directory exists
 	// postcondition: all player save files are migrated to the current layout in-place;
 	//                safe to call every startup — each fixer is a no-op on already-migrated files
 
 	bool doesPlayerNameExist(char* name);
 	// precondition: name is 8 or less in length and contains only symbols allowed in filenames
-	// postcondition: returns true if PLAYERS/name.prefs exists
+	// postcondition: returns true if PLAYER_EXPERIMENTAL/name.prefs exists
 
 	bool isPinCorrect(int pin, int side);
 	// precondition: pin is [0..9999]

@@ -43,6 +43,17 @@
 #define CURRENT_SCORE_VERSION_NUMBER 3
 #define CURRENT_PLAYER_VERSION_NUMBER 2
 
+// single source of truth for where player profiles/scores live on disk;
+// keeps this build's data separate from the original release's PLAYERS/ folder
+// so both can be installed side by side
+#ifdef DMXDEBUG
+#define PLAYERS_DIR      "PLAYERS_DEBUG/"
+#define PLAYERS_DIR_GLOB "PLAYERS_DEBUG/*.prefs"
+#else
+#define PLAYERS_DIR      "PLAYER_EXPERIMENTAL/"
+#define PLAYERS_DIR_GLOB "PLAYER_EXPERIMENTAL/*.prefs"
+#endif
+
 // for the operator menu
 #define WHITE makeacol(255,255,255, 255)
 #define RED makeacol(255,32,32, 255)
