@@ -50,8 +50,8 @@
 #define PLAYERS_DIR      "PLAYERS_DEBUG/"
 #define PLAYERS_DIR_GLOB "PLAYERS_DEBUG/*.prefs"
 #else
-#define PLAYERS_DIR      "PLAYER_EXPERIMENTAL/"
-#define PLAYERS_DIR_GLOB "PLAYER_EXPERIMENTAL/*.prefs"
+#define PLAYERS_DIR      "PLAYERS_EXPERIMENTAL/"
+#define PLAYERS_DIR_GLOB "PLAYERS_EXPERIMENTAL/*.prefs"
 #endif
 
 // for the operator menu
