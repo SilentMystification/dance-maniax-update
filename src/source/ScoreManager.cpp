@@ -33,9 +33,10 @@ bool ScoreManager::loadPlayerFromDisk(char* name, char side)
 	char scoreFilename[64] = "";
 
 	// calculate the filenames
+	size_t dirLen = strlen(baseFilename);
 	for ( int i = 0; i < 8; i++ )
 	{
-		baseFilename[8+i] = name[i]; //can't strcat because it isn't null terminated
+		baseFilename[dirLen+i] = name[i]; //can't strcat because it isn't null terminated
 	}
 	strcat_s(prefsFilename, 64, baseFilename);
 	strcat_s(prefsFilename, 64, ".prefs");
@@ -331,9 +332,10 @@ void ScoreManager::savePlayerToDisk(PLAYER_DATA &p)
 	char scoreFilename[64] = "";
 
 	// calculate the filenames
+	size_t dirLen = strlen(baseFilename);
 	for ( int i = 0; i < 8; i++ )
 	{
-		baseFilename[8+i] = p.displayName[i]; //can't strcat because it isn't null terminated
+		baseFilename[dirLen+i] = p.displayName[i]; //can't strcat because it isn't null terminated
 	}
 	strcat_s(prefsFilename, 64, baseFilename);
 	strcat_s(prefsFilename, 64, ".prefs");
