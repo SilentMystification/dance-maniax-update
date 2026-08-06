@@ -1,7 +1,15 @@
-# Build + GitHub release on push to main, develop, or main-update, or manual dispatch.
-# Push: auto-tags v3.0.0-beta.N (regular release, not marked pre-release).
-# workflow_dispatch with version: tags vX.Y.Z (regular release).
-# Release assets: DMX.exe (Production build), DMX.zip, InitialSetup.zip.
+# Build + GitHub release on push to release/beta, or manual dispatch.
+# Tags are fully automatic, shaped "DMX-XX-YYYYMMDDVV":
+#   XX      = channel: 00 stable (push to release, or workflow_dispatch), 01 beta (push to beta)
+#             - see the in-game Update Settings channel selector.
+#   YYYYMMDD = the UTC build date (the same date the compiled binary's __DATE__ will embed).
+#   VV      = a per-channel daily sequence number (independent per channel), so a channel can
+#             release more than once a day without a tag collision.
+# There is no manual version number anymore - every channel is versioned purely from build date.
+# release only ever advances by merging beta (the standing beta->release promotion PR) - direct
+# pushes to release are blocked by branch protection, so this build always reflects a promotion.
+# feature/** branches build via feature-build.yml instead - CI artifact only, no tag/release.
+# Release assets: DMX.exe (Production build, code-signed if SIGNING_CERT_BASE64 secret is set), DMX.zip, InitialSetup.zip.
 # Release CI builds Production only; use scripts/build-all.ps1 or VS All/DeployToCab locally for all three exes.
 #
 # Job graph:
@@ -13,17 +21,11 @@ name: Release
 on:
   push:
     branches:
-      - main
-      - develop
-      - main-update
+      - release
+      - beta
     paths-ignore:
       - '**.md'
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Stable semver (e.g. 3.0.0). Omit the v prefix.'
-        required: true
-        type: string
+  workflow_dispatch: {}
 
 permissions:
   contents: write
@@ -48,56 +50,64 @@ jobs:
         id: version
         shell: pwsh
         run: |
-          $isStable = '${{ github.event_name }}' -eq 'workflow_dispatch'
-          if ($isStable) {
-            $version = '${{ github.event.inputs.version }}'.Trim()
-            if ($version -match '^v') { $version = $version.Substring(1) }
-            if ($version -notmatch '^\d+\.\d+\.\d+$') {
-              Write-Error "Stable version must be semver X.Y.Z (got: $version)"
-            }
-            $tag = "v$version"
-            $existingStable = git ls-remote --tags origin "refs/tags/$tag"
-            if ($existingStable) {
-              Write-Error "Stable tag $tag already exists on remote. Pick a new version."
-            }
-            $prevTag = (git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | Where-Object { $_ -notmatch '-beta' } | Sort-Object { [version]($_ -replace '^v','') } -Descending | Select-Object -First 1)
-            if (-not $prevTag) {
-              $betaTags = @(git tag -l 'v3.0.0-beta.*')
-              $prevTag = ($betaTags | Sort-Object { [int]($_ -replace '^v3\.0\.0-beta\.','') } -Descending | Select-Object -First 1)
-            }
-            $prerelease = 'false'
+          # channel: 00 stable (push to release, or manual dispatch), 01 beta (push to beta)
+          if ('${{ github.event_name }}' -eq 'workflow_dispatch') {
+            $channel = 0
+          } elseif ('${{ github.ref_name }}' -eq 'release') {
+            $channel = 0
           } else {
-            # ls-remote sees all remote beta tags (shallow checkout may omit local tag -l entries)
-            $betaTagNames = @()
-            git ls-remote --tags origin 'refs/tags/v3.0.0-beta.*' | ForEach-Object {
-              if ($_ -match 'refs/tags/(v3\.0\.0-beta\.\d+)$') {
-                $betaTagNames += $matches[1]
-              }
-            }
-            if ($betaTagNames.Count -eq 0) {
-              $betaTagNames = @(git tag -l 'v3.0.0-beta.*')
-            }
-            $maxN = 0
-            foreach ($t in $betaTagNames) {
-              if ($t -match '^v3\.0\.0-beta\.(\d+)$') {
-                $n = [int]$matches[1]
-                if ($n -gt $maxN) { $maxN = $n }
-              }
-            }
-            $nextN = $maxN + 1
-            # Skip any tag numbers already taken on remote (handles stale local tag lists and races)
-            do {
-              $version = "3.0.0-beta.$nextN"
-              $tag = "v$version"
-              $existingBeta = git ls-remote --tags origin "refs/tags/$tag"
-              if ($existingBeta) {
-                Write-Host "Tag $tag already exists on remote, trying next number..."
-                $nextN++
-              }
-            } while ($existingBeta)
-            $prevTag = if ($nextN -gt 1) { "v3.0.0-beta.$($nextN - 1)" } else { "" }
-            $prerelease = 'false'
+            $channel = 1
           }
+          $channelStr = $channel.ToString('00')
+
+          # the build date, in the same UTC-day sense __DATE__ will embed once this same workflow compiles it
+          $date = (Get-Date).ToUniversalTime().ToString('yyyyMMdd')
+          $datePrefix = "DMX-$channelStr-$date"
+
+          # per-channel, per-date sequence number - independent of the other two channels
+          $seqTagNames = @()
+          git ls-remote --tags origin "refs/tags/$datePrefix*" | ForEach-Object {
+            if ($_ -match "refs/tags/($datePrefix\d{2})$") {
+              $seqTagNames += $matches[1]
+            }
+          }
+          if ($seqTagNames.Count -eq 0) {
+            $seqTagNames = @(git tag -l "$datePrefix*")
+          }
+          $maxSeq = -1
+          foreach ($t in $seqTagNames) {
+            if ($t -match "^$datePrefix(\d{2})$") {
+              $n = [int]$matches[1]
+              if ($n -gt $maxSeq) { $maxSeq = $n }
+            }
+          }
+          $nextSeq = $maxSeq + 1
+          # skip any sequence numbers already taken on remote (handles stale local tag lists and races)
+          do {
+            $tag = "$datePrefix$($nextSeq.ToString('00'))"
+            $existing = git ls-remote --tags origin "refs/tags/$tag"
+            if ($existing) {
+              Write-Host "Tag $tag already exists on remote, trying next number..."
+              $nextSeq++
+            }
+          } while ($existing)
+          $version = $tag
+
+          # previous tag ON THE SAME CHANNEL (any date), for release-notes' "changes since" diff
+          $channelTagNames = @()
+          git ls-remote --tags origin "refs/tags/DMX-$channelStr-*" | ForEach-Object {
+            if ($_ -match "refs/tags/(DMX-$channelStr-\d{10})$") {
+              $channelTagNames += $matches[1]
+            }
+          }
+          if ($channelTagNames.Count -eq 0) {
+            $channelTagNames = @(git tag -l "DMX-$channelStr-*")
+          }
+          # fixed-width, digits-only suffix - plain string sort already gives correct chronological order
+          $prevTag = ($channelTagNames | Where-Object { $_ -ne $tag } | Sort-Object -Descending | Select-Object -First 1)
+
+          $prerelease = if ($channel -eq 0) { 'false' } else { 'true' }
+
           "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "prev_tag=$prevTag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
@@ -174,6 +184,27 @@ jobs:
             Write-Error 'Missing deploy/DMX.exe after prepare step'
           }
           Write-Host 'OK: deploy/DMX.exe (from Production build)'
+
+      - name: Sign DMX.exe (skips if no certificate configured)
+        shell: pwsh
+        env:
+          SIGNING_CERT_BASE64: ${{ secrets.SIGNING_CERT_BASE64 }}
+          SIGNING_CERT_PASSWORD: ${{ secrets.SIGNING_CERT_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrEmpty($env:SIGNING_CERT_BASE64)) {
+            Write-Host 'No SIGNING_CERT_BASE64 secret configured; skipping code signing.'
+            exit 0
+          }
+          $pfxPath = Join-Path $env:RUNNER_TEMP 'signing-cert.pfx'
+          try {
+            [IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:SIGNING_CERT_BASE64))
+            $signtool = (Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue | Select-Object -Last 1).FullName
+            if (-not $signtool) { $signtool = 'signtool.exe' }
+            & $signtool sign /f $pfxPath /p $env:SIGNING_CERT_PASSWORD /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 deploy/DMX.exe
+            if ($LASTEXITCODE -ne 0) { Write-Error "signtool failed with exit code $LASTEXITCODE" }
+          } finally {
+            Remove-Item $pfxPath -Force -ErrorAction SilentlyContinue
+          }
 
       - name: Package DMX.zip
         shell: pwsh
@@ -252,10 +283,8 @@ jobs:
             echo ""
             if [ -n "$PREV_TAG" ] && git rev-parse --verify "${PREV_TAG}^{commit}" >/dev/null 2>&1; then
               echo "Changes since \`${PREV_TAG}\`:"
-            elif echo "$NEW_TAG" | grep -q '\-beta'; then
-              echo "First v3.0.0-beta release."
             else
-              echo "First release in this series."
+              echo "First release on this channel."
             fi
             echo ""
             if [ -n "$PREV_TAG" ] && git rev-parse --verify "${PREV_TAG}^{commit}" >/dev/null 2>&1; then
