@@ -9,6 +9,7 @@
 #include <process.h>
 #include <string>
 #include <direct.h>
+#include <errno.h>
 
 #include "hidapi.h"
 
@@ -973,6 +974,22 @@ bool checkForUpdates()
 	return startedDownload;
 }
 
+// Logs exactly why a _execl() handoff to a batch file failed - errno alone ("Exec format error"
+// etc.) is often unhelpful in isolation, so this also records whether the file exists at all and
+// what the current working directory actually is at the moment of the call, since _execl() (unlike
+// _execlp()) never searches PATH and only ever looks in the CWD for a bare relative filename.
+void logExecFailure(const char* batchFile)
+{
+	int savedErrno = errno;
+	char cwd[512] = "";
+	_getcwd(cwd, 512);
+	char errBuf[128] = "";
+	strerror_s(errBuf, sizeof(errBuf), savedErrno);
+	al_trace("EXEC FAILURE: could not launch \"%s\" - errno=%d (%s), file exists=%s, cwd=%s\n",
+		batchFile, savedErrno, errBuf,
+		fileExists((char*)batchFile) ? "YES" : "NO", cwd);
+}
+
 // Runs once at startup only, per operator setting - and ONLY performs the bounded check, never
 // a mode transition or an actual download. Must never hang: every branch is bounded by
 // UpdateChecker's timeouts, and every outcome (including "couldn't even check") just sets
@@ -1691,7 +1708,7 @@ void mainUpdateLoop(UTIME dt)
 		// knows its own release tag directly (burned in at compile time), no marker file needed
 		if ( _execl("updater.bat", "updater.bat", "DMX.exe", "DMX_new.exe", NULL) == -1 )
 		{
-			al_trace("DOWNLOAD ERROR: unable to run updater.bat\n");
+			logExecFailure("updater.bat");
 			if ( automaticUpdateActive )
 			{
 				automaticUpdateActive = false;
@@ -1729,7 +1746,7 @@ void mainUpdateLoop(UTIME dt)
 			// a zip file was downloaded - decompress it (potentially overwriting this exe) and restart
 			if ( _execl("update.bat", dm.getCurrentDownloadFilename().c_str(), NULL) == -1 )
 			{
-				al_trace("DOWNLOAD ERROR: unable to run update.bat\n");
+				logExecFailure("update.bat");
 				if ( automaticUpdateActive )
 				{
 					automaticUpdateActive = false;
