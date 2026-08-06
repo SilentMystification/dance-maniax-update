@@ -9,9 +9,85 @@
 #define ARDUINO_WAIT_TIME 4000
 #define ARDUINO_TIMEOUT 8000
 
+// how many ports to try, starting at \\.\COM0 - wide enough to survive Windows' habit of bumping a
+// device's assigned COM number every time it's physically replugged, so the real IO board doesn't
+// fall permanently out of range on a cabinet that's had cables swapped a lot over its lifetime
+#define MAX_COM_PORT_INDEX 32
+
+// CreateFile() on a COM port has no OS-level timeout and can block forever on some ports/drivers
+// (observed on real cabinets: something sitting on a low COM number - e.g. a Bluetooth virtual COM
+// port - that never completes its connection handshake). Bounding it here, rather than giving up
+// with no time limit, is what keeps a bad port from hanging the whole game at boot.
+#define COM_OPEN_TIMEOUT_MS 1500
+
 extern InputManager im;
 extern LightsManager lm;
 extern bool usePhoenixIO;
+
+namespace
+{
+	// state for a port open running on a throwaway worker thread (see comOpenThreadProc). Owned by
+	// whichever side is still interested: the extioManager while pendingOpen points at it, or the
+	// worker thread itself once "abandoned" is set (having timed out from the main thread's point of
+	// view) - the two never touch it at the same time past that handoff.
+	struct ComOpenAttempt
+	{
+		char port[32];
+		bool usePhoenix;
+		HANDLE threadHandle;
+		HANDLE resultHandle; // only valid once "done" is set
+		volatile LONG done;
+		volatile LONG abandoned;
+	};
+
+	DWORD WINAPI comOpenThreadProc(LPVOID param)
+	{
+		ComOpenAttempt* attempt = (ComOpenAttempt*)param;
+
+		HANDLE h = CreateFileA(attempt->port,
+			GENERIC_READ | GENERIC_WRITE,
+			0,
+			NULL,
+			OPEN_EXISTING,
+			FILE_ATTRIBUTE_NORMAL,
+			NULL);
+
+		if ( h != INVALID_HANDLE_VALUE )
+		{
+			DCB dcbSerialParams = { 0 };
+			dcbSerialParams.DCBlength = sizeof(DCB);
+			bool ok = GetCommState(h, &dcbSerialParams) != FALSE;
+			if ( ok )
+			{
+				dcbSerialParams.BaudRate = attempt->usePhoenix ? CBR_115200 : CBR_9600;
+				dcbSerialParams.ByteSize = 8;
+				dcbSerialParams.StopBits = ONESTOPBIT;
+				dcbSerialParams.Parity = NOPARITY;
+				ok = SetCommState(h, &dcbSerialParams) != FALSE;
+			}
+
+			if ( !ok )
+			{
+				CloseHandle(h);
+				h = INVALID_HANDLE_VALUE;
+			}
+		}
+
+		attempt->resultHandle = h;
+
+		if ( InterlockedCompareExchange(&attempt->abandoned, 0, 0) != 0 )
+		{
+			// the main thread stopped waiting on this a while ago - we own cleanup now
+			if ( h != INVALID_HANDLE_VALUE ) CloseHandle(h);
+			CloseHandle(attempt->threadHandle);
+			delete attempt;
+			return 0;
+		}
+
+		InterlockedExchange(&attempt->done, 1);
+		return 0;
+	}
+}
 
 extioManager::extioManager()
 {
@@ -22,6 +98,8 @@ extioManager::extioManager()
 	powerOnTime = 0;
 	connectionState = 0;
 	timeSinceLastLampUpdate = 0;
+	pendingOpen = NULL;
+	pendingOpenElapsed = 0;
 }
 
 void extioManager::initialize()
@@ -36,28 +114,71 @@ void extioManager::initialize()
 //#endif
 }
 
+void extioManager::startAsyncOpen(const char* port)
+{
+	ComOpenAttempt* attempt = new ComOpenAttempt();
+	strcpy_s(attempt->port, sizeof(attempt->port), port);
+	attempt->usePhoenix = usePhoenixIO;
+	attempt->resultHandle = INVALID_HANDLE_VALUE;
+	attempt->done = 0;
+	attempt->abandoned = 0;
+	attempt->threadHandle = CreateThread(NULL, 0, comOpenThreadProc, attempt, 0, NULL);
+
+	pendingOpen = attempt;
+	pendingOpenElapsed = 0;
+}
+
 bool extioManager::updateInitialize(UTIME dt)
 {
 	if ( !isConnected )
 	{
-		comPort++;
-		if ( comPort < 10 )
+		if ( pendingOpen == NULL )
 		{
-			char port[] = "\\\\.\\COM0";
+			comPort++;
+			if ( comPort >= MAX_COM_PORT_INDEX )
+			{
+				al_trace("Can't find the IO board on any com port.\r\n");
+				comPort = -1;
+				connectionState = 0;
+				return false;
+			}
 
-			port[7] = comPort + '0';
-			attemptConnection(port);
-			connectionState = 1;
+			char port[32];
+			sprintf_s(port, "\\\\.\\COM%d", comPort);
+			startAsyncOpen(port);
+			return true;
 		}
-		else
+
+		// an open is running on the worker thread - wait for it, but only up to COM_OPEN_TIMEOUT_MS,
+		// so a port that never completes its open can't hang the whole game
+		ComOpenAttempt* attempt = (ComOpenAttempt*)pendingOpen;
+		pendingOpenElapsed += dt;
+
+		if ( InterlockedCompareExchange(&attempt->done, 0, 0) != 0 )
 		{
-			al_trace("Can't find the IO board on any com port.\r\n");
-			comPort = -1;
-			connectionState = 0;
-			return false;
+			HANDLE result = attempt->resultHandle;
+			CloseHandle(attempt->threadHandle);
+			delete attempt;
+			pendingOpen = NULL;
+
+			if ( result != INVALID_HANDLE_VALUE )
+			{
+				al_trace(usePhoenixIO ? "Using Phoenix IO at 115200\r\n" : "Using Standard IO at 9600\r\n");
+				hSerial = result;
+				isConnected = true;
+				powerOnTime = 0;
+				connectionState = 1;
+			}
+			// else: this port isn't it - fall through and try the next one next frame
+		}
+		else if ( pendingOpenElapsed >= COM_OPEN_TIMEOUT_MS )
+		{
+			al_trace("Timed out opening port %d - abandoning it and trying the next port.\r\n", comPort);
+			InterlockedExchange(&attempt->abandoned, 1);
+			pendingOpen = NULL; // the worker thread owns the attempt's cleanup now, whenever (if ever) it returns
 		}
 
-		powerOnTime = 0;
+		return true;
 	}
 	else
 	{
@@ -173,49 +294,6 @@ void extioManager::updateLamps()
 	b1 |= lm.getLamp(spotlightC) ? 1 << 2 : 0;
 	WriteData(&b0, 1);
 	WriteData(&b1, 1);
-}
-
-bool extioManager::attemptConnection(const char* port)
-{
-	isConnected = false;
-
-	hSerial = CreateFile(port,
-		GENERIC_READ | GENERIC_WRITE,
-		0,
-		NULL,
-		OPEN_EXISTING,
-		FILE_ATTRIBUTE_NORMAL,
-		NULL);
-
-	if(hSerial==INVALID_HANDLE_VALUE)
-	{
-		//al_trace("The IO board isn't on %s\n", port);
-		return false; // it's okay - we'll try another port
-	}
-
-	//If connected we try to set the comm parameters
-	DCB dcbSerialParams = {0};
-
-	if ( !GetCommState(hSerial, &dcbSerialParams) )
-	{
-		al_trace("extioManager: failed to GET serial parameters!");
-		return false;
-	}
-
-	dcbSerialParams.BaudRate = usePhoenixIO ? CBR_115200 : CBR_9600;
-	al_trace(usePhoenixIO ? "Using Phoenix IO at 115200\r\n" : "Using Standard IO at 9600\r\n");
-	dcbSerialParams.ByteSize = 8;
-	dcbSerialParams.StopBits = ONESTOPBIT;
-	dcbSerialParams.Parity = NOPARITY;
-
-	if( !SetCommState(hSerial, &dcbSerialParams) )
-	{
-		al_trace("extioManager: failed to SET serial parameters!");
-		return false;
-	}
-
-	isConnected = true;
-	return true;
 }
 
 void extioManager::setBaudRate(DWORD rate)

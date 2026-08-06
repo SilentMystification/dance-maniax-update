@@ -40,9 +40,15 @@ private:
 	UTIME powerOnTime;
 	int connectionState;
 
-	bool attemptConnection(const char* port);
-	// precondition: only called while in boot mode, and should be called once each loop
-	// returns: returns false when this manager gives up on finding the extio, true otherwise
+	void* pendingOpen; // ComOpenAttempt*, or NULL when no open is in flight - see extioManager.cpp
+	UTIME pendingOpenElapsed;
+
+	void startAsyncOpen(const char* port);
+	// precondition: pendingOpen is NULL (no open already in flight)
+	// postcondition: a worker thread has been kicked off to CreateFile()+configure the given port,
+	//                since that call has no OS-level timeout and can hang forever on some COM ports
+	//                (observed on real cabinets: a driver that never completes the open, e.g. a
+	//                Bluetooth virtual COM port or similar). pendingOpen is non-NULL afterward.
 
 	void setBaudRate(DWORD rate);
 	// precondition: hSerial is a valid open handle
