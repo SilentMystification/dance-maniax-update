@@ -39,12 +39,21 @@ public:
 
 	bool checkForExeUpdate(int channel, std::string& outTag, std::string& outAssetUrl, int timeoutMs);
 	// precondition: githubRepo is non-empty; channel is one of the DMX_CHANNEL_* constants
-	// postcondition: returns true only if a release tagged for the requested channel was found AND its
-	//                date+sequence is strictly newer than getCurrentExeTag() AND both the tag and
-	//                the DMX.exe asset URL were parsed successfully. Only ever considers tags matching
-	//                the requested channel - a channel switch is allowed (an operator picking a
-	//                different channel naturally starts comparing against that channel's releases),
-	//                but a downgrade never is, regardless of channel.
+	// postcondition: returns true only if a release tagged for the requested channel was found AND
+	//                both the tag and the DMX.exe asset URL were parsed successfully, AND it is
+	//                actually newer than what's currently running:
+	//                  - if this exe has an official CI tag (DMX_RELEASE_TAG non-empty), "newer" means
+	//                    strictly greater date+sequence - exact, since CI assigns sequence numbers in
+	//                    true release order.
+	//                  - if this exe is a local/dev build (no tag of its own), "newer" means the
+	//                    candidate release's actual publish timestamp is later than this exe's own
+	//                    compile timestamp - finer than day-level, since a dev build has no sequence
+	//                    number to slot into a channel's daily ordering during a heavy-churn day with
+	//                    multiple alpha/beta releases. This is purely an accept/reject decision and
+	//                    never affects outTag - the returned tag is always exactly what GitHub reports.
+	//                Only ever considers tags matching the requested channel - a channel switch is
+	//                allowed (an operator picking a different channel naturally starts comparing
+	//                against that channel's releases), but a downgrade never is, regardless of channel.
 	//                returns false safely on any network failure, timeout, or parse failure.
 
 	std::string getGithubRepo() { return githubRepo; }
@@ -66,10 +75,12 @@ protected:
 	// finds "\"name\":\"DMX.exe\"" then scans forward (bounded window) for the sibling
 	// "\"browser_download_url\":\"...\""
 
-	std::string findBestTagForChannel(const std::string& releasesJsonArray, int channel, std::string& outAssetUrl);
+	std::string findBestTagForChannel(const std::string& releasesJsonArray, int channel, std::string& outAssetUrl, std::string& outPublishedAt);
 	// scans a GitHub "list releases" JSON array response for every release whose tag matches the
 	// requested channel's "DMX-XX-" prefix, and returns the one with the greatest date+sequence
 	// (i.e. the newest release actually published on that channel). Returns "" if none matched.
+	// outPublishedAt is that release's "published_at" field (UTC, e.g. "2026-08-06T16:23:01Z") -
+	// used only for the local/dev-build comparison path in checkForExeUpdate(), never displayed.
 };
 
 std::string getCurrentExeTag();
