@@ -148,15 +148,15 @@ jobs:
         env:
           RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
         run: |
-          $content = @"
-#ifndef _RELEASETAG_H
-#define _RELEASETAG_H
-
-#define DMX_RELEASE_TAG "$env:RELEASE_TAG"
-
-#endif
-"@
-          Set-Content -Path src/headers/releaseTag.h -Value $content
+          $lines = @(
+            '#ifndef _RELEASETAG_H',
+            '#define _RELEASETAG_H',
+            '',
+            "#define DMX_RELEASE_TAG `"$env:RELEASE_TAG`"",
+            '',
+            '#endif'
+          )
+          Set-Content -Path src/headers/releaseTag.h -Value $lines
           Write-Host "Stamped DMX_RELEASE_TAG = $env:RELEASE_TAG"
 
       - name: Setup MSBuild
