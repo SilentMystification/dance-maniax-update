@@ -106,8 +106,9 @@ int currentBootStep = 0;
 bool updateInProgress = false;
 UTIME updateCloseTimer = 0;
 bool exeUpdateInProgress = false;  // true while the new exe binary itself is downloading
-std::string pendingExeTag = "";    // the tag that will be written to the marker file once applied
+std::string pendingExeTag = "";    // the tag of the exe currently being downloaded, for logging
 int manualUpdateStatus = 0;        // 0=idle, 1=checking, 2=up to date, 3=downloading, 4=no connection
+bool lastUpdateAttemptFailed = false; // shows a distinct message instead of "ALL FILES UP TO DATE!"
 
 // automatic (startup-only) update check/apply state. The golden rule for everything below:
 // a cabinet with autoUpdateEnabled must NEVER fail to boot, no matter what goes wrong (offline,
@@ -1616,6 +1617,7 @@ void mainCautionLoop(UTIME dt)
 void firstUpdateLoop()
 {
 	updateCloseTimer = 0;
+	lastUpdateAttemptFailed = false;
 }
 
 void mainUpdateLoop(UTIME dt)
@@ -1629,13 +1631,57 @@ void mainUpdateLoop(UTIME dt)
 		textprintf(rm.m_backbuf, font, 50, 160, WHITE, "PROGRESS: %d", dm.getCurrentDownloadProgress());
 		textprintf(rm.m_backbuf, font, 50, 180, WHITE, "TIME ELAPSED: %ld", frameCounter);
 	}
+	else if ( lastUpdateAttemptFailed )
+	{
+		textprintf(rm.m_backbuf, font, 50, 140, WHITE, "DOWNLOAD FAILED - CHECK CONNECTION");
+	}
 	else
 	{
 		textprintf(rm.m_backbuf, font, 50, 140, WHITE, "ALL FILES UP TO DATE!");
 	}
 
+	// did the download stall out or otherwise fail? never leave this hanging forever waiting for
+	// an isDownloadComplete() that a failed transfer will never produce
+	if ( dm.didDownloadFail() && exeUpdateInProgress )
+	{
+		al_trace("EXE DOWNLOAD FAILED OR STALLED\n");
+		exeUpdateInProgress = false;
+		updateInProgress = false;
+		lastUpdateAttemptFailed = true;
+		dm.resetState();
+		if ( automaticUpdateActive )
+		{
+			automaticUpdateActive = false;
+			gs.g_gameModeTransition = 1;
+			gs.g_currentGameMode = ATTRACT;
+			im.updateKeyStates(1);
+		}
+		else
+		{
+			em.playSample(SFX_LOUD_BELL);
+		}
+	}
+	else if ( dm.didDownloadFail() && updateInProgress )
+	{
+		al_trace("DATA DOWNLOAD FAILED OR STALLED: %s\n", dm.getCurrentDownloadFilename().c_str());
+		updateInProgress = false;
+		lastUpdateAttemptFailed = true;
+		dm.resetState();
+		if ( automaticUpdateActive )
+		{
+			automaticUpdateActive = false;
+			gs.g_gameModeTransition = 1;
+			gs.g_currentGameMode = ATTRACT;
+			im.updateKeyStates(1);
+		}
+		else
+		{
+			redownloadManifest = true; // let the operator retry without restarting the program
+			em.playSample(SFX_LOUD_BELL);
+		}
+	}
 	// is the update done?
-	if ( dm.isDownloadComplete() && exeUpdateInProgress )
+	else if ( dm.isDownloadComplete() && exeUpdateInProgress )
 	{
 		al_trace("DOWNLOADED NEW EXE (%s), HANDING OFF TO updater.bat\n", pendingExeTag.c_str());
 		exeUpdateInProgress = false;
