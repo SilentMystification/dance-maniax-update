@@ -12,14 +12,23 @@
 #define ARDUINO_WAIT_TIME 4000
 #define ARDUINO_TIMEOUT 8000
 
-// How long the BOOT LOOP (the main/render thread) waits on the background scan thread before giving
-// up and moving on regardless. This is deliberately short: it only ever needs to cover the HAPPY
-// PATH (the real board answers on the first or second port tried, which - thanks to ARDUINO_WAIT_TIME
-// - takes ~4-5 seconds no matter what), because every failure mode (a bad port, a slow/hanging
-// driver, several red-herring devices in a row) is now entirely the background thread's problem, not
-// this one's. If the thread hasn't reported back by this point, boot proceeds to SKIP; the thread
-// itself is left running and is simply never listened to again (see updateInitialize()).
+// How long the BOOT LOOP (the main/render thread) waits on the parallel port scan before giving up
+// and moving on regardless. Every candidate port is tried at once (see beginParallelScan()), so this
+// mainly just needs to cover the real board's own answer time: ~4-5s (ARDUINO_WAIT_TIME plus reply
+// time), no matter how many OTHER ports are being tried alongside it. If nothing has reported back by
+// this point, boot proceeds to SKIP; any still-running per-port threads are left alone and simply
+// never listened to again (see updateInitialize()). 8s comfortably covers PORT_OPEN_TIMEOUT_MS (2s,
+// in the unlikely case the real board's own port is itself slow to open) + ARDUINO_WAIT_TIME (4s) +
+// reply time - and unlike the old sequential design, other bad ports running alongside it don't add
+// to that at all, since they're no longer in a queue in front of it.
 #define BOOT_WAIT_TIMEOUT_MS 8000
+
+// Bounds CreateFile()+GetCommState()+SetCommState() for a SINGLE port (see openPortBounded()) - NOT
+// the main thread, and not any OTHER port's thread either, since every candidate port gets its own
+// thread now (see beginParallelScan()). This just keeps one port's own thread from sitting stuck
+// inside CreateFile() forever if that port's driver never returns - it has no effect on any other
+// port, which was already racing independently regardless.
+#define PORT_OPEN_TIMEOUT_MS 2000
 
 // only used if the registry enumeration below comes back empty, as a last-resort fallback so a
 // system where that lookup doesn't pan out (for whatever reason) isn't left unable to find the
@@ -40,55 +49,79 @@ namespace
 		SCAN_GAVE_UP,
 	};
 
-	// Shared between extioManager and the one background scan thread it owns. Once
-	// extioManager stops waiting on it (BOOT_WAIT_TIMEOUT_MS elapsed with no result yet), it
-	// abandons this struct WITHOUT freeing it - the thread may still be legitimately stuck inside a
-	// bad port's driver and could write to `state`/`resultHandle` at any later, unknowable time. The
-	// alternative (freeing it and letting the thread write to freed memory) is worse, so this is a
-	// deliberate one-time leak in that specific case, not an oversight.
+	// Shared by every per-port thread (one per candidate port, all started together - see
+	// beginParallelScan()) plus extioManager itself, all racing to try their own port. Reference-
+	// counted (refCount starts at portCount + 1, one per thread plus one held by extioManager) rather
+	// than owned by any single side, because with several threads touching the same ctx concurrently
+	// there is no single moment where any one of them can safely say "everyone else is definitely
+	// done with this too" - whichever side's decrement happens to bring refCount to 0 is, by
+	// construction, provably the last one still holding a reference, and frees it right then. A
+	// thread whose own port is genuinely stuck forever (never returns from CreateFile) never reaches
+	// its decrement, so refCount for that ctx never reaches 0 and it leaks - deliberately: the
+	// alternative is freeing it while that thread might still dereference it later, which is worse.
 	struct ScanContext
 	{
-		std::vector<int> ports;
 		bool usePhoenix;
-		volatile LONG state; // ScanState
-		HANDLE resultHandle; // valid only once state == SCAN_FOUND
+		volatile LONG state;          // ScanState
+		HANDLE resultHandle;          // valid only once state == SCAN_FOUND
 		int resultComPort;
+		volatile LONG portsRemaining; // countdown of per-port threads that haven't finished their OWN
+		                               // attempt yet, independent of refCount - see its use below
+		volatile LONG refCount;       // see comment above
 	};
 
-	// Runs the ENTIRE port hunt - open, configure, wait for the board to reset, handshake - for
-	// every candidate port, sequentially, entirely on this one dedicated thread. Deliberately never
-	// hands control back to the boot loop mid-scan: if some port's driver hangs forever (or if
-	// opening a later port turns out to be serialized behind a lock held by an earlier port's still-
-	// blocked open - a real possibility with some legacy/shared serial drivers), this thread hangs
-	// with it, but nothing else does, because nothing else ever calls a serial API directly.
-	DWORD WINAPI scanThreadProc(LPVOID param)
+	// precondition: called only by a thread that holds a reference (i.e. hasn't released its own
+	//               refCount decrement yet)
+	// postcondition: this call's reference is released; if it was the last one, ctx is freed - the
+	//                caller must not touch ctx again after this returns, under any circumstances
+	void releaseScanContextRef(ScanContext* ctx)
 	{
-		ScanContext* ctx = (ScanContext*)param;
-
-		for ( size_t i = 0; i < ctx->ports.size(); i++ )
+		if ( InterlockedDecrement(&ctx->refCount) == 0 )
 		{
-			int port = ctx->ports[i];
-			char portName[32];
-			sprintf_s(portName, "\\\\.\\COM%d", port);
+			delete ctx;
+		}
+	}
 
-			HANDLE h = CreateFileA(portName,
-				GENERIC_READ | GENERIC_WRITE,
-				0,
-				NULL,
-				OPEN_EXISTING,
-				FILE_ATTRIBUTE_NORMAL,
-				NULL);
-			if ( h == INVALID_HANDLE_VALUE )
-			{
-				continue;
-			}
+	enum PortOpenState
+	{
+		PORT_OPEN_PENDING = 0,          // still in flight, neither side has claimed it yet
+		PORT_OPEN_CLAIMED_BY_SCANNER,   // the scan thread gave up waiting and claimed cleanup duty
+		PORT_OPEN_CLAIMED_BY_WORKER,    // the worker finished (possibly late) and left a result
+	};
 
+	// State for a single port's open, running on its own short-lived worker thread (see
+	// portOpenWorkerProc). Same atomic-claim handoff as ScanContext and for the same reason: exactly
+	// one of the scan thread (on timeout) or the worker (on finishing) ever cleans this up, decided
+	// by an atomic PENDING -> CLAIMED_BY_* transition, so there's no window where both or neither do.
+	struct PortOpenAttempt
+	{
+		char port[32];
+		bool usePhoenix;
+		HANDLE threadHandle;
+		HANDLE resultHandle; // only meaningful to whichever side wins CLAIMED_BY_WORKER
+		volatile LONG state;
+	};
+
+	DWORD WINAPI portOpenWorkerProc(LPVOID param)
+	{
+		PortOpenAttempt* attempt = (PortOpenAttempt*)param;
+
+		HANDLE h = CreateFileA(attempt->port,
+			GENERIC_READ | GENERIC_WRITE,
+			0,
+			NULL,
+			OPEN_EXISTING,
+			FILE_ATTRIBUTE_NORMAL,
+			NULL);
+
+		if ( h != INVALID_HANDLE_VALUE )
+		{
 			DCB dcbSerialParams = { 0 };
 			dcbSerialParams.DCBlength = sizeof(DCB);
 			bool ok = GetCommState(h, &dcbSerialParams) != FALSE;
 			if ( ok )
 			{
-				dcbSerialParams.BaudRate = ctx->usePhoenix ? CBR_115200 : CBR_9600;
+				dcbSerialParams.BaudRate = attempt->usePhoenix ? CBR_115200 : CBR_9600;
 				dcbSerialParams.ByteSize = 8;
 				dcbSerialParams.StopBits = ONESTOPBIT;
 				dcbSerialParams.Parity = NOPARITY;
@@ -97,9 +130,113 @@ namespace
 			if ( !ok )
 			{
 				CloseHandle(h);
-				continue;
+				h = INVALID_HANDLE_VALUE;
 			}
+		}
 
+		LONG prev = InterlockedCompareExchange(&attempt->state, PORT_OPEN_CLAIMED_BY_WORKER, PORT_OPEN_PENDING);
+		if ( prev == PORT_OPEN_PENDING )
+		{
+			// we got here first - leave the result for the scan thread to collect
+			attempt->resultHandle = h;
+		}
+		else
+		{
+			// the scan thread already claimed this as abandoned - it's not looking at this struct
+			// anymore, so we own cleaning up everything ourselves
+			if ( h != INVALID_HANDLE_VALUE ) CloseHandle(h);
+			CloseHandle(attempt->threadHandle);
+			delete attempt;
+		}
+
+		return 0;
+	}
+
+	// Called only from the scan thread. Opens and configures a single port, bounded to
+	// PORT_OPEN_TIMEOUT_MS regardless of how long the underlying driver actually takes - returns
+	// INVALID_HANDLE_VALUE on failure OR timeout, either way leaving the scan thread free to move on
+	// to the next port immediately. A timed-out attempt is handed off to portOpenWorkerProc to clean
+	// up whenever (if ever) it finishes, never waited on further.
+	HANDLE openPortBounded(const char* port, bool usePhoenix)
+	{
+		PortOpenAttempt* attempt = new PortOpenAttempt();
+		strcpy_s(attempt->port, sizeof(attempt->port), port);
+		attempt->usePhoenix = usePhoenix;
+		attempt->resultHandle = INVALID_HANDLE_VALUE;
+		attempt->state = PORT_OPEN_PENDING;
+		attempt->threadHandle = CreateThread(NULL, 0, portOpenWorkerProc, attempt, 0, NULL);
+
+		DWORD waitResult = WaitForSingleObject(attempt->threadHandle, PORT_OPEN_TIMEOUT_MS);
+
+		if ( waitResult == WAIT_OBJECT_0 )
+		{
+			// the worker thread has already exited - waiting on its handle until it's signaled is
+			// itself a synchronization point, so reading resultHandle here needs no further atomics
+			HANDLE result = attempt->resultHandle;
+			CloseHandle(attempt->threadHandle);
+			delete attempt;
+			return result;
+		}
+
+		// timed out - hand off cleanup duty via the same atomic claim the worker checks, so whichever
+		// side finishes "second" (in the rare case the worker completes right as we time out) safely
+		// detects it and cleans up, with no window where both or neither do
+		LONG prev = InterlockedCompareExchange(&attempt->state, PORT_OPEN_CLAIMED_BY_SCANNER, PORT_OPEN_PENDING);
+		if ( prev == PORT_OPEN_PENDING )
+		{
+			// we claimed it first - the worker will see CLAIMED_BY_SCANNER when (if ever) it finishes
+			// and clean up after itself. Nothing more for us to do; we never touch this struct again.
+			return INVALID_HANDLE_VALUE;
+		}
+
+		// the worker actually finished right as we were giving up on it - it left a result waiting
+		// for us, so it's our job to discard it cleanly (we're not adopting it - the scan is moving
+		// on to the next port) rather than leak the handle
+		HANDLE result = attempt->resultHandle;
+		CloseHandle(attempt->threadHandle);
+		delete attempt;
+		if ( result != INVALID_HANDLE_VALUE )
+		{
+			CloseHandle(result);
+		}
+		return INVALID_HANDLE_VALUE;
+	}
+
+	// One of these per candidate port, all created together (see beginParallelScan()) - each thread
+	// owns exactly one port for its entire lifetime, so it can only ever be delayed by that ONE
+	// port's own driver, never by any other port's.
+	struct PortScanThreadParam
+	{
+		ScanContext* ctx; // a reference this thread owns - must release exactly once, at the end
+		int port;
+		HANDLE selfHandle; // set by beginParallelScan() after CreateThread() returns, before resuming -
+		                    // lets this thread close its own thread handle itself, so nothing external
+		                    // needs to track or reap a per-port thread handle at all
+	};
+
+	// Tries exactly one port: open, configure, wait for the board to reset, handshake. Every
+	// candidate port gets one of these running concurrently (see beginParallelScan()) instead of
+	// working through the list one at a time, so a single unresponsive port only ever costs its own
+	// timeout, in parallel with everyone else, rather than sitting in front of the real board in a
+	// queue. Whichever thread's handshake succeeds first wins the race to publish SCAN_FOUND; every
+	// other thread (already in flight or still to finish) notices it lost - either by losing the
+	// atomic claim below, or simply never getting this far - and just cleans up quietly.
+	DWORD WINAPI portScanThreadProc(LPVOID param)
+	{
+		PortScanThreadParam* p = (PortScanThreadParam*)param;
+		ScanContext* ctx = p->ctx;
+		int port = p->port;
+		HANDLE selfHandle = p->selfHandle;
+		delete p;
+
+		char portName[32];
+		sprintf_s(portName, "\\\\.\\COM%d", port);
+
+		HANDLE h = openPortBounded(portName, ctx->usePhoenix);
+		bool foundBoard = false;
+
+		if ( h != INVALID_HANDLE_VALUE )
+		{
 			// give the board a moment to actually be reset and ready to listen, same as the original
 			// synchronous design - just as a Sleep() on this dedicated thread instead of a dt-driven
 			// wait on the main thread, since nothing else needs this thread's time
@@ -128,17 +265,70 @@ namespace
 
 			if ( gotReply && reply[0] == 'O' && reply[1] == 'K' && reply[2] == '!' )
 			{
-				ctx->resultHandle = h;
-				ctx->resultComPort = port;
-				InterlockedExchange(&ctx->state, SCAN_FOUND); // must be the last thing touching ctx
-				return 0; // h is intentionally left open - the main thread adopts it
+				// resultHandle/resultComPort MUST be written before the state transition below -
+				// extioManager only ever reads them after observing state == SCAN_FOUND via the same
+				// kind of interlocked peek, which is what makes this write visible in time
+				LONG prevState = InterlockedCompareExchange(&ctx->state, SCAN_FOUND, SCAN_RUNNING);
+				if ( prevState == SCAN_RUNNING )
+				{
+					ctx->resultHandle = h;
+					ctx->resultComPort = port;
+					foundBoard = true;
+				}
+				// else: another port's thread already won the race a moment earlier - fall through
+				// and close our own handle below instead of adopting it
 			}
 
-			CloseHandle(h);
+			if ( !foundBoard )
+			{
+				CloseHandle(h);
+			}
 		}
 
-		InterlockedExchange(&ctx->state, SCAN_GAVE_UP); // must be the last thing touching ctx
+		// whether or not this port panned out, report in: if every other port has also finished and
+		// none of them found the board either, this is the thread that declares the scan given up
+		if ( InterlockedDecrement(&ctx->portsRemaining) == 0 )
+		{
+			InterlockedCompareExchange(&ctx->state, SCAN_GAVE_UP, SCAN_RUNNING); // no-op if already FOUND
+		}
+
+		releaseScanContextRef(ctx); // must be the last thing this thread does with ctx
+		CloseHandle(selfHandle);
 		return 0;
+	}
+
+	// Starts one thread per candidate port, all racing concurrently, and returns immediately without
+	// waiting on any of them - extioManager polls ctx->state on its own schedule from
+	// updateInitialize(). ctx is heap-allocated and reference-counted (see ScanContext) since it's
+	// about to be shared by every one of these threads plus the caller.
+	ScanContext* beginParallelScan(const std::vector<int>& ports, bool usePhoenix)
+	{
+		ScanContext* ctx = new ScanContext();
+		ctx->usePhoenix = usePhoenix;
+		ctx->state = ports.empty() ? SCAN_GAVE_UP : SCAN_RUNNING; // nothing to scan - degenerate, but
+		                                                          // should never happen (initialize()
+		                                                          // always falls back to a numeric
+		                                                          // range if the registry gives none)
+		ctx->resultHandle = INVALID_HANDLE_VALUE;
+		ctx->resultComPort = -1;
+		ctx->portsRemaining = (LONG)ports.size();
+		ctx->refCount = (LONG)ports.size() + 1; // one per thread, plus the caller's own reference
+
+		for ( size_t i = 0; i < ports.size(); i++ )
+		{
+			PortScanThreadParam* p = new PortScanThreadParam();
+			p->ctx = ctx;
+			p->port = ports[i];
+
+			// CREATE_SUSPENDED so the thread can be handed its own HANDLE (for it to self-close on
+			// exit) before it starts running - avoids extioManager needing to track a per-port thread
+			// handle at all
+			HANDLE threadHandle = CreateThread(NULL, 0, portScanThreadProc, p, CREATE_SUSPENDED, NULL);
+			p->selfHandle = threadHandle;
+			ResumeThread(threadHandle);
+		}
+
+		return ctx;
 	}
 
 	// Real COM ports currently present on this machine, per Windows itself - not a blind numeric
@@ -194,8 +384,8 @@ extioManager::extioManager()
 	isTalking = false;
 	powerOnTime = 0;
 	timeSinceLastLampUpdate = 0;
-	scanThreadHandle = NULL;
 	scanContext = NULL;
+	scanStarted = false;
 	bootWaitElapsed = 0;
 }
 
@@ -222,25 +412,18 @@ void extioManager::initialize()
 
 bool extioManager::updateInitialize(UTIME dt)
 {
-	if ( scanThreadHandle == NULL && scanContext == NULL )
+	if ( !scanStarted )
 	{
-		// first call - kick off the one background thread that owns the entire scan
-		ScanContext* ctx = new ScanContext();
-		ctx->ports = comPortsToTry;
-		ctx->usePhoenix = usePhoenixIO;
-		ctx->state = SCAN_RUNNING;
-		ctx->resultHandle = INVALID_HANDLE_VALUE;
-		ctx->resultComPort = -1;
-
-		scanContext = ctx;
-		scanThreadHandle = CreateThread(NULL, 0, scanThreadProc, ctx, 0, NULL);
+		// first call - fire off one thread per candidate port, all racing in parallel
+		scanContext = beginParallelScan(comPortsToTry, usePhoenixIO);
+		scanStarted = true;
 		bootWaitElapsed = 0;
 		return true;
 	}
 
 	if ( scanContext == NULL )
 	{
-		// already gave up and detached in a previous call - nothing left to poll
+		// already gave up and released our reference in a previous call - nothing left to poll
 		return false;
 	}
 
@@ -261,9 +444,7 @@ bool extioManager::updateInitialize(UTIME dt)
 #endif
 		WriteData("I", 1); // begin the input request loop
 
-		if ( scanThreadHandle != NULL ) CloseHandle((HANDLE)scanThreadHandle);
-		scanThreadHandle = NULL;
-		delete ctx;
+		releaseScanContextRef(ctx); // extioManager's own reference - may or may not be the last one
 		scanContext = NULL;
 		return true;
 	}
@@ -274,25 +455,22 @@ bool extioManager::updateInitialize(UTIME dt)
 		al_trace("Can't find the IO board on any known com port.\r\n");
 #endif
 
-		if ( scanThreadHandle != NULL ) CloseHandle((HANDLE)scanThreadHandle);
-		scanThreadHandle = NULL;
-		delete ctx;
+		releaseScanContextRef(ctx);
 		scanContext = NULL;
 		return false;
 	}
 
-	// still running - bounded independently of whatever the background thread is actually doing
+	// still running - bounded independently of whatever any individual port thread is actually doing
 	if ( bootWaitElapsed >= BOOT_WAIT_TIMEOUT_MS )
 	{
 #ifdef DMX_LOGGING
-		al_trace("Giving up waiting on the IO board scan after %lums - no board found (the scan thread is left running in the background in case some port's driver is just being slow, but boot is no longer waiting on it).\r\n",
+		al_trace("Giving up waiting on the IO board scan after %lums - no board found (any still-running port threads are left alone in the background in case one of them is just being slow, but boot is no longer waiting on them).\r\n",
 			(unsigned long)bootWaitElapsed);
 #endif
 
-		// deliberately do NOT close scanThreadHandle or delete ctx here - the thread may genuinely
-		// still be stuck inside a bad port's driver and could touch ctx at any later time; freeing it
-		// out from under that write would be a use-after-free. Just stop watching it.
-		scanThreadHandle = NULL;
+		releaseScanContextRef(ctx); // just releases OUR reference - safe even if per-port threads are
+		                            // still running and holding their own; whichever of them is truly
+		                            // last to finish frees ctx itself, we just stop watching it here
 		scanContext = NULL;
 		return false;
 	}

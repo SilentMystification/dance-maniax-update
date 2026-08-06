@@ -23,17 +23,16 @@ public:
 	// postcondition: hopefully, eventualy, isReady() will return true
 	// returns: false when the software should give up on finding an IO board, true when it should continue to wait
 	//
-	// The entire port hunt (open, configure, handshake) for every candidate port runs on ONE
-	// dedicated background thread, spun up on the first call. This function itself never calls a
-	// single blocking Win32 API - it only ever polls a plain atomic status flag - so it is
-	// UNCONDITIONALLY safe to call every frame no matter what any port's driver does, including if
-	// it never returns at all, and including any effect one bad port's open might have on trying to
-	// open a DIFFERENT port afterward (e.g. a shared driver-level lock serializing opens across
-	// ports - this only ever affects the background thread, never this call). This function gives up
-	// and returns false on its own if the background thread hasn't reported back within
-	// BOOT_WAIT_TIMEOUT_MS, regardless of whether that thread is still running - some other,
-	// unrelated device sitting on a COM port (built into the cabinet's PC, a Bluetooth virtual port,
-	// whatever) can never hang boot.
+	// Every candidate port is tried IN PARALLEL, one dedicated thread each, spun up together on the
+	// first call - not one port after another. Whichever one answers the handshake first wins; the
+	// rest are abandoned in place (see extioManager.cpp for how that's done safely). This function
+	// itself never calls a single blocking Win32 API - it only ever polls a plain atomic status flag -
+	// so it is UNCONDITIONALLY safe to call every frame no matter what any port's driver does,
+	// including if one never returns at all. It gives up and returns false on its own if nothing has
+	// reported back within BOOT_WAIT_TIMEOUT_MS, regardless of whether any thread is still running -
+	// some other, unrelated device sitting on a COM port (built into the cabinet's PC, a Bluetooth
+	// virtual port, whatever) can never hang boot, and can no longer delay finding the real board
+	// past its own individual timeout either, since it's no longer sitting in front of it in a queue.
 
 	bool isReady();
 	// returns: true when the initialization is complete and the hardware is fully usable
@@ -54,14 +53,13 @@ private:
 	bool isConnected;
 	bool isTalking;
 	UTIME powerOnTime;
-	int comPort; // the port the scan thread found and handed off, for logging/display only
+	int comPort; // the port that won the race and got adopted, for logging/display only
 
-	void* scanThreadHandle; // HANDLE, or NULL before the scan starts / after it's been reaped
-	void* scanContext;      // ScanContext*, owned by whichever side (this object, or the thread
-	                         // itself once detached past BOOT_WAIT_TIMEOUT_MS) is still interested -
+	void* scanContext;      // ScanContext*, shared (reference-counted) with every per-port thread -
 	                         // see extioManager.cpp
-	UTIME bootWaitElapsed;   // how long THIS object has been waiting on the scan thread - independent
-	                         // of how long the thread itself has actually been running
+	bool scanStarted;        // true once the per-port threads have been kicked off
+	UTIME bootWaitElapsed;   // how long THIS object has been waiting on them - independent of how
+	                         // long any individual thread has actually been running
 
 	void setBaudRate(DWORD rate);
 	// precondition: hSerial is a valid open handle
