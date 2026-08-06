@@ -992,7 +992,7 @@ void logExecFailure(const char* batchFile)
 	_getcwd(cwd, 512);
 	char errBuf[128] = "";
 	strerror_s(errBuf, sizeof(errBuf), savedErrno);
-	al_trace("EXEC FAILURE: could not launch \"%s\" - errno=%d (%s), file exists=%s, cwd=%s\n",
+	al_trace("EXEC FAILURE:could not launch \"%s\":errno=%d:%s:fileExists=%s:cwd=%s\n",
 		batchFile, savedErrno, errBuf,
 		fileExists((char*)batchFile) ? "YES" : "NO", cwd);
 }
@@ -1687,7 +1687,7 @@ void mainUpdateLoop(UTIME dt)
 	}
 	else if ( dm.didDownloadFail() && updateInProgress )
 	{
-		al_trace("DATA DOWNLOAD FAILED OR STALLED: %s\n", dm.getCurrentDownloadFilename().c_str());
+		al_trace("DATA DOWNLOAD FAILED OR STALLED:%s\n", dm.getCurrentDownloadFilename().c_str());
 		updateInProgress = false;
 		lastUpdateAttemptFailed = true;
 		dm.resetState();
@@ -1707,7 +1707,7 @@ void mainUpdateLoop(UTIME dt)
 	// is the update done?
 	else if ( dm.isDownloadComplete() && exeUpdateInProgress )
 	{
-		al_trace("DOWNLOADED NEW EXE (%s), HANDING OFF TO updater.bat\n", pendingExeTag.c_str());
+		al_trace("DOWNLOADED NEW EXE:%s:HANDING OFF TO updater.bat\n", pendingExeTag.c_str());
 		exeUpdateInProgress = false;
 		dm.resetState();
 
@@ -1847,7 +1847,7 @@ void mainBootLoop(UTIME dt)
 	}
 	else
 	{
-		textprintf(rm.m_backbuf, font, 10, 10, WHITE, "DEV BUILD %s", version.versionString);
+		textprintf(rm.m_backbuf, font, 10, 10, WHITE, "DEV BUILD:%s", version.versionString);
 	}
 	textprintf_centre(rm.m_backbuf, font, 320, 50, WHITE, "DanceManiax System Startup");
 	textprintf(rm.m_backbuf, font, 50, 140, WHITE, "I/O   CHECK:");

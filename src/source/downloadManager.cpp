@@ -146,7 +146,7 @@ bool DownloadManager::performDownload(const std::string& url, const std::string&
 		WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
 	if (hSession == NULL)
 	{
-		al_trace("DOWNLOAD: WinHttpOpen failed, GetLastError=%lu (host=%s)\n", GetLastError(), host.c_str());
+		al_trace("DOWNLOAD:WinHttpOpen failed:GetLastError=%lu:host=%s\n", GetLastError(), host.c_str());
 		return false;
 	}
 
@@ -174,7 +174,7 @@ bool DownloadManager::performDownload(const std::string& url, const std::string&
 			isHttps ? INTERNET_DEFAULT_HTTPS_PORT : INTERNET_DEFAULT_HTTP_PORT, 0);
 		if (hConnect == NULL)
 		{
-			al_trace("DOWNLOAD: WinHttpConnect failed, GetLastError=%lu (host=%s)\n", GetLastError(), host.c_str());
+			al_trace("DOWNLOAD:WinHttpConnect failed:GetLastError=%lu:host=%s\n", GetLastError(), host.c_str());
 			break;
 		}
 
@@ -183,19 +183,19 @@ bool DownloadManager::performDownload(const std::string& url, const std::string&
 			NULL, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, requestFlags);
 		if (hRequest == NULL)
 		{
-			al_trace("DOWNLOAD: WinHttpOpenRequest failed, GetLastError=%lu (path=%s)\n", GetLastError(), path.c_str());
+			al_trace("DOWNLOAD:WinHttpOpenRequest failed:GetLastError=%lu:path=%s\n", GetLastError(), path.c_str());
 			break;
 		}
 
 		const wchar_t* headers = L"User-Agent: DMX-Remake-Updater/1.0\r\nCache-Control: no-cache\r\nPragma: no-cache\r\n";
 		if (!WinHttpSendRequest(hRequest, headers, (DWORD)-1, WINHTTP_NO_REQUEST_DATA, 0, 0, 0))
 		{
-			al_trace("DOWNLOAD: WinHttpSendRequest failed, GetLastError=%lu (url=%s)\n", GetLastError(), url.c_str());
+			al_trace("DOWNLOAD:WinHttpSendRequest failed:GetLastError=%lu:url=%s\n", GetLastError(), url.c_str());
 			break;
 		}
 		if (!WinHttpReceiveResponse(hRequest, NULL))
 		{
-			al_trace("DOWNLOAD: WinHttpReceiveResponse failed, GetLastError=%lu (url=%s)\n", GetLastError(), url.c_str());
+			al_trace("DOWNLOAD:WinHttpReceiveResponse failed:GetLastError=%lu:url=%s\n", GetLastError(), url.c_str());
 			break;
 		}
 
@@ -207,7 +207,7 @@ bool DownloadManager::performDownload(const std::string& url, const std::string&
 			WINHTTP_HEADER_NAME_BY_INDEX, &statusCode, &statusCodeSize, WINHTTP_NO_HEADER_INDEX);
 		if (statusCode < 200 || statusCode >= 300)
 		{
-			al_trace("DOWNLOAD: unexpected HTTP status %lu (url=%s)\n", statusCode, url.c_str());
+			al_trace("DOWNLOAD:unexpected HTTP status %lu:url=%s\n", statusCode, url.c_str());
 			break;
 		}
 
@@ -224,7 +224,7 @@ bool DownloadManager::performDownload(const std::string& url, const std::string&
 		{
 			char errBuf[128] = "";
 			strerror_s(errBuf, sizeof(errBuf), errno);
-			al_trace("DOWNLOAD: unable to open \"%s\" for writing, errno=%d (%s)\n", filename.c_str(), errno, errBuf);
+			al_trace("DOWNLOAD:unable to open \"%s\" for writing:errno=%d:%s\n", filename.c_str(), errno, errBuf);
 			break;
 		}
 
@@ -233,7 +233,7 @@ bool DownloadManager::performDownload(const std::string& url, const std::string&
 		{
 			if (userCancelledDownload)
 			{
-				al_trace("DOWNLOAD: cancelled by user (url=%s)\n", url.c_str());
+				al_trace("DOWNLOAD:cancelled by user:url=%s\n", url.c_str());
 				break;
 			}
 
@@ -242,7 +242,7 @@ bool DownloadManager::performDownload(const std::string& url, const std::string&
 			{
 				// includes a timed-out/stalled read - ERROR_WINHTTP_TIMEOUT (12002) means the stall
 				// detector tripped; anything else is a genuine transport error
-				al_trace("DOWNLOAD: WinHttpQueryDataAvailable failed, GetLastError=%lu, %I64u bytes received so far (url=%s)\n",
+				al_trace("DOWNLOAD:WinHttpQueryDataAvailable failed:GetLastError=%lu:bytesReceived=%I64u:url=%s\n",
 					GetLastError(), currentBytesDownloaded, url.c_str());
 				break;
 			}
@@ -256,7 +256,7 @@ bool DownloadManager::performDownload(const std::string& url, const std::string&
 			DWORD bytesRead = 0;
 			if (!WinHttpReadData(hRequest, buffer.data(), toRead, &bytesRead) || bytesRead == 0)
 			{
-				al_trace("DOWNLOAD: WinHttpReadData failed, GetLastError=%lu, %I64u bytes received so far (url=%s)\n",
+				al_trace("DOWNLOAD:WinHttpReadData failed:GetLastError=%lu:bytesReceived=%I64u:url=%s\n",
 					GetLastError(), currentBytesDownloaded, url.c_str());
 				break;
 			}
