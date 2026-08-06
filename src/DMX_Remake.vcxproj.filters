@@ -96,6 +96,9 @@
     <ClCompile Include="source\specialEffects.cpp">
       <Filter>source</Filter>
     </ClCompile>
+    <ClCompile Include="source\updateChecker.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
     <ClCompile Include="source\versionManager.cpp">
       <Filter>source</Filter>
     </ClCompile>
@@ -159,6 +162,9 @@
       <Filter>headers</Filter>
     </ClInclude>
     <ClInclude Include="headers\specialEffects.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\updateChecker.h">
       <Filter>headers</Filter>
     </ClInclude>
     <ClInclude Include="headers\versionManager.h">

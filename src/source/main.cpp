@@ -16,6 +16,7 @@
 #include "../headers/analyticsManager.h"
 #include "../headers/bookManager.h"
 #include "../headers/downloadManager.h"
+#include "../headers/updateChecker.h"
 #include "../headers/extioManager.h"
 #include "../headers/inputManager.h"
 #include "../headers/gameStateManager.h"
@@ -104,6 +105,34 @@ UTIME bootStepTime = 0;
 int currentBootStep = 0;
 bool updateInProgress = false;
 UTIME updateCloseTimer = 0;
+bool exeUpdateInProgress = false;  // true while the new exe binary itself is downloading
+std::string pendingExeTag = "";    // the tag that will be written to the marker file once applied
+int manualUpdateStatus = 0;        // 0=idle, 1=checking, 2=up to date, 3=downloading, 4=no connection
+
+// automatic (startup-only) update check/apply state. The golden rule for everything below:
+// a cabinet with autoUpdateEnabled must NEVER fail to boot, no matter what goes wrong (offline,
+// unreachable server, a stuck download, a failed exe handoff, anything). Every failure path here
+// falls back to ATTRACT instead of the shared globalError()/ERRORMODE machinery the manual/legacy
+// update paths use - that machinery is fine when an operator is present to see and dismiss it, but
+// is exactly the "please reboot the machine" block this must never produce unattended.
+#define AUTOUPDATE_HIDDEN 0     // auto-updates disabled - don't show the boot line at all
+#define AUTOUPDATE_SKIP 1       // offline, or couldn't reach GitHub/the data server in time
+#define AUTOUPDATE_NONE 2       // reachable, already up to date
+#define AUTOUPDATE_AVAILABLE 3  // found something new; about to apply it
+int autoUpdateBootStatus = AUTOUPDATE_HIDDEN;
+bool autoUpdateFoundExe = false;
+std::string autoUpdatePendingExeTag = "";
+std::string autoUpdatePendingExeAssetUrl = "";
+bool autoUpdateDataMayBeAvailable = false; // data server was reachable at check time
+
+// True only while the automatic path owns an in-progress apply. A download itself is allowed to
+// take as long as it needs, however poor the connection - there is deliberately no timeout or
+// stall detection on it. The only thing that must never hang unattended boot is the initial "can
+// we even reach the server" step, which is already bounded (see UpdateChecker's timeouts and
+// hasNetworkConnection() above). This flag exists purely to gate "never hard-fail via globalError"
+// behavior for the small number of DEFINITE, immediate failures below (a missing updater.bat, a
+// missing config) - not for anything time-based.
+bool automaticUpdateActive = false;
 
 BookManager bm;
 RenderingManager rm;
@@ -181,6 +210,9 @@ void alternateMainUpdateLoop();
 void renderCreditsDisplay();
 bool checkForUpdates();
 bool checkForExperimentalUpdates();
+void beginAutomaticUpdateCheck();
+void beginAutomaticUpdateApply();
+void beginManualUpdateCheck();
 void giveUpAndRestart();
 void renderDebugOverlay();
 
@@ -194,6 +226,7 @@ void renderGameOptions();
 void renderBookkeeping(int temp);
 void renderSoundOptions();
 void renderDataOptions();
+void renderUpdateSettings();
 
 // DSP callback — fires from FMOD's mixer thread at each chunk boundary.
 // Records the precise wall time so gameplayMode can anchor syncedBase without game-loop polling lag.
@@ -449,6 +482,10 @@ int main()
 			if ( !gs.isInitialized )
 			{
 				globalError(UNSET_MACHINE_SETTINGS, "PLEASE REBOOT WHILE HOLDING SERVICE");
+			}
+			else if ( gs.g_currentGameMode != ERRORMODE )
+			{
+				beginAutomaticUpdateCheck();
 			}
 		}
 	}
@@ -935,6 +972,111 @@ bool checkForUpdates()
 	return startedDownload;
 }
 
+// Runs once at startup only, per operator setting - and ONLY performs the bounded check, never
+// a mode transition or an actual download. Must never hang: every branch is bounded by
+// UpdateChecker's timeouts, and every outcome (including "couldn't even check") just sets
+// autoUpdateBootStatus for mainBootLoop() to render as the 4th boot line. The actual apply (if
+// anything was found) is kicked off later, from mainBootLoop(), at the point boot would otherwise
+// transition to ATTRACT - see beginAutomaticUpdateApply().
+void beginAutomaticUpdateCheck()
+{
+	autoUpdateBootStatus = AUTOUPDATE_HIDDEN;
+
+	if ( !gs.autoUpdateEnabled )
+	{
+		return;
+	}
+
+	autoUpdateBootStatus = AUTOUPDATE_SKIP; // pessimistic default; upgraded below on success
+	autoUpdateFoundExe = false;
+	autoUpdateDataMayBeAvailable = false;
+
+	if ( !UpdateChecker::hasNetworkConnection() )
+	{
+		return; // no network interface at all - skip instantly, don't even try a bounded probe
+	}
+
+	UpdateChecker checker;
+
+	if ( checker.checkForExeUpdate(gs.updateChannel, autoUpdatePendingExeTag, autoUpdatePendingExeAssetUrl, 3000) )
+	{
+		autoUpdateFoundExe = true;
+		autoUpdateBootStatus = AUTOUPDATE_AVAILABLE;
+		return;
+	}
+
+	if ( checker.isHostReachable(dm.getServerUrl(), 3000) )
+	{
+		autoUpdateDataMayBeAvailable = true;
+		autoUpdateBootStatus = AUTOUPDATE_NONE; // upgraded to AVAILABLE by beginAutomaticUpdateApply()
+	}
+	// else: offline, or both GitHub and the data server are unreachable - stays SKIP
+}
+
+// Called once, from mainBootLoop(), exactly where boot would otherwise transition to ATTRACT.
+// Kicks off the actual download/apply for whatever beginAutomaticUpdateCheck() found. From this
+// point on, automaticUpdateActive gates a watchdog and silent-failure behavior in mainUpdateLoop()
+// and DownloadManager, so nothing here can leave the cabinet stuck or in ERRORMODE.
+void beginAutomaticUpdateApply()
+{
+	automaticUpdateActive = true;
+
+	if ( autoUpdateFoundExe )
+	{
+		pendingExeTag = autoUpdatePendingExeTag;
+		dm.downloadFile(autoUpdatePendingExeAssetUrl, "DMX_new.exe", true);
+		exeUpdateInProgress = true;
+		updateInProgress = true;
+		gs.g_currentGameMode = UPDATEMODE;
+		return;
+	}
+
+	// whether or not anything is actually needed, checkForUpdates()/checkForExperimentalUpdates()
+	// always enters UPDATEMODE (showing either a progress bar or "ALL FILES UP TO DATE!" for 3s) -
+	// the idle-timeout branch in mainUpdateLoop() already returns to ATTRACT afterward since
+	// automaticUpdateActive is set, so there is nothing further to special-case here.
+	// data updates only distinguish stable vs. non-stable for now (alpha shares the beta manifest -
+	// there is no separate alpha data manifest yet)
+	(gs.updateChannel != DMX_CHANNEL_STABLE) ? checkForExperimentalUpdates() : checkForUpdates();
+}
+
+// Operator-triggered from the "Manual Update Check" row. Unlike the automatic path, this may
+// show status/errors since an operator is actively present and watching the screen.
+void beginManualUpdateCheck()
+{
+	manualUpdateStatus = 1; // checking...
+
+	UpdateChecker checker;
+	std::string assetUrl;
+
+	if ( checker.getGithubRepo().empty() )
+	{
+		globalError(UPDATE_MISSING_EXE_CONFIG, "check update_config.txt and restart");
+		manualUpdateStatus = 0;
+		return;
+	}
+
+	if ( checker.checkForExeUpdate(gs.updateChannel, pendingExeTag, assetUrl, 4000) )
+	{
+		manualUpdateStatus = 3; // downloading...
+		dm.downloadFile(assetUrl, "DMX_new.exe", true);
+		exeUpdateInProgress = true;
+		gs.g_currentGameMode = UPDATEMODE;
+		gs.g_gameModeTransition = 1;
+		updateInProgress = true;
+		return;
+	}
+
+	if ( gs.updateChannel != DMX_CHANNEL_STABLE )
+	{
+		manualUpdateStatus = checkForExperimentalUpdates() ? 3 : 2;
+	}
+	else
+	{
+		manualUpdateStatus = checkForUpdates() ? 3 : 2;
+	}
+}
+
 // This is used in the event of a fatal error.
 void giveUpAndRestart()
 {
@@ -959,7 +1101,7 @@ void firstOperatorLoop()
 	im.setCooldownTime(0);
 }
 
-#define NUM_OP_MENU_CHOICES 11
+#define NUM_OP_MENU_CHOICES 12
 
 void mainOperatorLoop(UTIME dt)
 {
@@ -979,8 +1121,9 @@ void mainOperatorLoop(UTIME dt)
 		textprintf(rm.m_backbuf, font, 50, 220, testMenuMainIndex == 6 ? RED : WHITE, "SOUND  OPTIONS");
 		textprintf(rm.m_backbuf, font, 50, 240, testMenuMainIndex == 7 ? RED : WHITE, "BOOKKEEPING");
 		textprintf(rm.m_backbuf, font, 50, 260, testMenuMainIndex == 8 ? RED : WHITE, "DATA OPTIONS");
-		textprintf(rm.m_backbuf, font, 50, 300, testMenuMainIndex == 9 ? RED : WHITE, "ALL FACTORY DEFAULTS");
-		textprintf(rm.m_backbuf, font, 50, 320, testMenuMainIndex == 10 ? RED : WHITE, "GAME MODE");
+		textprintf(rm.m_backbuf, font, 50, 280, testMenuMainIndex == 9 ? RED : WHITE, "UPDATE SETTINGS");
+		textprintf(rm.m_backbuf, font, 50, 320, testMenuMainIndex == 10 ? RED : WHITE, "ALL FACTORY DEFAULTS");
+		textprintf(rm.m_backbuf, font, 50, 340, testMenuMainIndex == 11 ? RED : WHITE, "GAME MODE");
 
 		lm.setAll(0);
 
@@ -1332,11 +1475,50 @@ void mainOperatorLoop(UTIME dt)
 			}
 
 			break;
-		case 9: // factory defaults
+		case 9: // update settings
+			renderUpdateSettings();
+			if ( im.getKeyState(MENU_START_1P) == JUST_DOWN )
+			{
+				if ( testMenuSubIndex == 2 ) // manual update check
+				{
+					beginManualUpdateCheck();
+				}
+				if ( testMenuSubIndex == 3 ) // save and exit
+				{
+					gs.saveOperatorSettings();
+					testMenuMainIndex = 0;
+					testMenuSubIndex = -1;
+				}
+			}
+			if ( im.getKeyState(MENU_RIGHT_1P) == JUST_DOWN || im.getKeyState(MENU_SERVICE) == JUST_DOWN )
+			{
+				testMenuSubIndex = (testMenuSubIndex + 1) % 4;
+			}
+			if ( im.getKeyState(MENU_LEFT_1P) == JUST_DOWN )
+			{
+				testMenuSubIndex = (testMenuSubIndex - 1 + 4) % 4;
+			}
+			if ( im.getKeyState(MENU_RIGHT_2P) == JUST_DOWN || im.getKeyState(MENU_LEFT_2P) == JUST_DOWN )
+			{
+				switch (testMenuSubIndex)
+				{
+				case 0:
+					gs.autoUpdateEnabled = !gs.autoUpdateEnabled;
+					break;
+				case 1:
+					if ( im.getKeyState(MENU_RIGHT_2P) == JUST_DOWN )
+						gs.updateChannel = (gs.updateChannel + 1) % 3;
+					if ( im.getKeyState(MENU_LEFT_2P) == JUST_DOWN )
+						gs.updateChannel = (gs.updateChannel - 1 + 3) % 3;
+					break;
+				}
+			}
+			break;
+		case 10: // factory defaults
 			testMenuMainIndex = 0;
 			testMenuSubIndex = -1;
 			break;
-		case 10: // quit to game mode
+		case 11: // quit to game mode
 			gs.g_gameModeTransition = 1;
 			gs.g_currentGameMode = ATTRACT;
 			gs.saveOperatorSettings();
@@ -1453,7 +1635,31 @@ void mainUpdateLoop(UTIME dt)
 	}
 
 	// is the update done?
-	if ( dm.isDownloadComplete() && updateInProgress )
+	if ( dm.isDownloadComplete() && exeUpdateInProgress )
+	{
+		al_trace("DOWNLOADED NEW EXE, HANDING OFF TO updater.bat\n");
+		exeUpdateInProgress = false;
+		dm.resetState();
+
+		// updater.bat waits for this process to exit, swaps the exe, writes the version marker, and relaunches
+		if ( _execl("updater.bat", "updater.bat", "DMX.exe", "DMX_new.exe", pendingExeTag.c_str(), NULL) == -1 )
+		{
+			al_trace("DOWNLOAD ERROR: unable to run updater.bat\n");
+			if ( automaticUpdateActive )
+			{
+				automaticUpdateActive = false;
+				updateInProgress = false;
+				gs.g_gameModeTransition = 1;
+				gs.g_currentGameMode = ATTRACT;
+				im.updateKeyStates(1);
+			}
+			else
+			{
+				globalError(UPDATE_FAILED, "please reboot the machine");
+			}
+		}
+	}
+	else if ( dm.isDownloadComplete() && updateInProgress )
 	{
 		al_trace("DOWNLOADED FILE %s\n", dm.getCurrentDownloadFilename().c_str());
 
@@ -1477,7 +1683,18 @@ void mainUpdateLoop(UTIME dt)
 			if ( _execl("update.bat", dm.getCurrentDownloadFilename().c_str(), NULL) == -1 )
 			{
 				al_trace("DOWNLOAD ERROR: unable to run update.bat\n");
-				globalError(UPDATE_FAILED, "please reboot the machine");
+				if ( automaticUpdateActive )
+				{
+					automaticUpdateActive = false;
+					updateInProgress = false;
+					gs.g_gameModeTransition = 1;
+					gs.g_currentGameMode = ATTRACT;
+					im.updateKeyStates(1);
+				}
+				else
+				{
+					globalError(UPDATE_FAILED, "please reboot the machine");
+				}
 			}
 		}
 	}
@@ -1489,7 +1706,19 @@ void mainUpdateLoop(UTIME dt)
 		if ( updateCloseTimer > 3000 )
 		{
 			gs.g_gameModeTransition = 1;
-			gs.g_currentGameMode = TESTMODE;				
+			// the automatic startup path only ever enters this screen right where boot would
+			// otherwise have gone to ATTRACT anyway, so that's always the correct place to resume -
+			// the manual/legacy paths return to the operator test menu they were launched from
+			if ( automaticUpdateActive )
+			{
+				automaticUpdateActive = false;
+				gs.g_currentGameMode = ATTRACT;
+				im.updateKeyStates(1);
+			}
+			else
+			{
+				gs.g_currentGameMode = TESTMODE;
+			}
 		}
 	}
 }
@@ -1545,6 +1774,15 @@ void mainBootLoop(UTIME dt)
 	textprintf(rm.m_backbuf, font, 50, 140, WHITE, "I/O   CHECK:");
 	textprintf(rm.m_backbuf, font, 50, 160, WHITE, "DATA  CHECK:");
 	textprintf(rm.m_backbuf, font, 50, 180, WHITE, "SOUND CHECK:");
+	if ( autoUpdateBootStatus != AUTOUPDATE_HIDDEN )
+	{
+		textprintf(rm.m_backbuf, font, 50, 200, WHITE, "UPDATE CHECK:");
+		const char* label = "SKIP";
+		int labelColor = WHITE;
+		if ( autoUpdateBootStatus == AUTOUPDATE_NONE ) { label = "NONE"; labelColor = GREEN; }
+		if ( autoUpdateBootStatus == AUTOUPDATE_AVAILABLE ) { label = "UPDATE AVAILABLE"; labelColor = YELLOW; }
+		textprintf(rm.m_backbuf, font, 220, 200, labelColor, label);
+	}
 
 	if ( currentBootStep == 0 )
 	{
@@ -1638,7 +1876,17 @@ void mainBootLoop(UTIME dt)
 		if ( bootStepTime >= 3000 )
 		{
 			gs.g_gameModeTransition = 1;
-			gs.g_currentGameMode = ATTRACT;
+			// NONE is a provisional label for "data server was reachable" - we still don't know for
+			// sure whether a data update is pending until checkForUpdates() actually asks, so both
+			// NONE and AVAILABLE need to run the apply step; only SKIP (nothing reachable) does not
+			if ( autoUpdateFoundExe || autoUpdateDataMayBeAvailable )
+			{
+				beginAutomaticUpdateApply(); // sets g_currentGameMode itself (UPDATEMODE either way)
+			}
+			else
+			{
+				gs.g_currentGameMode = ATTRACT;
+			}
 		}
 	}
 
@@ -2248,4 +2496,36 @@ void renderDataOptions()
 	{
 		textprintf(rm.m_backbuf, font, 50, 440, makecol(196, 255, 255), "PRESS 1P START BUTTON = confirm selection");
 	}
+}
+
+const char* getManualUpdateStatusString()
+{
+	switch (manualUpdateStatus)
+	{
+	case 1: return "CHECKING...";
+	case 2: return "UP TO DATE";
+	case 3: return "DOWNLOADING UPDATE...";
+	case 4: return "NO CONNECTION";
+	}
+	return "PRESS START TO CHECK";
+}
+
+void renderUpdateSettings()
+{
+	static const char* channelLabels[] = { "STABLE", "BETA", "ALPHA" };
+
+	textprintf_centre(rm.m_backbuf, font, 320, 50, WHITE, "UPDATE SETTINGS");
+
+	textprintf(rm.m_backbuf, font, 50, 100, testMenuSubIndex == 0 ? RED : WHITE, "ENABLE AUTOMATIC UPDATES");
+	textprintf(rm.m_backbuf, font, 50, 130, testMenuSubIndex == 1 ? RED : WHITE, "RELEASE CHANNEL");
+	textprintf(rm.m_backbuf, font, 50, 160, testMenuSubIndex == 2 ? RED : WHITE, "MANUAL UPDATE CHECK");
+	textprintf(rm.m_backbuf, font, 50, 340, testMenuSubIndex == 3 ? RED : WHITE, "SAVE AND EXIT");
+
+	textprintf(rm.m_backbuf, font, 380, 100, gs.autoUpdateEnabled ? GREEN : RED, GET_ON_OFF(gs.autoUpdateEnabled));
+	textprintf(rm.m_backbuf, font, 380, 130, GREEN, channelLabels[gs.updateChannel]);
+	textprintf(rm.m_backbuf, font, 50, 190, YELLOW, "%s", getManualUpdateStatusString());
+
+	textprintf(rm.m_backbuf, font, 50, 400, makecol(196, 255, 255), "PRESS 1P LEFT / RIGHT = select item");
+	textprintf(rm.m_backbuf, font, 50, 420, makecol(196, 255, 255), "PRESS 2P LEFT / RIGHT = modify setting");
+	textprintf(rm.m_backbuf, font, 50, 440, makecol(196, 255, 255), "PRESS 1P START BUTTON = confirm selection");
 }

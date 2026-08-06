@@ -10,10 +10,15 @@
 
 #define MANIFEST_FILENAME "manifest.txt"
 #define MANIFEST_BETA_FILENAME "manifest_beta.txt"
+#define UPDATE_CONFIG_FILENAME "update_config.txt"
 
 // used during async downloading
 extern void alternateMainUpdateLoop();
 extern RenderingManager rm;
+
+// true only while the automatic startup update path owns an in-progress check/apply - when set,
+// failures here must degrade silently instead of calling globalError() (see main.cpp for why)
+extern bool automaticUpdateActive;
 
 // This class is used by the Windows API URLDownloadToFile() function.
 // It implements the asynchronous callback for monitoring progress.
@@ -102,8 +107,13 @@ public:
 	// precondition: manifest.txt has been downloaded
 	// postcondition: returns a file to download if manifest.txt lists a file which we don't have, or an empty string otherwise
 
-	void downloadFile(std::string url, std::string filename);
+	void downloadFile(std::string url, std::string filename, bool urlIsAbsolute = false);
 	// precondition: works best if no other downloads are in progress
+	// if urlIsAbsolute is true, "url" is used as-is (not prefixed with serverUrl) - used for
+	// fully-qualified URLs such as a GitHub release asset's browser_download_url
+
+	std::string getServerUrl() { return serverUrl; }
+	// postcondition: returns the data-server base URL read from UPDATE_CONFIG_FILENAME, or "" if missing
 
 	std::string getCurrentDownloadFilename();
 	// precondition: there is a download currently in progress because of downloadFile()

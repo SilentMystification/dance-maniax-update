@@ -74,6 +74,8 @@ public:
 	bool isEventMode;
 	bool isFreestyleMode;
 	int  extraTrackMode;        // 0=Classic, 1=Bonus, 2=Safe, 3=Disabled
+	bool autoUpdateEnabled;     // check for exe/data updates at startup
+	int  updateChannel;         // 0=Stable, 1=Beta, 2=Alpha (see DMX_CHANNEL_* in updateChecker.h)
 	bool returningToSongwheel;  // true mid-credit when returning from per-song results to songwheel
 	bool skipFreestyleMods; // freestyle expert: skip MAINMENU modifier rows
 	bool creditComplete;        // true when all songs (including bonus) are done; triggers full results after per-song results
@@ -340,6 +342,8 @@ public:
 		isEventMode = false;
 		isFreestyleMode = false;
 		extraTrackMode = 0;
+		autoUpdateEnabled = false; // opt-in, since it can silently replace the running exe
+		updateChannel = 0;
 		returningToSongwheel = false;
 		skipFreestyleMods = false;
 		creditComplete = false;
@@ -507,6 +511,11 @@ public:
 			if ( fread(&n, sizeof(long), 1, fp) == 1 ) isFreestyleMode = n != 0;
 			if ( fread(&extraTrackMode, sizeof(int), 1, fp) != 1 ) extraTrackMode = 0;
 		}
+		if ( vnum >= 4 )
+		{
+			if ( fread(&n, sizeof(long), 1, fp) == 1 ) autoUpdateEnabled = n != 0; else autoUpdateEnabled = false;
+			if ( fread(&updateChannel, sizeof(int), 1, fp) != 1 ) updateChannel = 0;
+		}
 
 		isInitialized = true;
 		fclose(fp);
@@ -543,6 +552,9 @@ public:
 		n = isFreestyleMode ? 1 : 0;
 		fwrite(&n, sizeof(long), 1, fp);
 		fwrite(&extraTrackMode, sizeof(int), 1, fp);
+		n = autoUpdateEnabled ? 1 : 0;
+		fwrite(&n, sizeof(long), 1, fp);
+		fwrite(&updateChannel, sizeof(int), 1, fp);
 
 		safeCloseFile(fp, MSETTING_FILENAME);
 	}
@@ -570,6 +582,7 @@ public:
 		case REBOOT_FAILED: return "UNABLE TO SELF-RESTART";
 		case UPDATE_MISSING_MANIFEST: return "UNABLE TO PARSE UPDATE LIST";
 		case UPDATE_MISSING_SERVERURL: return "UNABLE TO DETERMINE SERVER URL";
+		case UPDATE_MISSING_EXE_CONFIG: return "UNABLE TO DETERMINE UPDATE REPOSITORY";
 		case 7000: return "UNSPECIFIC HARDWARE ERROR";
 		case EXTIO_ERROR: return "I/O BOARD SYNC ERROR";
 		}

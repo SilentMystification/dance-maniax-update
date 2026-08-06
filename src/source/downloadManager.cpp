@@ -8,11 +8,17 @@ DownloadManager::DownloadManager()
 	serverUrl = "";
 	char buffer[512] = "";
 	FILE* fp = NULL;
-	fopen_s(&fp, "serverurl.txt", "rt");
+	fopen_s(&fp, UPDATE_CONFIG_FILENAME, "rt");
 	if (fp != NULL)
 	{
 		fgets(buffer, 512, fp);
 		fclose(fp);
+
+		size_t len = strlen(buffer);
+		while (len > 0 && (buffer[len - 1] == '\n' || buffer[len - 1] == '\r'))
+		{
+			buffer[--len] = 0;
+		}
 		serverUrl = buffer;
 	}
 	resetState();
@@ -33,7 +39,10 @@ std::string DownloadManager::doWeNeedAnyUpdates()
 	FILE* fp = NULL;
 	if ( fopen_s(&fp, MANIFEST_FILENAME, "rt") != 0 )
 	{
-		globalError(UPDATE_MISSING_MANIFEST, "please restart");
+		if ( !automaticUpdateActive )
+		{
+			globalError(UPDATE_MISSING_MANIFEST, "please restart");
+		}
 		return "";
 	}
 
@@ -67,23 +76,26 @@ std::string DownloadManager::doWeNeedAnyUpdates()
 	return retval;
 }
 
-void DownloadManager::downloadFile(std::string url, std::string filename)
+void DownloadManager::downloadFile(std::string url, std::string filename, bool urlIsAbsolute)
 {
 	if ( isDownloadInProgress )
 	{
 		return;
 	}
 
-	if (serverUrl.length() == 0)
+	if (!urlIsAbsolute && serverUrl.length() == 0)
 	{
-		globalError(UPDATE_MISSING_SERVERURL, "check serverurl.txt and restart");
+		if ( !automaticUpdateActive )
+		{
+			globalError(UPDATE_MISSING_SERVERURL, "check update_config.txt and restart");
+		}
 		return;
 	}
 
 	// reset
 	isDownloadInProgress = true;
 	userCancelledDownload = false;
-	currentUrl = serverUrl + url;
+	currentUrl = urlIsAbsolute ? url : (serverUrl + url);
 	currentFilename = filename;
 	currentProgressPercent = 0;
 
