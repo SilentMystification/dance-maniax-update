@@ -349,6 +349,7 @@ copy /Y "..\deploy\DMX_PROD.exe" "V:\DMX_DEV\DMX_PROD.exe"</Command>
     <ClInclude Include="headers\pacdriveManager.h" />
     <ClInclude Include="headers\particleSprites.h" />
     <ClInclude Include="headers\ppp_read.h" />
+    <ClInclude Include="headers\releaseTag.h" />
     <ClInclude Include="headers\scoreManager.h" />
     <ClInclude Include="headers\songwheelMode.h" />
     <ClInclude Include="headers\specialEffects.h" />

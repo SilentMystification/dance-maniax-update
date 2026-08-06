@@ -1637,12 +1637,13 @@ void mainUpdateLoop(UTIME dt)
 	// is the update done?
 	if ( dm.isDownloadComplete() && exeUpdateInProgress )
 	{
-		al_trace("DOWNLOADED NEW EXE, HANDING OFF TO updater.bat\n");
+		al_trace("DOWNLOADED NEW EXE (%s), HANDING OFF TO updater.bat\n", pendingExeTag.c_str());
 		exeUpdateInProgress = false;
 		dm.resetState();
 
-		// updater.bat waits for this process to exit, swaps the exe, writes the version marker, and relaunches
-		if ( _execl("updater.bat", "updater.bat", "DMX.exe", "DMX_new.exe", pendingExeTag.c_str(), NULL) == -1 )
+		// updater.bat waits for this process to exit, swaps the exe, and relaunches - the new exe
+		// knows its own release tag directly (burned in at compile time), no marker file needed
+		if ( _execl("updater.bat", "updater.bat", "DMX.exe", "DMX_new.exe", NULL) == -1 )
 		{
 			al_trace("DOWNLOAD ERROR: unable to run updater.bat\n");
 			if ( automaticUpdateActive )
@@ -1770,6 +1771,14 @@ void mainBootLoop(UTIME dt)
 	}
 
 	clear_to_color(rm.m_backbuf, 0);
+	if ( strlen(DMX_RELEASE_TAG) > 0 )
+	{
+		textprintf(rm.m_backbuf, font, 10, 10, WHITE, "%s", DMX_RELEASE_TAG);
+	}
+	else
+	{
+		textprintf(rm.m_backbuf, font, 10, 10, WHITE, "DEV BUILD %s", version.versionString);
+	}
 	textprintf_centre(rm.m_backbuf, font, 320, 50, WHITE, "DanceManiax System Startup");
 	textprintf(rm.m_backbuf, font, 50, 140, WHITE, "I/O   CHECK:");
 	textprintf(rm.m_backbuf, font, 50, 160, WHITE, "DATA  CHECK:");

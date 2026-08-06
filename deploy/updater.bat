@@ -2,17 +2,17 @@
 REM updater.bat - hands off exe self-replacement from the running game.
 REM The game has already downloaded the new exe in full before invoking this script; this script
 REM does no networking of its own. It waits for the old process to exit (DMX.exe cannot delete or
-REM overwrite its own running image), swaps in the new exe, records the applied release tag, and
-REM relaunches. Unlike the ephemeral, server-downloaded data-update.bat, this file is a permanent,
+REM overwrite its own running image), swaps in the new exe, and relaunches. The new exe knows its
+REM own release tag directly (burned in at compile time - see releaseTag.h), so no marker file is
+REM needed here. Unlike the ephemeral, server-downloaded data-update.bat, this file is a permanent,
 REM tracked part of every install and must never delete itself.
 REM
-REM usage: updater.bat OldExeName.exe NewExeName.exe ReleaseTag
+REM usage: updater.bat OldExeName.exe NewExeName.exe
 
 setlocal
 
 set OLDEXE=%~1
 set NEWEXE=%~2
-set RELEASETAG=%~3
 
 if "%OLDEXE%"=="" goto :usage
 if "%NEWEXE%"=="" goto :usage
@@ -39,14 +39,10 @@ if exist "%NEWEXE%" (
 	goto :moveloop
 )
 
-if not "%RELEASETAG%"=="" (
-	echo %RELEASETAG%> exe_version.txt
-)
-
 :relaunch
 start "" "%OLDEXE%"
 goto :eof
 
 :usage
-echo Usage: updater.bat OldExeName.exe NewExeName.exe ReleaseTag
+echo Usage: updater.bat OldExeName.exe NewExeName.exe
 goto :eof

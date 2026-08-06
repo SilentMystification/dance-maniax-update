@@ -143,6 +143,22 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Stamp release tag
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          $content = @"
+#ifndef _RELEASETAG_H
+#define _RELEASETAG_H
+
+#define DMX_RELEASE_TAG "$env:RELEASE_TAG"
+
+#endif
+"@
+          Set-Content -Path src/headers/releaseTag.h -Value $content
+          Write-Host "Stamped DMX_RELEASE_TAG = $env:RELEASE_TAG"
+
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 

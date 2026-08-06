@@ -71,7 +71,7 @@ namespace
 	}
 
 	// returns true only if "a" is a validly-formed tag whose date+sequence is strictly greater than "b"'s.
-	// "b" being absent/malformed (e.g. no exe_version.txt yet) is handled by the caller, not here.
+	// "b" being absent/malformed (e.g. a local dev build with no stamped tag) is handled by the caller.
 	bool isDmxTagNewer(const std::string& a, const std::string& b)
 	{
 		int channelA = 0, channelB = 0;
@@ -179,12 +179,14 @@ bool UpdateChecker::httpGetBounded(const std::string& host, const std::string& p
 			isHttps ? INTERNET_DEFAULT_HTTPS_PORT : INTERNET_DEFAULT_HTTP_PORT, 0);
 		if (hConnect == NULL) break;
 
+		// WINHTTP_FLAG_REFRESH forces revalidation with the origin server instead of a cached
+		// response - the whole point of these checks is to notice something changed since last time
+		DWORD requestFlags = WINHTTP_FLAG_REFRESH | (isHttps ? WINHTTP_FLAG_SECURE : 0);
 		hRequest = WinHttpOpenRequest(hConnect, L"GET", toWide(path).c_str(),
-			NULL, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES,
-			isHttps ? WINHTTP_FLAG_SECURE : 0);
+			NULL, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, requestFlags);
 		if (hRequest == NULL) break;
 
-		const wchar_t* headers = L"User-Agent: DMX-Remake-Updater/1.0\r\n";
+		const wchar_t* headers = L"User-Agent: DMX-Remake-Updater/1.0\r\nCache-Control: no-cache\r\nPragma: no-cache\r\n";
 		if (!WinHttpSendRequest(hRequest, headers, (DWORD)-1, WINHTTP_NO_REQUEST_DATA, 0, 0, 0)) break;
 		if (!WinHttpReceiveResponse(hRequest, NULL)) break;
 
@@ -342,12 +344,12 @@ bool UpdateChecker::checkForExeUpdate(int channel, std::string& outTag, std::str
 		return false; // nothing published on this channel (within the fetched page), or no DMX.exe asset
 	}
 
-	std::string currentTag = readLastAppliedExeTag();
-	// an empty marker (no exe_version.txt yet, e.g. first boot after this feature ships) means we
-	// don't know a baseline - treat any valid published tag as newer so it gets recorded. Otherwise
-	// only a tag that is ACTUALLY newer (by date+sequence) counts, regardless of which channel it or
-	// the current tag belong to - this is what allows a deliberate channel switch to proceed (a
-	// newer release on the newly-selected channel) while still refusing any actual downgrade.
+	std::string currentTag = getCurrentExeTag();
+	// an empty/unknown baseline (a local dev build with no stamped tag) means we can't compare -
+	// treat any valid published tag as newer. Otherwise only a tag that is ACTUALLY newer (by
+	// date+sequence) counts, regardless of which channel it or the current tag belong to - this is
+	// what allows a deliberate channel switch to proceed (a newer release on the newly-selected
+	// channel) while still refusing any actual downgrade.
 	if (!currentTag.empty() && !isDmxTagNewer(tag, currentTag))
 	{
 		return false;
@@ -358,25 +360,7 @@ bool UpdateChecker::checkForExeUpdate(int channel, std::string& outTag, std::str
 	return true;
 }
 
-std::string readLastAppliedExeTag()
+std::string getCurrentExeTag()
 {
-	FILE* fp = NULL;
-	if (fopen_s(&fp, EXE_VERSION_MARKER_FILENAME, "rt") != 0 || fp == NULL)
-	{
-		return "";
-	}
-
-	char buffer[256] = "";
-	std::string result = "";
-	if (fgets(buffer, 256, fp) != NULL)
-	{
-		size_t len = strlen(buffer);
-		while (len > 0 && (buffer[len - 1] == '\n' || buffer[len - 1] == '\r'))
-		{
-			buffer[--len] = 0;
-		}
-		result = buffer;
-	}
-	fclose(fp);
-	return result;
+	return DMX_RELEASE_TAG;
 }

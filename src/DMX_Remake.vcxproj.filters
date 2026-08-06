@@ -155,6 +155,9 @@
     <ClInclude Include="headers\ppp_read.h">
       <Filter>headers</Filter>
     </ClInclude>
+    <ClInclude Include="headers\releaseTag.h">
+      <Filter>headers</Filter>
+    </ClInclude>
     <ClInclude Include="headers\scoreManager.h">
       <Filter>headers</Filter>
     </ClInclude>

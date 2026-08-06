@@ -11,8 +11,7 @@
 
 #include "../headers/common.h"
 #include "../headers/downloadManager.h" // for UPDATE_CONFIG_FILENAME
-
-#define EXE_VERSION_MARKER_FILENAME "exe_version.txt"
+#include "../headers/releaseTag.h"
 
 // release tags are shaped "DMX-XX-YYYYMMDDVV" - XX is one of these channel codes
 #define DMX_CHANNEL_STABLE 0
@@ -41,7 +40,7 @@ public:
 	bool checkForExeUpdate(int channel, std::string& outTag, std::string& outAssetUrl, int timeoutMs);
 	// precondition: githubRepo is non-empty; channel is one of the DMX_CHANNEL_* constants
 	// postcondition: returns true only if a release tagged for the requested channel was found AND its
-	//                date+sequence is strictly newer than readLastAppliedExeTag() AND both the tag and
+	//                date+sequence is strictly newer than getCurrentExeTag() AND both the tag and
 	//                the DMX.exe asset URL were parsed successfully. Only ever considers tags matching
 	//                the requested channel - a channel switch is allowed (an operator picking a
 	//                different channel naturally starts comparing against that channel's releases),
@@ -73,7 +72,8 @@ protected:
 	// (i.e. the newest release actually published on that channel). Returns "" if none matched.
 };
 
-std::string readLastAppliedExeTag();
-// reads EXE_VERSION_MARKER_FILENAME, returns "" if missing/unreadable - never errors
+std::string getCurrentExeTag();
+// postcondition: returns DMX_RELEASE_TAG - the tag this exe was CI-built as, burned in at compile
+// time (see releaseTag.h) - or "" for a local/dev build that was never an official release
 
 #endif
