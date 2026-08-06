@@ -36,6 +36,9 @@
     <ClCompile Include="source\extioManager.cpp">
       <Filter>source</Filter>
     </ClCompile>
+    <ClCompile Include="source\logManager.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
     <ClCompile Include="source\gameoverMode.cpp">
       <Filter>source</Filter>
     </ClCompile>
@@ -129,6 +132,9 @@
       <Filter>headers</Filter>
     </ClInclude>
     <ClInclude Include="headers\extioManager.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\logManager.h">
       <Filter>headers</Filter>
     </ClInclude>
     <ClInclude Include="headers\gameplayRendering.h">

@@ -19,6 +19,7 @@
 #include "../headers/downloadManager.h"
 #include "../headers/updateChecker.h"
 #include "../headers/extioManager.h"
+#include "../headers/logManager.h"
 #include "../headers/inputManager.h"
 #include "../headers/gameStateManager.h"
 #include "../headers/lightsManager.h"
@@ -253,6 +254,12 @@ int main()
 	
 	// setup the Allegro library
 	allegro_init();
+
+	// must come immediately after allegro_init() and before anything else can call al_trace() -
+	// see logManager.h. Makes every al_trace() call in the codebase non-blocking regardless of
+	// which thread calls it, without needing to change any of those call sites.
+	initializeAsyncLogging();
+
 	srand(time(0));
 
 	// keyboard initialization
