@@ -5,6 +5,7 @@
 #define _EXTIOMANAGER_H_
 
 #include "../headers/common.h"
+#include <vector>
 
 class extioManager
 {
@@ -13,12 +14,25 @@ public:
 
 	void initialize();
 	// precondition: called only once before the visible boot sequence begins
-	// postcondition: ready for updateInitialize() to begin
+	// postcondition: the list of COM ports to try is populated (from the ports Windows currently
+	//                reports as present - see HARDWARE\DEVICEMAP\SERIALCOMM in extioManager.cpp -
+	//                falling back to a brute-force COM1-COM32 scan only if that comes back empty)
 
 	bool updateInitialize(UTIME dt);
 	// precondition: called continuously during the boot loop, until the IO is ready
 	// postcondition: hopefully, eventualy, isReady() will return true
 	// returns: false when the software should give up on finding an IO board, true when it should continue to wait
+	//
+	// Every candidate port is tried IN PARALLEL, one dedicated thread each, spun up together on the
+	// first call - not one port after another. Whichever one answers the handshake first wins; the
+	// rest are abandoned in place (see extioManager.cpp for how that's done safely). This function
+	// itself never calls a single blocking Win32 API - it only ever polls a plain atomic status flag -
+	// so it is UNCONDITIONALLY safe to call every frame no matter what any port's driver does,
+	// including if one never returns at all. It gives up and returns false on its own if nothing has
+	// reported back within BOOT_WAIT_TIMEOUT_MS, regardless of whether any thread is still running -
+	// some other, unrelated device sitting on a COM port (built into the cabinet's PC, a Bluetooth
+	// virtual port, whatever) can never hang boot, and can no longer delay finding the real board
+	// past its own individual timeout either, since it's no longer sitting in front of it in a queue.
 
 	bool isReady();
 	// returns: true when the initialization is complete and the hardware is fully usable
@@ -34,15 +48,18 @@ public:
 	// TODO: functions for coin counter and lockout coil
 
 private:
-	int comPort;
+	std::vector<int> comPortsToTry;
+
 	bool isConnected;
 	bool isTalking;
 	UTIME powerOnTime;
-	int connectionState;
+	int comPort; // the port that won the race and got adopted, for logging/display only
 
-	bool attemptConnection(const char* port);
-	// precondition: only called while in boot mode, and should be called once each loop
-	// returns: returns false when this manager gives up on finding the extio, true otherwise
+	void* scanContext;      // ScanContext*, shared (reference-counted) with every per-port thread -
+	                         // see extioManager.cpp
+	bool scanStarted;        // true once the per-port threads have been kicked off
+	UTIME bootWaitElapsed;   // how long THIS object has been waiting on them - independent of how
+	                         // long any individual thread has actually been running
 
 	void setBaudRate(DWORD rate);
 	// precondition: hSerial is a valid open handle

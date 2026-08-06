@@ -5,6 +5,8 @@
 
 #include <apeg.h>
 
+extern UTIME getTimeMs();
+
 static void resolveStepFilename(const struct MOVIE_SEQ_STEP* script, int step, char* out, size_t outSize)
 {
 	strcpy_s(out, outSize, "DATA/video/");
@@ -16,6 +18,8 @@ static void resolveStepFilename(const struct MOVIE_SEQ_STEP* script, int step, c
 static APEG_STREAM* openVideoStream(const char* filename, void** bufOut)
 {
 	*bufOut = NULL;
+	UTIME t0 = getTimeMs();
+
 	FILE* fp = NULL;
 	if ( fopen_s(&fp, filename, "rb") != 0 )
 	{
@@ -28,6 +32,13 @@ static APEG_STREAM* openVideoStream(const char* filename, void** bufOut)
 	void* buf = malloc(fsize);
 	fread(buf, fsize, 1, fp);
 	fclose(fp);
+
+	UTIME t1 = getTimeMs();
+	al_trace("VideoManager: read %s (%ld bytes) in %lu ms on the main thread.\r\n", filename, fsize, t1 - t0);
+	if ( t1 - t0 > 15 )
+	{
+		al_trace("VideoManager: *** SLOW FILE READ *** %s took %lu ms - check AV/Defender scanning or disk contention on this file.\r\n", filename, t1 - t0);
+	}
 
 	if ( ((char*)buf)[0] != 'O' || ((char*)buf)[1] != 'g' || ((char*)buf)[2] != 'g' || ((char*)buf)[3] != 'S' )
 	{
@@ -62,11 +73,17 @@ static void closeVideoStream(APEG_STREAM*& stream, void*& buf)
 
 static void advanceToFirstFrame(APEG_STREAM* stream)
 {
+	UTIME t0 = getTimeMs();
 	for ( int i = 0; i < 8; i++ )
 	{
 		apeg_advance_stream(stream, true);
 		if ( stream->frame_updated > 0 && stream->bitmap != NULL )
 			break;
+	}
+	UTIME elapsed = getTimeMs() - t0;
+	if ( elapsed > 15 )
+	{
+		al_trace("VideoManager: *** SLOW DECODE *** advanceToFirstFrame took %lu ms.\r\n", elapsed);
 	}
 }
 
@@ -205,7 +222,10 @@ void VideoManager::loadScript(const char* filename)
 
 void VideoManager::loadVideoAtCurrentStep()
 {
-	if ( nextCmov != NULL && nextPreloadedStep == currentStep )
+	UTIME t0 = getTimeMs();
+	bool usedPreload = ( nextCmov != NULL && nextPreloadedStep == currentStep );
+
+	if ( usedPreload )
 	{
 		// swap preloaded stream in — no file I/O, first frame already decoded
 		closeVideoStream(cmov, videoBuffer);
@@ -235,7 +255,18 @@ void VideoManager::loadVideoAtCurrentStep()
 	if ( cmov->frame_updated > 0 && cmov->bitmap != NULL )
 		blit(cmov->bitmap, frameData, 0, 0, 0, 0, 320, 192);
 
+	UTIME swapMs = getTimeMs() - t0;
+	al_trace("VideoManager: swap-in for step %d at song time %d ms took %lu ms (%s).\r\n",
+		currentStep, currentTime, swapMs, usedPreload ? "used preload, should be instant" : "BLOCKING LOAD, no preload was ready");
+
+	UTIME t1 = getTimeMs();
 	preloadNextStep();
+	UTIME preloadMs = getTimeMs() - t1;
+	al_trace("VideoManager: preloadNextStep() for the step after %d took %lu ms on the main thread.\r\n", currentStep, preloadMs);
+	if ( swapMs + preloadMs > 15 )
+	{
+		al_trace("VideoManager: *** this update() call blocked the main game thread for %lu ms total ***\r\n", swapMs + preloadMs);
+	}
 }
 
 void VideoManager::preloadNextStep()

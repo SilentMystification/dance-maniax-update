@@ -36,6 +36,9 @@
     <ClCompile Include="source\extioManager.cpp">
       <Filter>source</Filter>
     </ClCompile>
+    <ClCompile Include="source\logManager.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
     <ClCompile Include="source\gameoverMode.cpp">
       <Filter>source</Filter>
     </ClCompile>
@@ -96,6 +99,9 @@
     <ClCompile Include="source\specialEffects.cpp">
       <Filter>source</Filter>
     </ClCompile>
+    <ClCompile Include="source\updateChecker.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
     <ClCompile Include="source\versionManager.cpp">
       <Filter>source</Filter>
     </ClCompile>
@@ -128,6 +134,9 @@
     <ClInclude Include="headers\extioManager.h">
       <Filter>headers</Filter>
     </ClInclude>
+    <ClInclude Include="headers\logManager.h">
+      <Filter>headers</Filter>
+    </ClInclude>
     <ClInclude Include="headers\gameplayRendering.h">
       <Filter>headers</Filter>
     </ClInclude>
@@ -152,6 +161,9 @@
     <ClInclude Include="headers\ppp_read.h">
       <Filter>headers</Filter>
     </ClInclude>
+    <ClInclude Include="headers\releaseTag.h">
+      <Filter>headers</Filter>
+    </ClInclude>
     <ClInclude Include="headers\scoreManager.h">
       <Filter>headers</Filter>
     </ClInclude>
@@ -159,6 +171,9 @@
       <Filter>headers</Filter>
     </ClInclude>
     <ClInclude Include="headers\specialEffects.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\updateChecker.h">
       <Filter>headers</Filter>
     </ClInclude>
     <ClInclude Include="headers\versionManager.h">
