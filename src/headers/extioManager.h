@@ -5,6 +5,7 @@
 #define _EXTIOMANAGER_H_
 
 #include "../headers/common.h"
+#include <vector>
 
 class extioManager
 {
@@ -13,12 +14,26 @@ public:
 
 	void initialize();
 	// precondition: called only once before the visible boot sequence begins
-	// postcondition: ready for updateInitialize() to begin
+	// postcondition: the list of COM ports to try is populated (from the ports Windows currently
+	//                reports as present - see HARDWARE\DEVICEMAP\SERIALCOMM in extioManager.cpp -
+	//                falling back to a brute-force COM1-COM32 scan only if that comes back empty)
 
 	bool updateInitialize(UTIME dt);
 	// precondition: called continuously during the boot loop, until the IO is ready
 	// postcondition: hopefully, eventualy, isReady() will return true
 	// returns: false when the software should give up on finding an IO board, true when it should continue to wait
+	//
+	// The entire port hunt (open, configure, handshake) for every candidate port runs on ONE
+	// dedicated background thread, spun up on the first call. This function itself never calls a
+	// single blocking Win32 API - it only ever polls a plain atomic status flag - so it is
+	// UNCONDITIONALLY safe to call every frame no matter what any port's driver does, including if
+	// it never returns at all, and including any effect one bad port's open might have on trying to
+	// open a DIFFERENT port afterward (e.g. a shared driver-level lock serializing opens across
+	// ports - this only ever affects the background thread, never this call). This function gives up
+	// and returns false on its own if the background thread hasn't reported back within
+	// BOOT_WAIT_TIMEOUT_MS, regardless of whether that thread is still running - some other,
+	// unrelated device sitting on a COM port (built into the cabinet's PC, a Bluetooth virtual port,
+	// whatever) can never hang boot.
 
 	bool isReady();
 	// returns: true when the initialization is complete and the hardware is fully usable
@@ -34,21 +49,19 @@ public:
 	// TODO: functions for coin counter and lockout coil
 
 private:
-	int comPort;
+	std::vector<int> comPortsToTry;
+
 	bool isConnected;
 	bool isTalking;
 	UTIME powerOnTime;
-	int connectionState;
+	int comPort; // the port the scan thread found and handed off, for logging/display only
 
-	void* pendingOpen; // ComOpenAttempt*, or NULL when no open is in flight - see extioManager.cpp
-	UTIME pendingOpenElapsed;
-
-	void startAsyncOpen(const char* port);
-	// precondition: pendingOpen is NULL (no open already in flight)
-	// postcondition: a worker thread has been kicked off to CreateFile()+configure the given port,
-	//                since that call has no OS-level timeout and can hang forever on some COM ports
-	//                (observed on real cabinets: a driver that never completes the open, e.g. a
-	//                Bluetooth virtual COM port or similar). pendingOpen is non-NULL afterward.
+	void* scanThreadHandle; // HANDLE, or NULL before the scan starts / after it's been reaped
+	void* scanContext;      // ScanContext*, owned by whichever side (this object, or the thread
+	                         // itself once detached past BOOT_WAIT_TIMEOUT_MS) is still interested -
+	                         // see extioManager.cpp
+	UTIME bootWaitElapsed;   // how long THIS object has been waiting on the scan thread - independent
+	                         // of how long the thread itself has actually been running
 
 	void setBaudRate(DWORD rate);
 	// precondition: hSerial is a valid open handle

@@ -5,20 +5,27 @@
 #include "../headers/extioManager.h"
 #include "../headers/inputManager.h"
 #include "../headers/lightsManager.h"
+#include <algorithm>
+
+#pragma comment(lib, "advapi32.lib") // for the registry reads in enumerateAvailableComPorts()
 
 #define ARDUINO_WAIT_TIME 4000
 #define ARDUINO_TIMEOUT 8000
 
-// how many ports to try, starting at \\.\COM0 - wide enough to survive Windows' habit of bumping a
-// device's assigned COM number every time it's physically replugged, so the real IO board doesn't
-// fall permanently out of range on a cabinet that's had cables swapped a lot over its lifetime
-#define MAX_COM_PORT_INDEX 32
+// How long the BOOT LOOP (the main/render thread) waits on the background scan thread before giving
+// up and moving on regardless. This is deliberately short: it only ever needs to cover the HAPPY
+// PATH (the real board answers on the first or second port tried, which - thanks to ARDUINO_WAIT_TIME
+// - takes ~4-5 seconds no matter what), because every failure mode (a bad port, a slow/hanging
+// driver, several red-herring devices in a row) is now entirely the background thread's problem, not
+// this one's. If the thread hasn't reported back by this point, boot proceeds to SKIP; the thread
+// itself is left running and is simply never listened to again (see updateInitialize()).
+#define BOOT_WAIT_TIMEOUT_MS 8000
 
-// CreateFile() on a COM port has no OS-level timeout and can block forever on some ports/drivers
-// (observed on real cabinets: something sitting on a low COM number - e.g. a Bluetooth virtual COM
-// port - that never completes its connection handshake). Bounding it here, rather than giving up
-// with no time limit, is what keeps a bad port from hanging the whole game at boot.
-#define COM_OPEN_TIMEOUT_MS 1500
+// only used if the registry enumeration below comes back empty, as a last-resort fallback so a
+// system where that lookup doesn't pan out (for whatever reason) isn't left unable to find the
+// board at all. Windows COM ports are 1-indexed - there is no real COM0.
+#define FALLBACK_SCAN_FIRST_PORT 1
+#define FALLBACK_SCAN_LAST_PORT 32
 
 extern InputManager im;
 extern LightsManager lm;
@@ -26,66 +33,156 @@ extern bool usePhoenixIO;
 
 namespace
 {
-	// state for a port open running on a throwaway worker thread (see comOpenThreadProc). Owned by
-	// whichever side is still interested: the extioManager while pendingOpen points at it, or the
-	// worker thread itself once "abandoned" is set (having timed out from the main thread's point of
-	// view) - the two never touch it at the same time past that handoff.
-	struct ComOpenAttempt
+	enum ScanState
 	{
-		char port[32];
-		bool usePhoenix;
-		HANDLE threadHandle;
-		HANDLE resultHandle; // only valid once "done" is set
-		volatile LONG done;
-		volatile LONG abandoned;
+		SCAN_RUNNING = 0,
+		SCAN_FOUND,
+		SCAN_GAVE_UP,
 	};
 
-	DWORD WINAPI comOpenThreadProc(LPVOID param)
+	// Shared between extioManager and the one background scan thread it owns. Once
+	// extioManager stops waiting on it (BOOT_WAIT_TIMEOUT_MS elapsed with no result yet), it
+	// abandons this struct WITHOUT freeing it - the thread may still be legitimately stuck inside a
+	// bad port's driver and could write to `state`/`resultHandle` at any later, unknowable time. The
+	// alternative (freeing it and letting the thread write to freed memory) is worse, so this is a
+	// deliberate one-time leak in that specific case, not an oversight.
+	struct ScanContext
 	{
-		ComOpenAttempt* attempt = (ComOpenAttempt*)param;
+		std::vector<int> ports;
+		bool usePhoenix;
+		volatile LONG state; // ScanState
+		HANDLE resultHandle; // valid only once state == SCAN_FOUND
+		int resultComPort;
+	};
 
-		HANDLE h = CreateFileA(attempt->port,
-			GENERIC_READ | GENERIC_WRITE,
-			0,
-			NULL,
-			OPEN_EXISTING,
-			FILE_ATTRIBUTE_NORMAL,
-			NULL);
+	// Runs the ENTIRE port hunt - open, configure, wait for the board to reset, handshake - for
+	// every candidate port, sequentially, entirely on this one dedicated thread. Deliberately never
+	// hands control back to the boot loop mid-scan: if some port's driver hangs forever (or if
+	// opening a later port turns out to be serialized behind a lock held by an earlier port's still-
+	// blocked open - a real possibility with some legacy/shared serial drivers), this thread hangs
+	// with it, but nothing else does, because nothing else ever calls a serial API directly.
+	DWORD WINAPI scanThreadProc(LPVOID param)
+	{
+		ScanContext* ctx = (ScanContext*)param;
 
-		if ( h != INVALID_HANDLE_VALUE )
+		for ( size_t i = 0; i < ctx->ports.size(); i++ )
 		{
+			int port = ctx->ports[i];
+			char portName[32];
+			sprintf_s(portName, "\\\\.\\COM%d", port);
+
+			HANDLE h = CreateFileA(portName,
+				GENERIC_READ | GENERIC_WRITE,
+				0,
+				NULL,
+				OPEN_EXISTING,
+				FILE_ATTRIBUTE_NORMAL,
+				NULL);
+			if ( h == INVALID_HANDLE_VALUE )
+			{
+				continue;
+			}
+
 			DCB dcbSerialParams = { 0 };
 			dcbSerialParams.DCBlength = sizeof(DCB);
 			bool ok = GetCommState(h, &dcbSerialParams) != FALSE;
 			if ( ok )
 			{
-				dcbSerialParams.BaudRate = attempt->usePhoenix ? CBR_115200 : CBR_9600;
+				dcbSerialParams.BaudRate = ctx->usePhoenix ? CBR_115200 : CBR_9600;
 				dcbSerialParams.ByteSize = 8;
 				dcbSerialParams.StopBits = ONESTOPBIT;
 				dcbSerialParams.Parity = NOPARITY;
 				ok = SetCommState(h, &dcbSerialParams) != FALSE;
 			}
-
 			if ( !ok )
 			{
 				CloseHandle(h);
-				h = INVALID_HANDLE_VALUE;
+				continue;
 			}
+
+			// give the board a moment to actually be reset and ready to listen, same as the original
+			// synchronous design - just as a Sleep() on this dedicated thread instead of a dt-driven
+			// wait on the main thread, since nothing else needs this thread's time
+			Sleep(ARDUINO_WAIT_TIME);
+
+			DWORD bytesWritten = 0;
+			WriteFile(h, "DMX", 3, &bytesWritten, NULL);
+
+			UTIME waited = 0;
+			char reply[3] = { 0, 0, 0 };
+			bool gotReply = false;
+			while ( waited < ARDUINO_TIMEOUT )
+			{
+				COMSTAT portStatus = { 0 };
+				DWORD portErrors = 0;
+				ClearCommError(h, &portErrors, &portStatus);
+				if ( portStatus.cbInQue >= 3 )
+				{
+					DWORD bytesRead = 0;
+					gotReply = ReadFile(h, reply, 3, &bytesRead, NULL) && bytesRead == 3;
+					break;
+				}
+				Sleep(50);
+				waited += 50;
+			}
+
+			if ( gotReply && reply[0] == 'O' && reply[1] == 'K' && reply[2] == '!' )
+			{
+				ctx->resultHandle = h;
+				ctx->resultComPort = port;
+				InterlockedExchange(&ctx->state, SCAN_FOUND); // must be the last thing touching ctx
+				return 0; // h is intentionally left open - the main thread adopts it
+			}
+
+			CloseHandle(h);
 		}
 
-		attempt->resultHandle = h;
-
-		if ( InterlockedCompareExchange(&attempt->abandoned, 0, 0) != 0 )
-		{
-			// the main thread stopped waiting on this a while ago - we own cleanup now
-			if ( h != INVALID_HANDLE_VALUE ) CloseHandle(h);
-			CloseHandle(attempt->threadHandle);
-			delete attempt;
-			return 0;
-		}
-
-		InterlockedExchange(&attempt->done, 1);
+		InterlockedExchange(&ctx->state, SCAN_GAVE_UP); // must be the last thing touching ctx
 		return 0;
+	}
+
+	// Real COM ports currently present on this machine, per Windows itself - not a blind numeric
+	// guess. This is what keeps the scan from ever touching a port number that doesn't correspond to
+	// an actual device, and is a plain synchronous registry read (no device I/O, no hang risk of its
+	// own). Sorted ascending; empty if the key can't be read for some reason (caller falls back to a
+	// brute-force scan in that case).
+	std::vector<int> enumerateAvailableComPorts()
+	{
+		std::vector<int> ports;
+
+		HKEY hKey;
+		if ( RegOpenKeyExA(HKEY_LOCAL_MACHINE, "HARDWARE\\DEVICEMAP\\SERIALCOMM", 0, KEY_READ, &hKey) != ERROR_SUCCESS )
+		{
+			return ports;
+		}
+
+		char valueName[256];
+		char valueData[256];
+		DWORD index = 0;
+		for ( ;; )
+		{
+			DWORD valueNameSize = sizeof(valueName);
+			DWORD valueDataSize = sizeof(valueData);
+			DWORD type = 0;
+			LONG result = RegEnumValueA(hKey, index, valueName, &valueNameSize, NULL, &type, (LPBYTE)valueData, &valueDataSize);
+			if ( result == ERROR_NO_MORE_ITEMS )
+			{
+				break;
+			}
+			if ( result == ERROR_SUCCESS && type == REG_SZ )
+			{
+				int portNum = 0;
+				if ( sscanf_s(valueData, "COM%d", &portNum) == 1 )
+				{
+					ports.push_back(portNum);
+				}
+			}
+			index++;
+		}
+
+		RegCloseKey(hKey);
+		std::sort(ports.begin(), ports.end());
+		return ports;
 	}
 }
 
@@ -96,10 +193,10 @@ extioManager::extioManager()
 	isConnected = false;
 	isTalking = false;
 	powerOnTime = 0;
-	connectionState = 0;
 	timeSinceLastLampUpdate = 0;
-	pendingOpen = NULL;
-	pendingOpenElapsed = 0;
+	scanThreadHandle = NULL;
+	scanContext = NULL;
+	bootWaitElapsed = 0;
 }
 
 void extioManager::initialize()
@@ -109,123 +206,95 @@ void extioManager::initialize()
 		inputBuffer[i] = 0;
 	}
 
-//#ifdef DMXDEBUG
-//	comPort = TRUSTED_COM_PORT - 1;
-//#endif
-}
-
-void extioManager::startAsyncOpen(const char* port)
-{
-	ComOpenAttempt* attempt = new ComOpenAttempt();
-	strcpy_s(attempt->port, sizeof(attempt->port), port);
-	attempt->usePhoenix = usePhoenixIO;
-	attempt->resultHandle = INVALID_HANDLE_VALUE;
-	attempt->done = 0;
-	attempt->abandoned = 0;
-	attempt->threadHandle = CreateThread(NULL, 0, comOpenThreadProc, attempt, 0, NULL);
-
-	pendingOpen = attempt;
-	pendingOpenElapsed = 0;
+	comPortsToTry = enumerateAvailableComPorts();
+	if ( comPortsToTry.empty() )
+	{
+#ifdef DMX_LOGGING
+		al_trace("No ports found in HARDWARE\\DEVICEMAP\\SERIALCOMM - falling back to a brute-force COM%d-COM%d scan.\r\n",
+			FALLBACK_SCAN_FIRST_PORT, FALLBACK_SCAN_LAST_PORT);
+#endif
+		for ( int port = FALLBACK_SCAN_FIRST_PORT; port <= FALLBACK_SCAN_LAST_PORT; port++ )
+		{
+			comPortsToTry.push_back(port);
+		}
+	}
 }
 
 bool extioManager::updateInitialize(UTIME dt)
 {
-	if ( !isConnected )
+	if ( scanThreadHandle == NULL && scanContext == NULL )
 	{
-		if ( pendingOpen == NULL )
-		{
-			comPort++;
-			if ( comPort >= MAX_COM_PORT_INDEX )
-			{
-				al_trace("Can't find the IO board on any com port.\r\n");
-				comPort = -1;
-				connectionState = 0;
-				return false;
-			}
+		// first call - kick off the one background thread that owns the entire scan
+		ScanContext* ctx = new ScanContext();
+		ctx->ports = comPortsToTry;
+		ctx->usePhoenix = usePhoenixIO;
+		ctx->state = SCAN_RUNNING;
+		ctx->resultHandle = INVALID_HANDLE_VALUE;
+		ctx->resultComPort = -1;
 
-			char port[32];
-			sprintf_s(port, "\\\\.\\COM%d", comPort);
-			startAsyncOpen(port);
-			return true;
-		}
-
-		// an open is running on the worker thread - wait for it, but only up to COM_OPEN_TIMEOUT_MS,
-		// so a port that never completes its open can't hang the whole game
-		ComOpenAttempt* attempt = (ComOpenAttempt*)pendingOpen;
-		pendingOpenElapsed += dt;
-
-		if ( InterlockedCompareExchange(&attempt->done, 0, 0) != 0 )
-		{
-			HANDLE result = attempt->resultHandle;
-			CloseHandle(attempt->threadHandle);
-			delete attempt;
-			pendingOpen = NULL;
-
-			if ( result != INVALID_HANDLE_VALUE )
-			{
-				al_trace(usePhoenixIO ? "Using Phoenix IO at 115200\r\n" : "Using Standard IO at 9600\r\n");
-				hSerial = result;
-				isConnected = true;
-				powerOnTime = 0;
-				connectionState = 1;
-			}
-			// else: this port isn't it - fall through and try the next one next frame
-		}
-		else if ( pendingOpenElapsed >= COM_OPEN_TIMEOUT_MS )
-		{
-			al_trace("Timed out opening port %d - abandoning it and trying the next port.\r\n", comPort);
-			InterlockedExchange(&attempt->abandoned, 1);
-			pendingOpen = NULL; // the worker thread owns the attempt's cleanup now, whenever (if ever) it returns
-		}
-
+		scanContext = ctx;
+		scanThreadHandle = CreateThread(NULL, 0, scanThreadProc, ctx, 0, NULL);
+		bootWaitElapsed = 0;
 		return true;
 	}
-	else
-	{
-		powerOnTime += dt;
 
-		if ( connectionState == 1 )
-		{
-			if ( powerOnTime >= ARDUINO_WAIT_TIME )
-			{
-				WriteData("DMX", PACKET_SIZE);
-				connectionState = 2;
-			}
-		}
-		else if ( connectionState == 2 )
-		{
-			if ( isPacketReady() )
-			{
-				ReadData(inputBuffer, PACKET_SIZE);
-				if ( inputBuffer[0] == 'O' && inputBuffer[1] == 'K' && inputBuffer[2] == '!' )
-				{
-					al_trace("Handshake accepted! Found the IO board on port %d.\r\n", comPort);
-					isTalking = true;
-					connectionState = 3;
-					WriteData("I", 1); // begin the input request loop
-				}
-				else
-				{
-					// abort - try another port
-					powerOnTime = 0;
-					isConnected = false;
-					connectionState = 0;
-					al_trace("The handshake was incorrect on port %d. Checking other ports.\r\n", comPort);
-				}
-			}
-			else if ( powerOnTime >= ARDUINO_TIMEOUT )
-			{
-				// abort - try another port
-				powerOnTime = 0;
-				isConnected = false;
-				connectionState = 0;
-				al_trace("IO board timeout on port %d. Checking other ports.\r\n", comPort);
-			}
-		}
-		else if ( connectionState == 3 )
-		{
-			al_trace("Do not call updateInitialize() after success!\r\n");
-		}
+	if ( scanContext == NULL )
+	{
+		// already gave up and detached in a previous call - nothing left to poll
+		return false;
+	}
+
+	bootWaitElapsed += dt;
+
+	ScanContext* ctx = (ScanContext*)scanContext;
+	LONG state = InterlockedCompareExchange(&ctx->state, SCAN_RUNNING, SCAN_RUNNING); // atomic peek
+
+	if ( state == SCAN_FOUND )
+	{
+		hSerial = ctx->resultHandle;
+		comPort = ctx->resultComPort;
+		isConnected = true;
+		isTalking = true;
+#ifdef DMX_LOGGING
+		al_trace("Handshake accepted! Found the IO board on port %d (%s).\r\n",
+			comPort, usePhoenixIO ? "Phoenix IO @ 115200" : "Standard IO @ 9600");
+#endif
+		WriteData("I", 1); // begin the input request loop
+
+		if ( scanThreadHandle != NULL ) CloseHandle((HANDLE)scanThreadHandle);
+		scanThreadHandle = NULL;
+		delete ctx;
+		scanContext = NULL;
+		return true;
+	}
+
+	if ( state == SCAN_GAVE_UP )
+	{
+#ifdef DMX_LOGGING
+		al_trace("Can't find the IO board on any known com port.\r\n");
+#endif
+
+		if ( scanThreadHandle != NULL ) CloseHandle((HANDLE)scanThreadHandle);
+		scanThreadHandle = NULL;
+		delete ctx;
+		scanContext = NULL;
+		return false;
+	}
+
+	// still running - bounded independently of whatever the background thread is actually doing
+	if ( bootWaitElapsed >= BOOT_WAIT_TIMEOUT_MS )
+	{
+#ifdef DMX_LOGGING
+		al_trace("Giving up waiting on the IO board scan after %lums - no board found (the scan thread is left running in the background in case some port's driver is just being slow, but boot is no longer waiting on it).\r\n",
+			(unsigned long)bootWaitElapsed);
+#endif
+
+		// deliberately do NOT close scanThreadHandle or delete ctx here - the thread may genuinely
+		// still be stuck inside a bad port's driver and could touch ctx at any later time; freeing it
+		// out from under that write would be a use-after-free. Just stop watching it.
+		scanThreadHandle = NULL;
+		scanContext = NULL;
+		return false;
 	}
 
 	return true;
